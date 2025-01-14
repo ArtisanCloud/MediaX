@@ -1,0 +1,35 @@
+# Go binary and build artifacts
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.a
+*.out
+*.test
+*.prof
+
+# Go workspace
+/go/
+
+# Dependency directories
+/vendor/
+
+# GoLand IDE files
+.idea/
+
+# VS Code IDE files
+.vscode/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Ignore any file generated during testing
+*.out
+
+# Go modules
+go.sum
