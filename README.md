@@ -1,6 +1,6 @@
-# PublishX
+# MediaX
 
-PublishX 是一个支持多平台内容发布的轻量级 SDK，旨在帮助开发者快速集成到主流自媒体平台，实现统一的内容发布接口。
+MediaX 是一个支持多平台内容发布的轻量级 SDK，旨在帮助开发者快速集成到主流自媒体平台，实现统一的内容发布接口。
 
 ## 功能特点
 
@@ -19,10 +19,10 @@ PublishX 是一个支持多平台内容发布的轻量级 SDK，旨在帮助开�
 
 ### 安装
 
-1. 初始化项目并下载 PublishX：
+1. 初始化项目并下载 MediaX：
 
    ```bash
-   go get github.com/ArtisanCloud/PublishX
+   go get github.com/ArtisanCloud/MediaX
    ```
 
 2. 创建一个简单的主程序：
@@ -32,12 +32,12 @@ PublishX 是一个支持多平台内容发布的轻量级 SDK，旨在帮助开�
 
    import (
        "fmt"
-       "github.com/ArtisanCloud/PublishX"
+       "github.com/ArtisanCloud/MediaX"
    )
 
    func main() {
-       // 初始化 PublishX
-       pub := PublishX.New()
+       // 初始化 MediaX
+       pub := MediaX.New()
 
        // 添加抖音 Provider
        pub.RegisterProvider("douyin", NewDouyinProvider())
@@ -46,7 +46,7 @@ PublishX 是一个支持多平台内容发布的轻量级 SDK，旨在帮助开�
        pub.RegisterProvider("redbook", NewRedbookProvider())
 
        // 发布内容到多个平台
-       err := pub.Publish([]string{"douyin", "redbook"}, &PublishX.Content{
+       err := pub.Publish([]string{"douyin", "redbook"}, &MediaX.Content{
            Title:       "发布标题",
            SubTitle:    "发布副标题",
            Description: "描述内容",
@@ -70,7 +70,7 @@ PublishX 是一个支持多平台内容发布的轻量级 SDK，旨在帮助开�
 ## 目录结构
 
 ```
-PublishX/
+MediaX/
 ├── providers/           # 各平台 Provider 实现
 │   ├── douyin.go        # 抖音 Provider
 │   └── redbook.go       # 小红书 Provider
@@ -90,7 +90,7 @@ PublishX/
    ```go
    type NewPlatformProvider struct {}
 
-   func (p *NewPlatformProvider) Publish(content *PublishX.Content) error {
+   func (p *NewPlatformProvider) Publish(content *MediaX.Content) error {
        // 实现具体的发布逻辑
        return nil
    }
