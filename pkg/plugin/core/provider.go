@@ -1,4 +1,3 @@
-// Path: plugins/core/provider.go
 package core
 
 // PublishRequest 定义了发布请求的基本内容
