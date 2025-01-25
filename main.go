@@ -9,7 +9,7 @@ import (
 
 func main() {
 	// init logger
-	logger, err := logger.NewLogger(nil, &object.HashMap{
+	l, err := logger.NewLogger(nil, &object.HashMap{
 		"level":      "info",
 		"env":        "develop",
 		"outputPath": "./logs/info.log",
@@ -20,13 +20,13 @@ func main() {
 		panic(err)
 	}
 
-	logger.Info("Hello, MediaX!")
+	l.Info("Hello, MediaX!")
 
 	// plugin managers
 	pluginManager := plugin.NewPluginManager()
-	pluginManager.LoadPlugins()
+	err = pluginManager.LoadPlugins()
 	if err != nil {
-		logger.Error("Failed to load plugins:", err)
+		l.Error("Failed to load plugins:", err)
 		return
 	}
 
