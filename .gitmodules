@@ -1,6 +1,3 @@
 [submodule "plugins/open/MediaXPlugin"]
 	path = plugins/open/MediaXPlugin
 	url = git@github.com:ArtisanCloud/MediaXPlugin.git
-[submodule "plugins/open/MediaXPlugin-Wechat"]
-	path = plugins/open/MediaXPlugin-Wechat
-	url = git@github.com:ArtisanCloud/MediaXPlugin-Wechat.git
