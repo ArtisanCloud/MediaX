@@ -1,47 +1,31 @@
 package plugin
 
 import (
-	"encoding/json"
 	"fmt"
+	plugin2 "github.com/ArtisanCloud/MediaXCore/pkg/plugin"
+	"github.com/ArtisanCloud/MediaXCore/pkg/plugin/core"
+	"github.com/ArtisanCloud/MediaXCore/pkg/plugin/core/contract"
+	"gopkg.in/yaml.v3"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"plugin"
 	"sync"
-
-	"github.com/ArtisanCloud/MediaX/pkg/plugin/core"
-)
-
-type PluginType string
-
-const (
-	Open     PluginType = "open"
-	Closed   PluginType = "closed"
-	External PluginType = "external"
 )
 
 type PluginManager struct {
-	Plugins map[string]core.Provider
+	Plugins map[string]contract.ProviderInterface
 	mu      sync.Mutex
 }
 
 func NewPluginManager() *PluginManager {
 	return &PluginManager{
-		Plugins: make(map[string]core.Provider),
+		Plugins: make(map[string]contract.ProviderInterface),
 	}
 }
 
-// 插件描述文件结构
-type PluginMetadata struct {
-	Name    string                 `json:"name"`
-	Version string                 `json:"version"`
-	Type    string                 `json:"type"`
-	Path    string                 `json:"path"`
-	Config  map[string]interface{} `json:"config"`
-}
-
 // Register 插件注册
-func (pm *PluginManager) Register(provider core.Provider) {
+func (pm *PluginManager) Register(provider contract.ProviderInterface) {
 	pm.mu.Lock()
 	defer pm.mu.Unlock()
 
@@ -55,10 +39,10 @@ func (pm *PluginManager) Register(provider core.Provider) {
 
 // LoadPlugins 加载所有插件
 func (pm *PluginManager) LoadPlugins() error {
-	if err := pm.LoadPluginsFromDirectory(Open); err != nil {
+	if err := pm.LoadPluginsFromDirectory(core.Open); err != nil {
 		return err
 	}
-	if err := pm.LoadPluginsFromDirectory(Closed); err != nil {
+	if err := pm.LoadPluginsFromDirectory(core.Closed); err != nil {
 		return err
 	}
 	return nil
@@ -66,7 +50,7 @@ func (pm *PluginManager) LoadPlugins() error {
 
 // 从指定目录加载插件
 // 从指定目录加载插件
-func (pm *PluginManager) LoadPluginsFromDirectory(pluginType PluginType) error {
+func (pm *PluginManager) LoadPluginsFromDirectory(pluginType core.PluginType) error {
 	// 获取插件目录的绝对路径
 	pluginDir := filepath.Join("./plugins", string(pluginType))
 	files, err := os.ReadDir(pluginDir)
@@ -84,10 +68,10 @@ func (pm *PluginManager) LoadPluginsFromDirectory(pluginType PluginType) error {
 		// 构造子文件夹路径
 		pluginFolderPath := filepath.Join(pluginDir, file.Name())
 
-		// 查找该文件夹内的 plugin.json 文件
-		pluginJsonPath := filepath.Join(pluginFolderPath, "plugin.json")
+		// 查找该文件夹内的 plugin.yaml 文件
+		pluginJsonPath := filepath.Join(pluginFolderPath, "plugin.yaml")
 		if _, err := os.Stat(pluginJsonPath); os.IsNotExist(err) {
-			// 如果没有 plugin.json 文件，跳过此文件夹
+			// 如果没有 plugin.yaml 文件，跳过此文件夹
 			continue
 		}
 
@@ -107,11 +91,11 @@ func (pm *PluginManager) LoadPluginFromFile(pluginFilePath string) error {
 	}
 
 	switch pluginMetadata.Type {
-	case string(Open):
+	case core.Open:
 		return pm.loadOpenPlugin(pluginMetadata)
-	case string(Closed):
+	case core.Closed:
 		return pm.loadClosedPlugin(pluginMetadata)
-	case string(External):
+	case core.External:
 		return pm.loadExternalPlugin(pluginMetadata) // 未来扩展
 	default:
 		return fmt.Errorf("unknown plugin type %s", pluginMetadata.Type)
@@ -119,16 +103,20 @@ func (pm *PluginManager) LoadPluginFromFile(pluginFilePath string) error {
 }
 
 // 读取插件描述文件
-func (pm *PluginManager) readPluginMetadata(pluginFilePath string) (*PluginMetadata, error) {
-	file, err := os.Open(pluginFilePath)
-	if err != nil {
-		return nil, fmt.Errorf("failed to open plugin description file %s: %v", pluginFilePath, err)
+func (pm *PluginManager) readPluginMetadata(pluginFilePath string) (*core.PluginMetadata, error) {
+	// 检查路径是否存在
+	if _, err := os.Stat(pluginFilePath); os.IsNotExist(err) {
+		return nil, fmt.Errorf("file does not exist: %s", pluginFilePath)
 	}
-	defer file.Close()
 
-	metadata := &PluginMetadata{}
-	decoder := json.NewDecoder(file)
-	if err := decoder.Decode(metadata); err != nil {
+	// 读取文件
+	data, err := os.ReadFile(pluginFilePath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read file: %v", err)
+	}
+
+	metadata := &core.PluginMetadata{}
+	if err = yaml.Unmarshal(data, metadata); err != nil {
 		return nil, fmt.Errorf("failed to decode plugin description file %s: %v", pluginFilePath, err)
 	}
 
@@ -141,7 +129,7 @@ func (pm *PluginManager) readPluginMetadata(pluginFilePath string) (*PluginMetad
 }
 
 // 编译开源插件到 .so 文件
-func (pm *PluginManager) compileOpenPluginToSO(metadata *PluginMetadata) error {
+func (pm *PluginManager) compileOpenPluginToSO(metadata *core.PluginMetadata) error {
 	pluginDir := metadata.Path
 	fmt.Printf("Compiling open plugin from directory: %s\n", pluginDir)
 
@@ -158,7 +146,7 @@ func (pm *PluginManager) compileOpenPluginToSO(metadata *PluginMetadata) error {
 }
 
 // 加载开源插件
-func (pm *PluginManager) loadOpenPlugin(metadata *PluginMetadata) error {
+func (pm *PluginManager) loadOpenPlugin(metadata *core.PluginMetadata) error {
 	// 读取插件描述文件以获取更多信息
 	pluginMetadata, err := pm.readPluginMetadata(metadata.Path)
 	if err != nil {
@@ -179,7 +167,7 @@ func (pm *PluginManager) loadOpenPlugin(metadata *PluginMetadata) error {
 }
 
 // 加载闭源插件（.so 文件）
-func (pm *PluginManager) loadClosedPlugin(metadata *PluginMetadata) error {
+func (pm *PluginManager) loadClosedPlugin(metadata *core.PluginMetadata) error {
 	pluginPath := metadata.Path
 	fmt.Printf("Loading plugin from path: %s\n", pluginPath)
 
@@ -193,26 +181,21 @@ func (pm *PluginManager) loadClosedPlugin(metadata *PluginMetadata) error {
 		return fmt.Errorf("failed to open plugin file %s: %v", pluginPath, err)
 	}
 
-	symProvider, err := p.Lookup("Provider")
+	provider, err := plugin2.LookUpSymbol[contract.ProviderInterface](p, metadata.Name)
 	if err != nil {
-		return fmt.Errorf("symbol 'Provider' not found in plugin file %s: %v", pluginPath, err)
+		return fmt.Errorf("failed to look up plugin  %s: %v", metadata.Name, err)
 	}
 
-	provider, ok := symProvider.(core.Provider)
-	if !ok {
-		return fmt.Errorf("symbol 'Provider' in plugin file %s is not of type 'core.Provider'", pluginPath)
-	}
-
-	pm.Register(provider)
+	pm.Register(*provider)
 	return nil
 }
 
-func (pm *PluginManager) loadExternalPlugin() error {
+func (pm *PluginManager) loadExternalPlugin(metadata *core.PluginMetadata) error {
 	return nil
 }
 
 // 获取插件
-func (pm *PluginManager) GetPlugin(name string) (core.Provider, error) {
+func (pm *PluginManager) GetPlugin(name string) (contract.ProviderInterface, error) {
 	pm.mu.Lock()
 	defer pm.mu.Unlock()
 

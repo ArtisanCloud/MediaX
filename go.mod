@@ -8,7 +8,11 @@ replace github.com/ArtisanCloud/PowerSocialite/v3 => ../../../../PowerWechat/Pow
 
 require github.com/ArtisanCloud/PowerLibs/v3 v3.3.1
 
+replace github.com/ArtisanCloud/MediaXCore => ../MediaXCore
+
+
 require (
+	github.com/ArtisanCloud/MediaXCore v0.0.0-20250125034521-fbbed5db17e7
 	github.com/clbanning/mxj/v2 v2.7.0 // indirect
 	go.opentelemetry.io/otel v1.4.0 // indirect
 	go.opentelemetry.io/otel/trace v1.4.0 // indirect
