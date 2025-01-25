@@ -5,7 +5,6 @@ import (
 	plugin2 "github.com/ArtisanCloud/MediaXCore/pkg/plugin"
 	"github.com/ArtisanCloud/MediaXCore/pkg/plugin/core"
 	"github.com/ArtisanCloud/MediaXCore/pkg/plugin/core/contract"
-	"gopkg.in/yaml.v3"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -85,7 +84,7 @@ func (pm *PluginManager) LoadPluginsFromDirectory(pluginType core.PluginType) er
 
 // LoadPluginFromFile 加载插件，支持从 JSON 描述文件加载
 func (pm *PluginManager) LoadPluginFromFile(pluginFilePath string) error {
-	pluginMetadata, err := pm.readPluginMetadata(pluginFilePath)
+	pluginMetadata, err := plugin2.ReadPluginMetadata(pluginFilePath)
 	if err != nil {
 		return err
 	}
@@ -100,32 +99,6 @@ func (pm *PluginManager) LoadPluginFromFile(pluginFilePath string) error {
 	default:
 		return fmt.Errorf("unknown plugin type %s", pluginMetadata.Type)
 	}
-}
-
-// 读取插件描述文件
-func (pm *PluginManager) readPluginMetadata(pluginFilePath string) (*core.PluginMetadata, error) {
-	// 检查路径是否存在
-	if _, err := os.Stat(pluginFilePath); os.IsNotExist(err) {
-		return nil, fmt.Errorf("file does not exist: %s", pluginFilePath)
-	}
-
-	// 读取文件
-	data, err := os.ReadFile(pluginFilePath)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read file: %v", err)
-	}
-
-	metadata := &core.PluginMetadata{}
-	if err = yaml.Unmarshal(data, metadata); err != nil {
-		return nil, fmt.Errorf("failed to decode plugin description file %s: %v", pluginFilePath, err)
-	}
-
-	// 增加验证逻辑
-	if metadata.Name == "" || metadata.Version == "" || metadata.Type == "" {
-		return nil, fmt.Errorf("plugin metadata is incomplete or invalid in %s", pluginFilePath)
-	}
-
-	return metadata, nil
 }
 
 // 编译开源插件到 .so 文件
@@ -148,7 +121,7 @@ func (pm *PluginManager) compileOpenPluginToSO(metadata *core.PluginMetadata) er
 // 加载开源插件
 func (pm *PluginManager) loadOpenPlugin(metadata *core.PluginMetadata) error {
 	// 读取插件描述文件以获取更多信息
-	pluginMetadata, err := pm.readPluginMetadata(metadata.Path)
+	pluginMetadata, err := plugin2.ReadPluginMetadata(metadata.Path)
 	if err != nil {
 		return fmt.Errorf("failed to read plugin metadata for open plugin %s: %v", metadata.Name, err)
 	}
@@ -172,7 +145,7 @@ func (pm *PluginManager) loadClosedPlugin(metadata *core.PluginMetadata) error {
 	fmt.Printf("Loading plugin from path: %s\n", pluginPath)
 
 	// 确保路径是 .so 文件
-	if !isSOFile(pluginPath) {
+	if !plugin2.IsSOFile(pluginPath) {
 		return fmt.Errorf("plugin file %s is not a valid .so file", pluginPath)
 	}
 
@@ -204,10 +177,4 @@ func (pm *PluginManager) GetPlugin(name string) (contract.ProviderInterface, err
 		return nil, fmt.Errorf("plugin %s not found", name)
 	}
 	return provider, nil
-}
-
-// 检查是否为 .so 文件
-func isSOFile(path string) bool {
-	ext := filepath.Ext(path)
-	return ext == ".so" || ext == ".dylib" || ext == ".dll" // 扩展支持
 }
