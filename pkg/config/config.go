@@ -7,53 +7,53 @@ const (
 	PluginMediaX PluginMediaXPlatform = "PluginMediaX"
 
 	// WeChat
-	PluginMediaXWechatOfficialAccount PluginMediaXPlatform = "PluginMediaXWechatOfficialAccount"
-	PluginMediaXWechatMiniProgram     PluginMediaXPlatform = "PluginMediaXWechatMiniProgram"
-	PluginMediaXWechatMoments         PluginMediaXPlatform = "PluginMediaXWechatMoments"
-	PluginMediaXWechatVideo           PluginMediaXPlatform = "PluginMediaXWechatVideo"
-	PluginMediaXWechatLive            PluginMediaXPlatform = "PluginMediaXWechatLive"
+	WechatOfficialAccount PluginMediaXPlatform = "PluginMediaXWechatOfficialAccount"
+	WechatMiniProgram     PluginMediaXPlatform = "PluginMediaXWechatMiniProgram"
+	WechatMoments         PluginMediaXPlatform = "PluginMediaXWechatMoments"
+	WechatVideo           PluginMediaXPlatform = "PluginMediaXWechatVideo"
+	WechatLive            PluginMediaXPlatform = "PluginMediaXWechatLive"
 
 	// YouTube
-	PluginMediaXYouTubeChannel  PluginMediaXPlatform = "PluginMediaXYouTubeChannel"
-	PluginMediaXYouTubeVideo    PluginMediaXPlatform = "PluginMediaXYouTubeVideo"
-	PluginMediaXYouTubePlaylist PluginMediaXPlatform = "PluginMediaXYouTubePlaylist"
-	PluginMediaXYouTubeLive     PluginMediaXPlatform = "PluginMediaXYouTubeLive"
+	YouTubeChannel  PluginMediaXPlatform = "PluginMediaXYouTubeChannel"
+	YouTubeVideo    PluginMediaXPlatform = "PluginMediaXYouTubeVideo"
+	YouTubePlaylist PluginMediaXPlatform = "PluginMediaXYouTubePlaylist"
+	YouTubeLive     PluginMediaXPlatform = "PluginMediaXYouTubeLive"
 
 	// Instagram
-	PluginMediaXInstagramFeed  PluginMediaXPlatform = "PluginMediaXInstagramFeed"
-	PluginMediaXInstagramStory PluginMediaXPlatform = "PluginMediaXInstagramStory"
-	PluginMediaXInstagramPost  PluginMediaXPlatform = "PluginMediaXInstagramPost"
-	PluginMediaXInstagramVideo PluginMediaXPlatform = "PluginMediaXInstagramVideo"
+	InstagramFeed  PluginMediaXPlatform = "PluginMediaXInstagramFeed"
+	InstagramStory PluginMediaXPlatform = "PluginMediaXInstagramStory"
+	InstagramPost  PluginMediaXPlatform = "PluginMediaXInstagramPost"
+	InstagramVideo PluginMediaXPlatform = "PluginMediaXInstagramVideo"
 
 	// Facebook
-	PluginMediaXFacebookPage  PluginMediaXPlatform = "PluginMediaXFacebookPage"
-	PluginMediaXFacebookPost  PluginMediaXPlatform = "PluginMediaXFacebookPost"
-	PluginMediaXFacebookLive  PluginMediaXPlatform = "PluginMediaXFacebookLive"
-	PluginMediaXFacebookGroup PluginMediaXPlatform = "PluginMediaXFacebookGroup"
+	FacebookPage  PluginMediaXPlatform = "PluginMediaXFacebookPage"
+	FacebookPost  PluginMediaXPlatform = "PluginMediaXFacebookPost"
+	FacebookLive  PluginMediaXPlatform = "PluginMediaXFacebookLive"
+	FacebookGroup PluginMediaXPlatform = "PluginMediaXFacebookGroup"
 
 	// TikTok
-	PluginMediaXTikTokVideo PluginMediaXPlatform = "PluginMediaXTikTokVideo"
-	PluginMediaXTikTokLive  PluginMediaXPlatform = "PluginMediaXTikTokLive"
-	PluginMediaXTikTokDuet  PluginMediaXPlatform = "PluginMediaXTikTokDuet"
+	TikTokVideo PluginMediaXPlatform = "PluginMediaXTikTokVideo"
+	TikTokLive  PluginMediaXPlatform = "PluginMediaXTikTokLive"
+	TikTokDuet  PluginMediaXPlatform = "PluginMediaXTikTokDuet"
 
 	// LinkedIn
-	PluginMediaXLinkedInPost    PluginMediaXPlatform = "PluginMediaXLinkedInPost"
-	PluginMediaXLinkedInArticle PluginMediaXPlatform = "PluginMediaXLinkedInArticle"
-	PluginMediaXLinkedInVideo   PluginMediaXPlatform = "PluginMediaXLinkedInVideo"
+	LinkedInPost    PluginMediaXPlatform = "PluginMediaXLinkedInPost"
+	LinkedInArticle PluginMediaXPlatform = "PluginMediaXLinkedInArticle"
+	LinkedInVideo   PluginMediaXPlatform = "PluginMediaXLinkedInVideo"
 
 	// Snapchat
-	PluginMediaXSnapchatStory     PluginMediaXPlatform = "PluginMediaXSnapchatStory"
-	PluginMediaXSnapchatSpotlight PluginMediaXPlatform = "PluginMediaXSnapchatSpotlight"
+	SnapchatStory     PluginMediaXPlatform = "PluginMediaXSnapchatStory"
+	SnapchatSpotlight PluginMediaXPlatform = "PluginMediaXSnapchatSpotlight"
 
 	// Pinterest
-	PluginMediaXPinterestPin   PluginMediaXPlatform = "PluginMediaXPinterestPin"
-	PluginMediaXPinterestBoard PluginMediaXPlatform = "PluginMediaXPinterestBoard"
+	PinterestPin   PluginMediaXPlatform = "PluginMediaXPinterestPin"
+	PinterestBoard PluginMediaXPlatform = "PluginMediaXPinterestBoard"
 
 	// Vimeo
-	PluginMediaXVimeoVideo PluginMediaXPlatform = "PluginMediaXVimeoVideo"
-	PluginMediaXVimeoLive  PluginMediaXPlatform = "PluginMediaXVimeoLive"
+	VimeoVideo PluginMediaXPlatform = "PluginMediaXVimeoVideo"
+	VimeoLive  PluginMediaXPlatform = "PluginMediaXVimeoLive"
 
 	// Reddit
-	PluginMediaXRedditPost    PluginMediaXPlatform = "PluginMediaXRedditPost"
-	PluginMediaXRedditComment PluginMediaXPlatform = "PluginMediaXRedditComment"
+	RedditPost    PluginMediaXPlatform = "PluginMediaXRedditPost"
+	RedditComment PluginMediaXPlatform = "PluginMediaXRedditComment"
 )
