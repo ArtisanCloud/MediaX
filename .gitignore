@@ -27,6 +27,7 @@ Thumbs.db
 
 # Logs
 *.log
+logs/
 
 # Ignore any file generated during testing
 *.out
