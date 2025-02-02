@@ -187,7 +187,7 @@ func (pm *PluginManager) registerOpenPlugin(pluginDir string, metadata *core.Plu
 
 	// 如果插件没有编译成 .so 文件，尝试编译
 	pluginSOPath := filepath.Join(pluginDir, metadata.BuildPath)
-	pm.Logger.InfoF("register open plugin path: ", pluginSOPath)
+	//pm.Logger.InfoF("register open plugin path: ", pluginSOPath)
 	if _, err := os.Stat(pluginSOPath); os.IsNotExist(err) {
 		// 尝试编译插件
 		if err := pm.compileOpenPluginToSO(pluginDir, metadata); err != nil {
