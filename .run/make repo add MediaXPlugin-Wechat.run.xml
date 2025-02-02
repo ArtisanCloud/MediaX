@@ -1,0 +1,8 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="make repo add MediaXPlugin-Wechat" type="MAKEFILE_TARGET_RUN_CONFIGURATION" factoryName="Makefile" folderName="repo">
+    <makefile filename="$PROJECT_DIR$/Makefile" target="submodule.add" workingDirectory="$PROJECT_DIR$" arguments="repo=git@github.com:ArtisanCloud/MediaXPlugin-Wechat.git path=plugins/open/MediaXPlugin-Wechat">
+      <envs />
+    </makefile>
+    <method v="2" />
+  </configuration>
+</component>

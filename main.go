@@ -2,11 +2,12 @@ package main
 
 import (
 	"context"
+	"fmt"
+	fmt2 "github.com/ArtisanCloud/MediaX/pkg/utils/fmt"
 	"github.com/ArtisanCloud/MediaXCore/pkg/logger/config"
 	"github.com/ArtisanCloud/MediaXCore/pkg/plugin/core/contract"
 
 	"github.com/ArtisanCloud/MediaX/pkg/plugin"
-	"github.com/ArtisanCloud/PowerLibs/v3/fmt"
 )
 
 func main() {
@@ -39,55 +40,51 @@ func main() {
 		return
 	}
 
-	fmt.Dump(pluginManager.Plugins)
-
-	// 测试PluginMediaX插件
-	mediaXPlugin, err := pluginManager.GetPlugin("PluginMediaX", "appId123", configPlugin)
-	if err != nil {
-		pluginManager.Logger.Error("Plugin MediaX Wechat not found")
-		return
-	}
-
-	pluginManager.Logger.InfoF("plugin loaded name :%s \n", mediaXPlugin.Name(&ctx))
-
-	// 插件发布内容
-	resObj, err := mediaXPlugin.Publish(&ctx, &contract.PublishRequest{
-		Content: "Hello, MediaX Plugin!",
-	})
-
-	if err != nil {
-		panic(err)
-	}
-	if obj := resObj.(*contract.PublishResponse); obj.Code == 0 {
-		pluginManager.Logger.Info("Publishing MediaX Plugin")
-	} else {
-		pluginManager.Logger.Info("Failed to publish MediaX Plugin")
-	}
-
-	fmt.Dump(pluginManager.Plugins)
+	fmt2.Dump(pluginManager.Plugins)
 
 	// 测试PluginMediaXWechat插件
-	wechatPlugin, err := pluginManager.GetPlugin("PluginMediaXWechat", "appId456", configPlugin)
-	if err != nil {
-		pluginManager.Logger.Error("Plugin MediaX Wechat not found")
-		return
-	}
-
-	pluginManager.Logger.InfoF("plugin loaded name :%s \n", wechatPlugin.Name(&ctx))
-
-	// 插件发布内容
-	resObj, err = wechatPlugin.Publish(&ctx, &contract.PublishRequest{
-		Content: "Hello, MediaX Plugin!",
-	})
-
+	err = ValidateLoadedPlugin(ctx, pluginManager, contract.WechatMediaVendor, contract.WechatOfficialAccount, "appId123", configPlugin)
 	if err != nil {
 		panic(err)
 	}
-	if obj := resObj.(*contract.PublishResponse); obj.Code == 0 {
-		pluginManager.Logger.Info("Publishing MediaX Plugin")
-	} else {
-		pluginManager.Logger.Info("Failed to publish MediaX Plugin")
+	// 测试PluginMediaXDouYin插件
+	err = ValidateLoadedPlugin(ctx, pluginManager, contract.DouYinMediaVendor, contract.DouYin, "appId456", configPlugin)
+	if err != nil {
+		panic(err)
+	}
+	// 测试PluginMediaXRedBook插件
+	err = ValidateLoadedPlugin(ctx, pluginManager, contract.RedBookMediaVendor, contract.RedBook, "appId789", configPlugin)
+	if err != nil {
+		panic(err)
 	}
 
-	fmt.Dump(pluginManager.Plugins)
+}
+
+func ValidateLoadedPlugin(
+	ctx context.Context, pluginManager *plugin.PluginManager,
+	vendorName contract.MediaVendor, pluginName contract.AppPlugin, appId string,
+	config *contract.PluginConfig,
+) error {
+	loadedPlugin, err := pluginManager.GetPlugin(vendorName, pluginName, appId, config)
+	if err != nil {
+		pluginManager.Logger.ErrorF("load plugin %s err:%s", pluginName, err.Error())
+		return err
+	}
+	pluginManager.Logger.InfoF("plugin loaded name :%s \n", loadedPlugin.Name(&ctx))
+	// 插件发布内容
+	resObj, err := loadedPlugin.Publish(&ctx, &contract.PublishRequest{
+		Content: fmt.Sprintf("Hello, %s!", loadedPlugin.Name(&ctx)),
+	})
+
+	if err != nil {
+		return err
+	}
+	if obj := resObj.(*contract.PublishResponse); obj.Code == 0 {
+		pluginManager.Logger.InfoF("Published %s", loadedPlugin.Name(&ctx))
+	} else {
+		pluginManager.Logger.InfoF("Failed to publish %s", loadedPlugin.Name(&ctx))
+	}
+
+	fmt2.Dump(pluginManager.Plugins)
+	return nil
 }
