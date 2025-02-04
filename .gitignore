@@ -16,10 +16,10 @@
 /vendor/
 
 # GoLand IDE files
-.idea/
+# .idea/
 
 # VS Code IDE files
-.vscode/
+# .vscode/
 
 # OS files
 .DS_Store
