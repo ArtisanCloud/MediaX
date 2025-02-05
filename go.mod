@@ -2,7 +2,7 @@ module github.com/ArtisanCloud/MediaX
 
 go 1.18
 
-replace github.com/ArtisanCloud/PowerSocialite/v3 => ../../../../PowerWechat/PowerSocialite
+//replace github.com/ArtisanCloud/PowerSocialite/v3 => ../../../../PowerWechat/PowerSocialite
 
 //replace github.com/ArtisanCloud/MediaXCore => ../MediaXCore
 
