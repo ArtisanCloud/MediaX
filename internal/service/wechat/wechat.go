@@ -1,8 +1,8 @@
 package wechat
 
 import (
-	"github.com/ArtisanCloud/MediaX/internal/service/wechat/core"
-	"github.com/ArtisanCloud/MediaX/pkg/client/config"
+	"github.com/ArtisanCloud/MediaX/v1/internal/service/wechat/core"
+	"github.com/ArtisanCloud/MediaX/v1/pkg/client/config"
 	"github.com/ArtisanCloud/MediaXCore/pkg/cache"
 	"github.com/ArtisanCloud/MediaXCore/pkg/logger"
 )

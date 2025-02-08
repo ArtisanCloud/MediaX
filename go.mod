@@ -1,4 +1,4 @@
-module github.com/ArtisanCloud/MediaX
+module github.com/ArtisanCloud/MediaX/v1
 
 go 1.18
 

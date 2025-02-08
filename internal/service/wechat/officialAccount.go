@@ -2,7 +2,7 @@ package wechat
 
 import (
 	"context"
-	"github.com/ArtisanCloud/MediaX/internal/service/wechat/response"
+	"github.com/ArtisanCloud/MediaX/v1/internal/service/wechat/response"
 )
 
 func (srv *WeChatService) Publish() {
