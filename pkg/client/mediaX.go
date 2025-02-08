@@ -16,8 +16,9 @@ type MediaX struct {
 
 // NewMediaX 初始化 MediaX，Logger 和 Cache 是全局共享的
 func NewMediaX(config *config.MediaXConfig, cache cache.CacheInterface) *MediaX {
+	l := logger.NewLogger(config.Logger)
 	return &MediaX{
-		Logger: logger.NewLogger(config.Logger),
+		Logger: l,
 		Cache:  cache,
 	}
 }

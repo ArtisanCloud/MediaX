@@ -12,4 +12,5 @@ type AppConfig struct {
 	Timeout   float64 `yaml:"timeout" json:"timeout"`
 	AppID     string  `yaml:"app_id" json:"appId"`
 	AppSecret string  `yaml:"app_secret" json:"appSecret"`
+	HttpDebug bool    `yaml:"http_debug" json:"httpDebug"`
 }

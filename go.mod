@@ -6,7 +6,7 @@ go 1.18
 
 replace github.com/ArtisanCloud/MediaXCore => ../MediaXCore
 
-require github.com/ArtisanCloud/MediaXCore v0.0.0-20250206173937-5b88a3cd529a
+require github.com/ArtisanCloud/MediaXCore v0.0.0-20250207094210-bd092bfda3be
 
 require (
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect
