@@ -22,89 +22,28 @@ MediaX 是一个支持多平台内容发布的轻量级 SDK，旨在帮助开发
 1. 初始化项目并下载 MediaX：
 
    ```bash
-   go get github.com/ArtisanCloud/MediaX
+   go get github.com/ArtisanCloud/MediaX/v1
    ```
 
-2. 创建一个简单的主程序：
+2. 创建一个简单的示例，本项目作者正在自己系统中使用，陆续会迭代版本：
 
    ```go
-   package main
+   wechatClient, err := mediaX.CreateWechat(wechatConfig)
+	if err != nil {
+		panic(err)
+	}
 
-   import (
-       "fmt"
-       "github.com/ArtisanCloud/MediaX"
-   )
-
-   func main() {
-       // 初始化 MediaX
-       pub := MediaX.New()
-
-       // 添加抖音 Provider
-       pub.RegisterProvider("douyin", NewDouyinProvider())
-
-       // 添加小红书 Provider
-       pub.RegisterProvider("redbook", NewRedbookProvider())
-
-       // 发布内容到多个平台
-       err := pub.Publish([]string{"douyin", "redbook"}, &MediaX.Content{
-           Title:       "发布标题",
-           SubTitle:    "发布副标题",
-           Description: "描述内容",
-           Media:       []string{"image1.jpg", "video1.mp4"},
-       })
-
-       if err != nil {
-           fmt.Println("发布失败:", err)
-       } else {
-           fmt.Println("发布成功!")
-       }
-   }
+	// 调用 WeChatClient 的方法
+	ctx := context.Background()
+   var content = ...
+	wechatClient.Publish(ctx,content)
+   
    ```
 
-3. 运行程序：
+## 功能介绍
+[项目共介绍](https://github.com/orgs/ArtisanCloud/projects/5/views/2)
 
-   ```bash
-   go run main.go
-   ```
 
-## 目录结构
-
-```
-MediaX/
-├── providers/           # 各平台 Provider 实现
-│   ├── douyin.go        # 抖音 Provider
-│   └── redbook.go       # 小红书 Provider
-├── grpc/                # gRPC 服务实现
-├── examples/            # 使用示例
-├── LICENSE              # 许可证
-├── README.md            # 项目说明
-└── go.mod               # Go 模块
-```
-
-## 开发指南
-
-### 添加新平台
-
-1. 创建新的 Provider 实现：
-
-   ```go
-   type NewPlatformProvider struct {}
-
-   func (p *NewPlatformProvider) Publish(content *MediaX.Content) error {
-       // 实现具体的发布逻辑
-       return nil
-   }
-   ```
-
-2. 注册 Provider：
-
-   ```go
-   pub.RegisterProvider("new_platform", NewNewPlatformProvider())
-   ```
-
-### gRPC 支持
-
-通过 `grpc` 文件夹中的服务定义，可以轻松扩展跨语言支持。
 
 ## 许可证
 

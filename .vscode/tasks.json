@@ -1,0 +1,62 @@
+{
+  // See https://go.microsoft.com/fwlink/?LinkId=733558
+  // for the documentation about the tasks.json format
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Run main.go",
+      "type": "shell",
+      "command": "go",
+      "args": ["run", "main.go"],
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "problemMatcher": [],
+      "detail": "运行 main.go"
+    },
+    {
+      "label": "Make Update All Plugin Repos",
+      "type": "shell",
+      "command": "make",
+      "args": ["submodule.update"],
+      "problemMatcher": [],
+      "detail": "更新所有的插件仓库"
+    },
+    {
+      "label": "Make Bulid All plugin.build",
+      "type": "shell",
+      "command": "make",
+      "args": ["plugin.build"],
+      "problemMatcher": [],
+      "detail": "编译所有的so插件"
+    },
+    {
+      "label": "Make Update MediaXPlugin",
+      "type": "shell",
+      "command": "make",
+      "args": ["submodule.update", "module=plugins/open/MediaXPlugin"],
+      "problemMatcher": [],
+      "detail": "更新MediaXPlugin仓库代码"
+    },
+    {
+      "label": "Make Update MediaXPlugin-Wechat",
+      "type": "shell",
+      "command": "make",
+      "args": ["submodule.update", "module=plugins/open/MediaXPlugin-Wechat"],
+      "problemMatcher": [],
+      "detail": "更新微信仓库代码"
+    },
+    {
+      "label": "Make Add MediaXPlugin-Wechat",
+      "type": "shell",
+      "command": "make",
+      "args": [
+        "submodule.add",
+        "repo=git@github.com:ArtisanCloud/MediaXPlugin-Wechat.git path=plugins/open/MediaXPlugin-Wechat"
+      ],
+      "problemMatcher": [],
+      "detail": "拉群微信的插件仓库"
+    }
+  ]
+}

@@ -2,7 +2,7 @@
 *.exe
 *.exe~
 *.dll
-*.so
+#*.so
 *.dylib
 *.a
 *.out
@@ -16,10 +16,10 @@
 /vendor/
 
 # GoLand IDE files
-.idea/
+# .idea/
 
 # VS Code IDE files
-.vscode/
+# .vscode/
 
 # OS files
 .DS_Store
@@ -27,15 +27,13 @@ Thumbs.db
 
 # Logs
 *.log
+logs/
+
+# plugins
+../MediaX-Pro/internal/plugins/temp/
 
 # Ignore any file generated during testing
 *.out
 
 # Go modules
 go.sum
-
-
-# 忽略 plugins/closed 目录中的所有文件，但保留目录结构
-/plugins/closed/*
-# 保留 plugins/closed 目录本身
-!plugins/closed/README.md
