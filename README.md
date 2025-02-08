@@ -41,7 +41,7 @@ MediaX 是一个支持多平台内容发布的轻量级 SDK，旨在帮助开发
    ```
 
 ## 功能介绍
-[项目共介绍](https://github.com/orgs/ArtisanCloud/projects/5/views/2)
+*** [项目功能的开发安排](https://github.com/orgs/ArtisanCloud/projects/5/views/2)
 
 
 
