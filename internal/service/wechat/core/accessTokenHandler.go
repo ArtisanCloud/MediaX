@@ -1,8 +1,8 @@
 package core
 
 import (
-	"github.com/ArtisanCloud/MediaX/v1/internal/kernel"
-	"github.com/ArtisanCloud/MediaX/v1/pkg/client/config"
+	"github.com/ArtisanCloud/MediaX/internal/kernel"
+	"github.com/ArtisanCloud/MediaX/pkg/client/config"
 	"github.com/ArtisanCloud/MediaXCore/pkg/cache"
 	"github.com/ArtisanCloud/MediaXCore/pkg/logger"
 	"github.com/ArtisanCloud/MediaXCore/utils/object"

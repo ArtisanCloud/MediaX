@@ -1,6 +1,6 @@
 package response
 
-import "github.com/ArtisanCloud/MediaX/v1/internal/kernel/response"
+import "github.com/ArtisanCloud/MediaX/internal/kernel/response"
 
 type WeChatAccessTokenRes struct {
 	response.AccessTokenRes

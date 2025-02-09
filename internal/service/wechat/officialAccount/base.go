@@ -2,7 +2,7 @@ package officialAccount
 
 import (
 	"context"
-	"github.com/ArtisanCloud/MediaX/v1/internal/service/wechat/officialAccount/response"
+	"github.com/ArtisanCloud/MediaX/internal/service/wechat/officialAccount/response"
 )
 
 func (srv *WeChatOfficialAccountService) GetCallbackIP(ctx context.Context) (*response.GetCallBackIPRes, error) {

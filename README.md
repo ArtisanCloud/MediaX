@@ -22,7 +22,7 @@ MediaX 是一个支持多平台内容发布的轻量级 SDK，旨在帮助开发
 1. 初始化项目并下载 MediaX：
 
    ```bash
-   go get github.com/ArtisanCloud/MediaX/v1
+   go get github.com/ArtisanCloud/MediaX
    ```
 
 2. 创建一个简单的示例，本项目作者正在自己系统中使用，陆续会迭代版本：
