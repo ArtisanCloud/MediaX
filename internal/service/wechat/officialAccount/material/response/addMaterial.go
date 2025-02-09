@@ -1,6 +1,6 @@
 package response
 
-import "github.com/ArtisanCloud/MediaX/v1/internal/service/wechat/core/response"
+import "github.com/ArtisanCloud/MediaX/internal/service/wechat/core/response"
 
 type MaterialAddMaterialRes struct {
 	response.OfficialAccountRes

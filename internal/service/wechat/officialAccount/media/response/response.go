@@ -1,7 +1,7 @@
 package response
 
 import (
-	"github.com/ArtisanCloud/MediaX/v1/internal/service/wechat/core/response"
+	"github.com/ArtisanCloud/MediaX/internal/service/wechat/core/response"
 	"github.com/ArtisanCloud/MediaXCore/utils/object"
 )
 

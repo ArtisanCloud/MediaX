@@ -2,10 +2,10 @@ package main
 
 import (
 	"context"
-	"github.com/ArtisanCloud/MediaX/v1/pkg/client"
-	config2 "github.com/ArtisanCloud/MediaX/v1/pkg/client/config"
-	"github.com/ArtisanCloud/MediaX/v1/pkg/utils"
-	"github.com/ArtisanCloud/MediaX/v1/pkg/utils/fmt"
+	"github.com/ArtisanCloud/MediaX/pkg/client"
+	config2 "github.com/ArtisanCloud/MediaX/pkg/client/config"
+	"github.com/ArtisanCloud/MediaX/pkg/utils"
+	"github.com/ArtisanCloud/MediaX/pkg/utils/fmt"
 	"github.com/ArtisanCloud/MediaXCore/pkg/cache"
 	"github.com/ArtisanCloud/MediaXCore/pkg/logger/config"
 	"github.com/redis/go-redis/v9"

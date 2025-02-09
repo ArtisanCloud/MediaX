@@ -2,12 +2,12 @@ package material
 
 import (
 	"context"
-	"github.com/ArtisanCloud/MediaX/v1/internal/kernel"
-	request2 "github.com/ArtisanCloud/MediaX/v1/internal/kernel/request"
-	response3 "github.com/ArtisanCloud/MediaX/v1/internal/service/wechat/core/response"
-	"github.com/ArtisanCloud/MediaX/v1/internal/service/wechat/officialAccount/material/request"
-	"github.com/ArtisanCloud/MediaX/v1/internal/service/wechat/officialAccount/material/response"
-	response2 "github.com/ArtisanCloud/MediaX/v1/internal/service/wechat/officialAccount/response"
+	"github.com/ArtisanCloud/MediaX/internal/kernel"
+	request2 "github.com/ArtisanCloud/MediaX/internal/kernel/request"
+	response3 "github.com/ArtisanCloud/MediaX/internal/service/wechat/core/response"
+	"github.com/ArtisanCloud/MediaX/internal/service/wechat/officialAccount/material/request"
+	"github.com/ArtisanCloud/MediaX/internal/service/wechat/officialAccount/material/response"
+	response2 "github.com/ArtisanCloud/MediaX/internal/service/wechat/officialAccount/response"
 	"github.com/ArtisanCloud/MediaXCore/utils/object"
 	"net/http"
 	"os"
