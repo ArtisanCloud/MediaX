@@ -5,6 +5,9 @@ import (
 	"github.com/ArtisanCloud/MediaX/v1/internal/kernel"
 	response2 "github.com/ArtisanCloud/MediaX/v1/internal/kernel/response"
 	"github.com/ArtisanCloud/MediaX/v1/internal/service/wechat/core/response"
+	"github.com/ArtisanCloud/MediaX/v1/internal/service/wechat/officialAccount/material"
+	"github.com/ArtisanCloud/MediaX/v1/internal/service/wechat/officialAccount/media"
+	"github.com/ArtisanCloud/MediaX/v1/internal/service/wechat/officialAccount/publish"
 	"github.com/ArtisanCloud/MediaX/v1/pkg/client/config"
 	"github.com/ArtisanCloud/MediaXCore/pkg/cache"
 	"github.com/ArtisanCloud/MediaXCore/pkg/logger"
@@ -15,10 +18,15 @@ import (
 
 type WeChatClient struct {
 	*kernel.BaseClient
-	Config *config.WeChatConfig
+	Config *config.WeChatOfficialAccountConfig
+
+	// clients
+	media    *media.Client
+	material *material.Client
+	publish  *publish.Client
 }
 
-func NewWeChatClient(cfg *config.WeChatConfig, logger *logger.Logger, cache cache.CacheInterface) (*WeChatClient, error) {
+func NewWeChatClient(cfg *config.WeChatOfficialAccountConfig, logger *logger.Logger, cache cache.CacheInterface) (*WeChatClient, error) {
 	baseClient, err := kernel.NewBaseClient(&cfg.AppConfig, logger, cache)
 	if err != nil {
 		return nil, err
@@ -95,4 +103,25 @@ func (client *WeChatClient) OverrideCheckTokenNeedRefresh() {
 
 		return rs, nil
 	}
+}
+
+func (client *WeChatClient) GetMediaClient() *media.Client {
+	if client.media == nil {
+		client.media = media.NewClient(client.BaseClient)
+	}
+	return client.media
+}
+
+func (client *WeChatClient) GetMaterialClient() *material.Client {
+	if client.material == nil {
+		client.material = material.NewClient(client.BaseClient)
+	}
+	return client.material
+}
+
+func (client *WeChatClient) GetPublishClient() *publish.Client {
+	if client.publish == nil {
+		client.publish = publish.NewClient(client.BaseClient)
+	}
+	return client.publish
 }

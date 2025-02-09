@@ -39,17 +39,23 @@ func main() {
 
 	// 创建 WeChatClient
 
-	wechatClient, err := mediaX.CreateWechat(localConfig.WeChatConfig)
+	wechatOAClient, err := mediaX.CreateWechatOfficialAccount(localConfig.WeChatOfficialAccountConfig)
 	if err != nil {
 		panic(err)
 	}
 
 	// 调用 WeChatClient 的方法
 	ctx := context.Background()
-	wechatClient.Publish()
-	res, err := wechatClient.GetCallbackIP(ctx)
+	publisher := wechatOAClient.Client.GetPublishClient()
+	res, err := publisher.PublishGet(ctx, 1)
 	if err != nil {
 		panic(err)
 	}
 	fmt.Dump(res)
+
+	ips, err := wechatOAClient.GetCallbackIP(ctx)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Dump(ips)
 }

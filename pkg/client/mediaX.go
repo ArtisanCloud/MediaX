@@ -3,7 +3,7 @@ package client
 import (
 	"github.com/ArtisanCloud/MediaX/v1/internal/service/douyin"
 	"github.com/ArtisanCloud/MediaX/v1/internal/service/redbook"
-	"github.com/ArtisanCloud/MediaX/v1/internal/service/wechat"
+	"github.com/ArtisanCloud/MediaX/v1/internal/service/wechat/officialAccount"
 	"github.com/ArtisanCloud/MediaX/v1/pkg/client/config"
 	"github.com/ArtisanCloud/MediaXCore/pkg/cache"
 	"github.com/ArtisanCloud/MediaXCore/pkg/logger"
@@ -23,9 +23,9 @@ func NewMediaX(config *config.MediaXConfig, cache cache.CacheInterface) *MediaX 
 	}
 }
 
-// CreateWechat 创建 WechatClient，支持传入 WeChat 配置
-func (m *MediaX) CreateWechat(cfg *config.WeChatConfig) (*wechat.WeChatService, error) {
-	return wechat.NewWeChatService(cfg, m.Logger, m.Cache)
+// CreateWechatOfficialAccount 创建 WechatOfficialAccountClient，支持传入 WeChat 配置
+func (m *MediaX) CreateWechatOfficialAccount(cfg *config.WeChatOfficialAccountConfig) (*officialAccount.WeChatOfficialAccountService, error) {
+	return officialAccount.NewWeChatOfficialAccountService(cfg, m.Logger, m.Cache)
 }
 
 // CreateDouYin 创建 DouYinClient，支持传入 DouYin 配置

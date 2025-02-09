@@ -170,6 +170,10 @@ func (client *BaseClient) HttpPost(ctx context.Context, url string, data interfa
 	return client.makeRequest(ctx, url, http.MethodPost, nil, data, outHeader, outBody)
 }
 
+func (client *BaseClient) RequestRaw(ctx context.Context, url string, method string, options *object.HashMap, outHeader interface{}, outBody interface{}) (*http.Response, error) {
+	return client.makeRequest(ctx, url, method, &object.StringMap{}, options, outHeader, outBody)
+}
+
 func (client *BaseClient) HttpUpload(ctx context.Context, url string, files *object.HashMap, form *request2.UploadForm, query interface{}, outHeader interface{}, outBody interface{}) (interface{}, error) {
 	// 请求配置
 	df := client.HttpHelper.Df().WithContext(ctx).Uri(url).Method(http.MethodPost)
