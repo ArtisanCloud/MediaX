@@ -1,0 +1,29 @@
+wechat_config:
+  app:
+    base_uri: "https://api.weixin.qq.com"
+    proxy_uri: ""
+    timeout: 5.0
+    app_id: "your_wechat_app_id"
+    app_secret: "your_wechat_app_secret"
+    http_debug: true
+  component_app_id: "your_component_app_id"
+  component_app_token: "your_component_app_token"
+
+douyin_config:
+  app:
+    base_uri: "https://open.douyin.com"
+    proxy_uri: ""
+    timeout: 5.0
+    app_id: "your_douyin_app_id"
+    app_secret: "your_douyin_app_secret"
+    http_debug: false
+
+redbook_config:
+  app:
+    base_uri: "https://www.xiaohongshu.com"
+    proxy_uri: ""
+    timeout: 5.0
+    app_id: "your_redbook_app_id"
+    app_secret: "your_redbook_app_secret"
+    http_debug: false
+
