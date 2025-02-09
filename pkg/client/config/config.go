@@ -6,6 +6,12 @@ type MediaXConfig struct {
 	Logger *config.LogConfig
 }
 
+type LocalConfig struct {
+	*WeChatConfig  `yaml:"wechat_config" json:"weChatConfig"`
+	*DouYinConfig  `yaml:"douyin_config" json:"douYinConfig"`
+	*RedBookConfig `yaml:"redbook_config" json:"redBookConfig"`
+}
+
 type AppConfig struct {
 	BaseUri   string  `yaml:"base_uri" json:"baseUri"`
 	ProxyUri  string  `yaml:"proxy_uri" json:"proxyUri"`

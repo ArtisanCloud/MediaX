@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/ArtisanCloud/MediaX/v1/pkg/client"
 	config2 "github.com/ArtisanCloud/MediaX/v1/pkg/client/config"
+	"github.com/ArtisanCloud/MediaX/v1/pkg/utils"
 	"github.com/ArtisanCloud/MediaX/v1/pkg/utils/fmt"
 	"github.com/ArtisanCloud/MediaXCore/pkg/cache"
 	"github.com/ArtisanCloud/MediaXCore/pkg/logger/config"
@@ -29,17 +30,16 @@ func main() {
 		},
 	}, cache)
 
-	// 创建 WeChatClient
-	wechatConfig := &config2.WeChatConfig{
-		AppConfig: config2.AppConfig{
-			BaseUri:   "https://api.weixin.qq.com",
-			ProxyUri:  "",
-			Timeout:   5,
-			AppID:     "wx816158b5a5fb92cb",
-			AppSecret: "7318e165c87ce29e623c6170d9adc256",
-		},
+	localConfig := &config2.LocalConfig{}
+	err := utils.LoadYAML("config.yaml", localConfig)
+	if err != nil {
+		panic(err)
 	}
-	wechatClient, err := mediaX.CreateWechat(wechatConfig)
+	//fmt.Dump(localConfig)
+
+	// 创建 WeChatClient
+
+	wechatClient, err := mediaX.CreateWechat(localConfig.WeChatConfig)
 	if err != nil {
 		panic(err)
 	}
