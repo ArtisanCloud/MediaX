@@ -1,6 +1,6 @@
 package config
 
-type WeChatConfig struct {
+type WeChatOfficialAccountConfig struct {
 	AppConfig `yaml:"app" json:"app"`
 
 	ComponentAppID    string `yaml:"component_app_id" json:"componentAppId"`

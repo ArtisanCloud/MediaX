@@ -7,9 +7,9 @@ type MediaXConfig struct {
 }
 
 type LocalConfig struct {
-	*WeChatConfig  `yaml:"wechat_config" json:"weChatConfig"`
-	*DouYinConfig  `yaml:"douyin_config" json:"douYinConfig"`
-	*RedBookConfig `yaml:"redbook_config" json:"redBookConfig"`
+	*WeChatOfficialAccountConfig `yaml:"wechat_config" json:"weChatConfig"`
+	*DouYinConfig                `yaml:"douyin_config" json:"douYinConfig"`
+	*RedBookConfig               `yaml:"redbook_config" json:"redBookConfig"`
 }
 
 type AppConfig struct {

@@ -9,11 +9,11 @@ import (
 )
 
 type WeChatAccessTokenHandler struct {
-	Config             *config.WeChatConfig
+	Config             *config.WeChatOfficialAccountConfig
 	AccessTokenHandler *kernel.AccessTokenHandler
 }
 
-func NewWeChatAccessTokenHandler(cfg *config.WeChatConfig, logger *logger.Logger, cache cache.CacheInterface) (*WeChatAccessTokenHandler, error) {
+func NewWeChatAccessTokenHandler(cfg *config.WeChatOfficialAccountConfig, logger *logger.Logger, cache cache.CacheInterface) (*WeChatAccessTokenHandler, error) {
 	handler, err := kernel.NewAccessTokenHandler(&cfg.AppConfig, logger, cache)
 	if err != nil {
 		return nil, err
