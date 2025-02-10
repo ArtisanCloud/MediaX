@@ -7,7 +7,10 @@ import (
 	"net/http/httputil"
 )
 
-func LogResponse(l *logger.Logger, response *http.Response) {
+func LogResponse(needLog bool, l *logger.Logger, response *http.Response) {
+	if !needLog {
+		return
+	}
 	var output bytes.Buffer
 	output.Write([]byte("------------------"))
 	output.Write([]byte("response content:"))

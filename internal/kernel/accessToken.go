@@ -96,11 +96,11 @@ func (acHandler *AccessTokenHandler) OverrideGetMiddlewareOfLog() {
 			return func(request *http.Request) (response *http.Response, err error) {
 				l = l.WithContext(request.Context())
 
-				request2.LogRequest(l, request)
+				request2.LogRequest(acHandler.Config.HttpDebug, l, request)
 				response, err = handle(request)
 				if err == nil {
 					l.WithContext(request.Context())
-					response2.LogResponse(l, response)
+					response2.LogResponse(acHandler.Config.HttpDebug, l, response)
 				}
 				return response, err
 			}
