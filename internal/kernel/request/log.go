@@ -8,7 +8,10 @@ import (
 	"net/http"
 )
 
-func LogRequest(logger *logger.Logger, request *http.Request) {
+func LogRequest(needLog bool, logger *logger.Logger, request *http.Request) {
+	if !needLog {
+		return
+	}
 	var output bytes.Buffer
 	// 前置中间件
 	output.WriteString(fmt.Sprintf("%s %s ", request.Method, request.URL.String()))

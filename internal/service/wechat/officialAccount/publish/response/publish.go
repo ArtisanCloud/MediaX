@@ -23,7 +23,7 @@ type PublishGetRes struct {
 
 	PublishId     uint64         `json:"publish_id"`
 	PublishStatus int            `json:"publish_status"`
-	ArticleId     interface{}    `json:"article_id"`
+	ArticleId     string         `json:"article_id"`
 	ArticleDetail *ArticleDetail `json:"article_detail"`
 	FailIdx       []int          `json:"fail_idx"`
 }

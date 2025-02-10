@@ -26,7 +26,7 @@ func ParseResponseToObject(res *http.Response, obj interface{}) error {
 	}
 
 	// 打印响应内容 (可选)
-	fmt.Printf("Response Body: %s\n", string(bodyBytes))
+	//fmt.Printf("Response Body: %s\n", string(bodyBytes))
 
 	// 将响应体内容解析到目标对象
 	err = json.Unmarshal(bodyBytes, obj)
