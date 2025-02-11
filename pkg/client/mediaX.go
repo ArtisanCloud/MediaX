@@ -24,8 +24,8 @@ func NewMediaX(config *config.MediaXConfig, cache cache.CacheInterface) *MediaX 
 }
 
 // CreateWechatOfficialAccount 创建 WechatOfficialAccountClient，支持传入 WeChat 配置
-func (m *MediaX) CreateWechatOfficialAccount(cfg *config.WeChatOfficialAccountConfig) (*officialAccount.WeChatOfficialAccountService, error) {
-	return officialAccount.NewWeChatOfficialAccountService(cfg, m.Logger, m.Cache)
+func (m *MediaX) CreateWechatOfficialAccount(cfg *config.WeChatOfficialAccountConfig) (*officialAccount.WeChatOfficialAccountClient, error) {
+	return officialAccount.NewWeChatOfficialAccountClient(cfg, m.Logger, m.Cache)
 }
 
 // CreateDouYin 创建 DouYinClient，支持传入 DouYin 配置

@@ -7,14 +7,14 @@ import (
 	"github.com/ArtisanCloud/MediaXCore/pkg/logger"
 )
 
-type WeChatOfficialAccountService struct {
+type WeChatOfficialAccountClient struct {
 	Logger             *logger.Logger
 	Cache              cache.CacheInterface
 	Client             *core.WeChatClient
 	AccessTokenHandler *core.WeChatAccessTokenHandler
 }
 
-func NewWeChatOfficialAccountService(cfg *config.WeChatOfficialAccountConfig, logger *logger.Logger, cache cache.CacheInterface) (*WeChatOfficialAccountService, error) {
+func NewWeChatOfficialAccountClient(cfg *config.WeChatOfficialAccountConfig, logger *logger.Logger, cache cache.CacheInterface) (*WeChatOfficialAccountClient, error) {
 	c, err := core.NewWeChatClient(cfg, logger, cache)
 	if err != nil {
 		return nil, err
@@ -28,7 +28,7 @@ func NewWeChatOfficialAccountService(cfg *config.WeChatOfficialAccountConfig, lo
 	// bind token handler to client
 	c.TokenHandler = handler.AccessTokenHandler
 
-	return &WeChatOfficialAccountService{
+	return &WeChatOfficialAccountClient{
 		Logger:             logger,
 		Cache:              cache,
 		Client:             c,

@@ -53,7 +53,7 @@ func main() {
 	}
 	fmt.Dump(res)
 
-	ips, err := wechatOAClient.GetCallbackIP(ctx)
+	ips, err := wechatOAClient.GetCallbackIp(ctx)
 	if err != nil {
 		panic(err)
 	}

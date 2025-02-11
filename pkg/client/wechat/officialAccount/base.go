@@ -5,7 +5,7 @@ import (
 	"github.com/ArtisanCloud/MediaX/pkg/client/wechat/officialAccount/response"
 )
 
-func (srv *WeChatOfficialAccountService) GetCallbackIP(ctx context.Context) (*response.GetCallBackIPRes, error) {
+func (srv *WeChatOfficialAccountClient) GetCallbackIp(ctx context.Context) (*response.GetCallBackIPRes, error) {
 
 	result := &response.GetCallBackIPRes{}
 
