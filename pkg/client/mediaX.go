@@ -1,10 +1,10 @@
 package client
 
 import (
-	"github.com/ArtisanCloud/MediaX/internal/service/douyin"
-	"github.com/ArtisanCloud/MediaX/internal/service/redbook"
-	"github.com/ArtisanCloud/MediaX/internal/service/wechat/officialAccount"
 	"github.com/ArtisanCloud/MediaX/pkg/client/config"
+	"github.com/ArtisanCloud/MediaX/pkg/client/douyin"
+	"github.com/ArtisanCloud/MediaX/pkg/client/redbook"
+	"github.com/ArtisanCloud/MediaX/pkg/client/wechat/officialAccount"
 	"github.com/ArtisanCloud/MediaXCore/pkg/cache"
 	"github.com/ArtisanCloud/MediaXCore/pkg/logger"
 )

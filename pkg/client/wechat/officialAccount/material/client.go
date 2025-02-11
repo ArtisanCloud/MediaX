@@ -4,10 +4,11 @@ import (
 	"context"
 	"github.com/ArtisanCloud/MediaX/internal/kernel"
 	request2 "github.com/ArtisanCloud/MediaX/internal/kernel/request"
-	response3 "github.com/ArtisanCloud/MediaX/internal/service/wechat/core/response"
-	"github.com/ArtisanCloud/MediaX/internal/service/wechat/officialAccount/material/request"
-	"github.com/ArtisanCloud/MediaX/internal/service/wechat/officialAccount/material/response"
-	response2 "github.com/ArtisanCloud/MediaX/internal/service/wechat/officialAccount/response"
+	response2 "github.com/ArtisanCloud/MediaX/pkg/client/wechat/core/response"
+	"github.com/ArtisanCloud/MediaX/pkg/client/wechat/officialAccount/material/request"
+	"github.com/ArtisanCloud/MediaX/pkg/client/wechat/officialAccount/material/response"
+	response3 "github.com/ArtisanCloud/MediaX/pkg/client/wechat/officialAccount/response"
+
 	"github.com/ArtisanCloud/MediaXCore/utils/object"
 	"net/http"
 	"os"
@@ -163,7 +164,7 @@ func (client *Client) UploadArticleImage(ctx context.Context, path string) (*res
 // https://developers.weixin.qq.com/doc/offiaccount/Asset_Management/Getting_Permanent_Assets.html
 func (client *Client) GetMaterial(ctx context.Context, mediaID string) (*http.Response, error) {
 
-	header := &response2.HeaderMediaRes{}
+	header := &response3.HeaderMediaRes{}
 	res, err := client.RequestRaw(ctx, "cgi-bin/material/get_material", http.MethodPost, &object.HashMap{
 		"form_params": &object.HashMap{
 			"media_id": mediaID,
@@ -205,9 +206,9 @@ func (client *Client) GetNews(ctx context.Context, mediaID string) (*response.Ma
 
 // 删除永久素材
 // https://developers.weixin.qq.com/doc/offiaccount/Asset_Management/Deleting_Permanent_Assets.html
-func (client *Client) Delete(ctx context.Context, mediaID string) (*response3.OfficialAccountRes, error) {
+func (client *Client) Delete(ctx context.Context, mediaID string) (*response2.OfficialAccountRes, error) {
 
-	result := &response3.OfficialAccountRes{}
+	result := &response2.OfficialAccountRes{}
 
 	options := &object.HashMap{
 		"media_id": mediaID,
