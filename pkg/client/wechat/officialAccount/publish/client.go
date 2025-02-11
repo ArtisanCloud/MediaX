@@ -3,9 +3,9 @@ package publish
 import (
 	"context"
 	"github.com/ArtisanCloud/MediaX/internal/kernel"
-	response2 "github.com/ArtisanCloud/MediaX/internal/service/wechat/core/response"
-	"github.com/ArtisanCloud/MediaX/internal/service/wechat/officialAccount/publish/request"
-	"github.com/ArtisanCloud/MediaX/internal/service/wechat/officialAccount/publish/response"
+	response2 "github.com/ArtisanCloud/MediaX/pkg/client/wechat/core/response"
+	"github.com/ArtisanCloud/MediaX/pkg/client/wechat/officialAccount/publish/request"
+	"github.com/ArtisanCloud/MediaX/pkg/client/wechat/officialAccount/publish/response"
 	"github.com/ArtisanCloud/MediaXCore/utils/object"
 )
 
