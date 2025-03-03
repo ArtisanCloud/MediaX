@@ -9,7 +9,7 @@ func (srv *WeChatOfficialAccountClient) GetCallbackIp(ctx context.Context) (*res
 
 	result := &response.GetCallBackIPRes{}
 
-	_, err := srv.Client.HttpGet(ctx, "cgi-bin/getcallbackip", nil, nil, result)
+	_, err := srv.WeChatClient.HttpGet(ctx, "cgi-bin/getcallbackip", nil, nil, result)
 
 	return result, err
 }

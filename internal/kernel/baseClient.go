@@ -22,7 +22,7 @@ type BaseClient struct {
 	Logger     *logger.Logger
 	Cache      cache.CacheInterface
 
-	Config   *config.AppConfig
+	Config   *config.ClientConfig
 	QueryRaw bool
 
 	TokenHandler *AccessTokenHandler
@@ -34,15 +34,15 @@ type BaseClient struct {
 }
 
 func NewBaseClient(
-	cfg *config.AppConfig,
+	cfg *config.ClientConfig,
 	logger *logger.Logger, cache cache.CacheInterface,
 ) (*BaseClient, error) {
 
 	h, err := helper.NewRequestHelper(&helper.Config{
-		BaseUrl: cfg.BaseUri,
+		BaseUrl: cfg.ApiUrl,
 		ClientConfig: &contract.ClientConfig{
 			Timeout:  time.Duration(cfg.Timeout * float64(time.Second)),
-			ProxyURI: cfg.ProxyUri,
+			ProxyURI: cfg.ProxyApiUrl,
 		},
 	})
 	if err != nil {

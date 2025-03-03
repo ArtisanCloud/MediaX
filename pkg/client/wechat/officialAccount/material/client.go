@@ -15,15 +15,15 @@ import (
 	"path/filepath"
 )
 
-type Client struct {
+type OfficialAccountMaterialClient struct {
 	*kernel.BaseClient
 
 	AllowTypes []string
 }
 
-func NewClient(c *kernel.BaseClient) *Client {
+func NewClient(c *kernel.BaseClient) *OfficialAccountMaterialClient {
 
-	return &Client{
+	return &OfficialAccountMaterialClient{
 		BaseClient: c,
 		AllowTypes: []string{"image", "voice", "video", "thumb", "news_image"},
 	}
@@ -31,7 +31,7 @@ func NewClient(c *kernel.BaseClient) *Client {
 
 // 上传永久图片素材
 // https://developers.weixin.qq.com/doc/offiaccount/Asset_Management/Adding_Permanent_Assets.html
-func (client *Client) UploadImage(ctx context.Context, path string) (*response.MaterialAddMaterialRes, error) {
+func (client *OfficialAccountMaterialClient) UploadImage(ctx context.Context, path string) (*response.MaterialAddMaterialRes, error) {
 	result := &response.MaterialAddMaterialRes{}
 	_, err := client.Upload(ctx, "image", path, &object.StringMap{}, result)
 	return result, err
@@ -39,7 +39,7 @@ func (client *Client) UploadImage(ctx context.Context, path string) (*response.M
 
 // 上传永久图片素材
 // https://developers.weixin.qq.com/doc/offiaccount/Asset_Management/Adding_Permanent_Assets.html
-func (client *Client) UploadImageByData(ctx context.Context, data []byte) (*response.MaterialAddMaterialRes, error) {
+func (client *OfficialAccountMaterialClient) UploadImageByData(ctx context.Context, data []byte) (*response.MaterialAddMaterialRes, error) {
 	result := &response.MaterialAddMaterialRes{}
 	_, err := client.UploadByData(ctx, "image", "image", data, &object.StringMap{}, result)
 	return result, err
@@ -47,7 +47,7 @@ func (client *Client) UploadImageByData(ctx context.Context, data []byte) (*resp
 
 // 上传永久语音素材
 // https://developers.weixin.qq.com/doc/offiaccount/Asset_Management/Adding_Permanent_Assets.html
-func (client *Client) UploadVoice(ctx context.Context, path string) (*response.MaterialAddMaterialRes, error) {
+func (client *OfficialAccountMaterialClient) UploadVoice(ctx context.Context, path string) (*response.MaterialAddMaterialRes, error) {
 	result := &response.MaterialAddMaterialRes{}
 	_, err := client.Upload(ctx, "voice", path, &object.StringMap{}, result)
 	return result, err
@@ -55,7 +55,7 @@ func (client *Client) UploadVoice(ctx context.Context, path string) (*response.M
 
 // 上传永久语音素材
 // https://developers.weixin.qq.com/doc/offiaccount/Asset_Management/Adding_Permanent_Assets.html
-func (client *Client) UploadVoiceByData(ctx context.Context, data []byte) (*response.MaterialAddMaterialRes, error) {
+func (client *OfficialAccountMaterialClient) UploadVoiceByData(ctx context.Context, data []byte) (*response.MaterialAddMaterialRes, error) {
 	result := &response.MaterialAddMaterialRes{}
 	_, err := client.UploadByData(ctx, "voice", "voice", data, &object.StringMap{}, result)
 	return result, err
@@ -63,7 +63,7 @@ func (client *Client) UploadVoiceByData(ctx context.Context, data []byte) (*resp
 
 // 上传永久缩略图素材
 // https://developers.weixin.qq.com/doc/offiaccount/Asset_Management/Adding_Permanent_Assets.html
-func (client *Client) UploadThumb(ctx context.Context, path string) (*response.MaterialAddMaterialRes, error) {
+func (client *OfficialAccountMaterialClient) UploadThumb(ctx context.Context, path string) (*response.MaterialAddMaterialRes, error) {
 	result := &response.MaterialAddMaterialRes{}
 	_, err := client.Upload(ctx, "thumb", path, &object.StringMap{}, result)
 	return result, err
@@ -71,7 +71,7 @@ func (client *Client) UploadThumb(ctx context.Context, path string) (*response.M
 
 // 上传永久缩略图素材
 // https://developers.weixin.qq.com/doc/offiaccount/Asset_Management/Adding_Permanent_Assets.html
-func (client *Client) UploadThumbByData(ctx context.Context, data []byte) (*response.MaterialAddMaterialRes, error) {
+func (client *OfficialAccountMaterialClient) UploadThumbByData(ctx context.Context, data []byte) (*response.MaterialAddMaterialRes, error) {
 	result := &response.MaterialAddMaterialRes{}
 	_, err := client.UploadByData(ctx, "thumb", "thumb", data, &object.StringMap{}, result)
 	return result, err
@@ -79,7 +79,7 @@ func (client *Client) UploadThumbByData(ctx context.Context, data []byte) (*resp
 
 // 上传永久视频素材
 // https://developers.weixin.qq.com/doc/offiaccount/Asset_Management/Adding_Permanent_Assets.html
-func (client *Client) UploadVideo(ctx context.Context, path string, title string, description string) (*response.MaterialAddMaterialRes, error) {
+func (client *OfficialAccountMaterialClient) UploadVideo(ctx context.Context, path string, title string, description string) (*response.MaterialAddMaterialRes, error) {
 
 	result := &response.MaterialAddMaterialRes{}
 
@@ -101,7 +101,7 @@ func (client *Client) UploadVideo(ctx context.Context, path string, title string
 
 // 上传永久视频素材
 // https://developers.weixin.qq.com/doc/offiaccount/Asset_Management/Adding_Permanent_Assets.html
-func (client *Client) UploadVideoByData(ctx context.Context, data []byte, title string, description string) (*response.MaterialAddMaterialRes, error) {
+func (client *OfficialAccountMaterialClient) UploadVideoByData(ctx context.Context, data []byte, title string, description string) (*response.MaterialAddMaterialRes, error) {
 
 	result := &response.MaterialAddMaterialRes{}
 
@@ -123,7 +123,7 @@ func (client *Client) UploadVideoByData(ctx context.Context, data []byte, title 
 
 // 新增永久素材
 // https://developers.weixin.qq.com/doc/offiaccount/Comments_management/Image_Comments_Management_Interface.html
-func (client *Client) UploadArticle(ctx context.Context, articles request.AddArticlesReq) (*response.MaterialAddNewsRes, error) {
+func (client *OfficialAccountMaterialClient) UploadArticle(ctx context.Context, articles request.AddArticlesReq) (*response.MaterialAddNewsRes, error) {
 
 	result := &response.MaterialAddNewsRes{}
 
@@ -139,7 +139,7 @@ func (client *Client) UploadArticle(ctx context.Context, articles request.AddArt
 
 // 上传永久素材
 // https://developers.weixin.qq.com/doc/offiaccount/Comments_management/Image_Comments_Management_Interface.html
-func (client *Client) UpdateArticle(ctx context.Context, mediaID string, articles request.AddArticlesReq, index int) (response.MaterialAddNewsRes, error) {
+func (client *OfficialAccountMaterialClient) UpdateArticle(ctx context.Context, mediaID string, articles request.AddArticlesReq, index int) (response.MaterialAddNewsRes, error) {
 	result := response.MaterialAddNewsRes{}
 
 	params := &object.HashMap{
@@ -154,7 +154,7 @@ func (client *Client) UpdateArticle(ctx context.Context, mediaID string, article
 
 // 上传图文消息内的图片获取URL
 // https://developers.weixin.qq.com/doc/offiaccount/Asset_Management/Adding_Permanent_Assets.html
-func (client *Client) UploadArticleImage(ctx context.Context, path string) (*response.MaterialAddMaterialRes, error) {
+func (client *OfficialAccountMaterialClient) UploadArticleImage(ctx context.Context, path string) (*response.MaterialAddMaterialRes, error) {
 	result := &response.MaterialAddMaterialRes{}
 	_, err := client.Upload(ctx, "news_image", path, &object.StringMap{}, result)
 	return result, err
@@ -162,7 +162,7 @@ func (client *Client) UploadArticleImage(ctx context.Context, path string) (*res
 
 // 获取永久素材图片
 // https://developers.weixin.qq.com/doc/offiaccount/Asset_Management/Getting_Permanent_Assets.html
-func (client *Client) GetMaterial(ctx context.Context, mediaID string) (*http.Response, error) {
+func (client *OfficialAccountMaterialClient) GetMaterial(ctx context.Context, mediaID string) (*http.Response, error) {
 
 	header := &response3.HeaderMediaRes{}
 	res, err := client.RequestRaw(ctx, "cgi-bin/material/get_material", http.MethodPost, &object.HashMap{
@@ -176,7 +176,7 @@ func (client *Client) GetMaterial(ctx context.Context, mediaID string) (*http.Re
 
 // 获取永久视频消息素材
 // https://developers.weixin.qq.com/doc/offiaccount/Asset_Management/Getting_Permanent_Assets.html
-func (client *Client) GetVideo(ctx context.Context, mediaID string) (*response.MaterialGetVideoRes, error) {
+func (client *OfficialAccountMaterialClient) GetVideo(ctx context.Context, mediaID string) (*response.MaterialGetVideoRes, error) {
 
 	result := &response.MaterialGetVideoRes{}
 
@@ -191,7 +191,7 @@ func (client *Client) GetVideo(ctx context.Context, mediaID string) (*response.M
 
 // 获取永久图文素材
 // https://developers.weixin.qq.com/doc/offiaccount/Asset_Management/Getting_Permanent_Assets.html
-func (client *Client) GetNews(ctx context.Context, mediaID string) (*response.MaterialGetNewsRes, error) {
+func (client *OfficialAccountMaterialClient) GetNews(ctx context.Context, mediaID string) (*response.MaterialGetNewsRes, error) {
 
 	result := &response.MaterialGetNewsRes{}
 
@@ -206,7 +206,7 @@ func (client *Client) GetNews(ctx context.Context, mediaID string) (*response.Ma
 
 // 删除永久素材
 // https://developers.weixin.qq.com/doc/offiaccount/Asset_Management/Deleting_Permanent_Assets.html
-func (client *Client) Delete(ctx context.Context, mediaID string) (*response2.OfficialAccountRes, error) {
+func (client *OfficialAccountMaterialClient) Delete(ctx context.Context, mediaID string) (*response2.OfficialAccountRes, error) {
 
 	result := &response2.OfficialAccountRes{}
 
@@ -221,7 +221,7 @@ func (client *Client) Delete(ctx context.Context, mediaID string) (*response2.Of
 
 // 获取素材列表
 // https://developers.weixin.qq.com/doc/offiaccount/Asset_Management/Get_materials_list.html
-func (client *Client) List(ctx context.Context, options *request.MaterialBatchGetMaterialReq) (*response.MaterialBatchGetMaterialRes, error) {
+func (client *OfficialAccountMaterialClient) List(ctx context.Context, options *request.MaterialBatchGetMaterialReq) (*response.MaterialBatchGetMaterialRes, error) {
 
 	result := &response.MaterialBatchGetMaterialRes{}
 
@@ -232,7 +232,7 @@ func (client *Client) List(ctx context.Context, options *request.MaterialBatchGe
 
 // 获取素材总数
 // https://developers.weixin.qq.com/doc/offiaccount/Asset_Management/Get_the_total_of_all_materials.html
-func (client *Client) Stats(ctx context.Context) (*response.MaterialGetMaterialCountRes, error) {
+func (client *OfficialAccountMaterialClient) Stats(ctx context.Context) (*response.MaterialGetMaterialCountRes, error) {
 
 	result := &response.MaterialGetMaterialCountRes{}
 
@@ -242,7 +242,7 @@ func (client *Client) Stats(ctx context.Context) (*response.MaterialGetMaterialC
 
 }
 
-func (client *Client) Upload(ctx context.Context, Type string, path string, query *object.StringMap, result interface{}) (interface{}, error) {
+func (client *OfficialAccountMaterialClient) Upload(ctx context.Context, Type string, path string, query *object.StringMap, result interface{}) (interface{}, error) {
 
 	_, err := os.Stat(path)
 	if (err != nil && os.IsExist(err)) && (err != nil && os.IsPermission(err)) {
@@ -265,7 +265,7 @@ func (client *Client) Upload(ctx context.Context, Type string, path string, quer
 	return client.HttpUpload(ctx, client.getApiByType(Type), files, form, query, nil, result)
 }
 
-func (client *Client) UploadByData(ctx context.Context, Type string, name string, data []byte, query *object.StringMap, result interface{}) (interface{}, error) {
+func (client *OfficialAccountMaterialClient) UploadByData(ctx context.Context, Type string, name string, data []byte, query *object.StringMap, result interface{}) (interface{}, error) {
 
 	formData := &request2.UploadForm{
 		Contents: []*request2.UploadContent{
@@ -279,7 +279,7 @@ func (client *Client) UploadByData(ctx context.Context, Type string, name string
 	return client.HttpUpload(ctx, client.getApiByType(Type), nil, formData, query, nil, result)
 }
 
-func (client *Client) getApiByType(Type string) string {
+func (client *OfficialAccountMaterialClient) getApiByType(Type string) string {
 
 	switch Type {
 	case "news_image":

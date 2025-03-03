@@ -18,10 +18,10 @@ type DouYinService struct {
 func NewDouYinService(cfg *config.DouYinConfig, logger *logger.Logger, cache cache.CacheInterface) (*DouYinService, error) {
 
 	httpHelper, err := helper.NewRequestHelper(&helper.Config{
-		BaseUrl: cfg.BaseUri,
+		BaseUrl: cfg.ApiUrl,
 		ClientConfig: &contract.ClientConfig{
 			Timeout:  time.Duration(cfg.Timeout * float64(time.Second)),
-			ProxyURI: cfg.ProxyUri,
+			ProxyURI: cfg.ProxyApiUrl,
 		},
 	})
 

@@ -1,5 +1,5 @@
 package config
 
 type DouYinConfig struct {
-	AppConfig
+	*ClientConfig `yaml:",inline"`
 }

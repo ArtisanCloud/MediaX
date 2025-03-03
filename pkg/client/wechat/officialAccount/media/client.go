@@ -13,15 +13,15 @@ import (
 	"os"
 )
 
-type Client struct {
+type OfficialAccountMediaClient struct {
 	*kernel.BaseClient
 
 	AllowTypes []string
 }
 
-func NewClient(c *kernel.BaseClient) *Client {
+func NewClient(c *kernel.BaseClient) *OfficialAccountMediaClient {
 
-	return &Client{
+	return &OfficialAccountMediaClient{
 		BaseClient: c,
 		AllowTypes: []string{"image", "voice", "video", "thumb", "news_image"},
 	}
@@ -29,25 +29,25 @@ func NewClient(c *kernel.BaseClient) *Client {
 
 // 新增临时素材
 // https://developers.weixin.qq.com/doc/offiaccount/Asset_Management/New_temporary_materials.html
-func (client *Client) UploadImage(ctx context.Context, path string) (*response.UploadMediaRes, error) {
+func (client *OfficialAccountMediaClient) UploadImage(ctx context.Context, path string) (*response.UploadMediaRes, error) {
 	return client.Upload(ctx, "image", path)
 }
 
-func (client *Client) UploadVoice(ctx context.Context, path string) (*response.UploadMediaRes, error) {
+func (client *OfficialAccountMediaClient) UploadVoice(ctx context.Context, path string) (*response.UploadMediaRes, error) {
 	return client.Upload(ctx, "voice", path)
 }
 
-func (client *Client) UploadVideo(ctx context.Context, path string) (*response.UploadMediaRes, error) {
+func (client *OfficialAccountMediaClient) UploadVideo(ctx context.Context, path string) (*response.UploadMediaRes, error) {
 	return client.Upload(ctx, "video", path)
 }
 
-func (client *Client) UploadThumb(ctx context.Context, path string) (*response.UploadMediaRes, error) {
+func (client *OfficialAccountMediaClient) UploadThumb(ctx context.Context, path string) (*response.UploadMediaRes, error) {
 	return client.Upload(ctx, "thumb", path)
 }
 
 // 上传临时素材
 // https://developers.weixin.qq.com/doc/offiaccount/Asset_Management/New_temporary_materials.html
-func (client *Client) Upload(ctx context.Context, mediaType string, path string) (*response.UploadMediaRes, error) {
+func (client *OfficialAccountMediaClient) Upload(ctx context.Context, mediaType string, path string) (*response.UploadMediaRes, error) {
 
 	_, err := os.Stat(path)
 	if (err != nil && os.IsExist(err)) && (err != nil && os.IsPermission(err)) {
@@ -77,7 +77,7 @@ func (client *Client) Upload(ctx context.Context, mediaType string, path string)
 
 // 获取临时素材
 // https://work.weixin.qq.com/api/doc/90000/90135/90254
-func (client *Client) Get(ctx context.Context, mediaID string) (*http.Response, error) {
+func (client *OfficialAccountMediaClient) Get(ctx context.Context, mediaID string) (*http.Response, error) {
 
 	header := &response2.HeaderMediaRes{}
 	res, err := client.RequestRaw(ctx, "cgi-bin/media/get", http.MethodPost, &object.HashMap{
@@ -92,7 +92,7 @@ func (client *Client) Get(ctx context.Context, mediaID string) (*http.Response, 
 
 // 获取高清语音素材
 // https://work.weixin.qq.com/api/doc/90000/90135/90255
-func (client *Client) GetJSSDK(ctx context.Context, mediaID string) (*http.Response, error) {
+func (client *OfficialAccountMediaClient) GetJSSDK(ctx context.Context, mediaID string) (*http.Response, error) {
 
 	header := &response2.HeaderMediaRes{}
 	res, err := client.RequestRaw(ctx, "cgi-bin/media/get/jssdk", http.MethodPost, &object.HashMap{
