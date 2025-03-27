@@ -23,7 +23,7 @@ import (
 
 type AccessTokenHandler struct {
 	HttpHelper *helper.RequestHelper
-	Cache      cache.CacheInterface
+	Cache      cache.ICache
 	Logger     *logger.Logger
 	Config     *config.ClientConfig
 
@@ -44,7 +44,7 @@ type AccessTokenHandler struct {
 	GetMiddlewareOfLog func(l *logger.Logger) contract.RequestMiddleware
 }
 
-func NewAccessTokenHandler(cfg *config.ClientConfig, logger *logger.Logger, cache cache.CacheInterface) (*AccessTokenHandler, error) {
+func NewAccessTokenHandler(cfg *config.ClientConfig, logger *logger.Logger, cache cache.ICache) (*AccessTokenHandler, error) {
 	h, err := helper.NewRequestHelper(&helper.Config{
 		BaseUrl: cfg.OAuthUrl,
 		ClientConfig: &contract.ClientConfig{

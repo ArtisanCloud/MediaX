@@ -12,7 +12,7 @@ import (
 
 type WeChatOfficialAccountClient struct {
 	Logger                *logger.Logger
-	Cache                 cache.CacheInterface
+	Cache                 cache.ICache
 	WeChatClient          *core.WeChatClient
 	OfficialAccountConfig *config.WeChatOfficialAccountConfig
 	AccessTokenHandler    *core.WeChatAccessTokenHandler
@@ -23,7 +23,7 @@ type WeChatOfficialAccountClient struct {
 	publish  *publish.OfficialAccountPublishClient
 }
 
-func NewWeChatOfficialAccountClient(cfg *config.WeChatOfficialAccountConfig, logger *logger.Logger, cache cache.CacheInterface) (*WeChatOfficialAccountClient, error) {
+func NewWeChatOfficialAccountClient(cfg *config.WeChatOfficialAccountConfig, logger *logger.Logger, cache cache.ICache) (*WeChatOfficialAccountClient, error) {
 	if cfg.ApiUrl == "" {
 		cfg.ApiUrl = "https://api.weixin.qq.com"
 	}

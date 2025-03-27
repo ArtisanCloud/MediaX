@@ -11,11 +11,11 @@ import (
 
 type RedBookService struct {
 	Logger     *logger.Logger        // 全局 Logger
-	Cache      cache.CacheInterface  // 全局 Cache
+	Cache      cache.ICache          // 全局 Cache
 	HttpHelper *helper.RequestHelper // 全局 HttpClient
 }
 
-func NewRedBookService(cfg *config.RedBookConfig, logger *logger.Logger, cache cache.CacheInterface) (*RedBookService, error) {
+func NewRedBookService(cfg *config.RedBookConfig, logger *logger.Logger, cache cache.ICache) (*RedBookService, error) {
 
 	httpHelper, err := helper.NewRequestHelper(&helper.Config{
 		BaseUrl: cfg.ApiUrl,

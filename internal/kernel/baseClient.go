@@ -20,7 +20,7 @@ import (
 type BaseClient struct {
 	HttpHelper *helper.RequestHelper
 	Logger     *logger.Logger
-	Cache      cache.CacheInterface
+	Cache      cache.ICache
 
 	Config   *config.ClientConfig
 	QueryRaw bool
@@ -35,7 +35,7 @@ type BaseClient struct {
 
 func NewBaseClient(
 	cfg *config.ClientConfig,
-	logger *logger.Logger, cache cache.CacheInterface,
+	logger *logger.Logger, cache cache.ICache,
 ) (*BaseClient, error) {
 
 	h, err := helper.NewRequestHelper(&helper.Config{

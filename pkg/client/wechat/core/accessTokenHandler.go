@@ -13,7 +13,7 @@ type WeChatAccessTokenHandler struct {
 	AccessTokenHandler *kernel.AccessTokenHandler
 }
 
-func NewWeChatAccessTokenHandler(cfg *config.ClientConfig, logger *logger.Logger, cache cache.CacheInterface) (*WeChatAccessTokenHandler, error) {
+func NewWeChatAccessTokenHandler(cfg *config.ClientConfig, logger *logger.Logger, cache cache.ICache) (*WeChatAccessTokenHandler, error) {
 	handler, err := kernel.NewAccessTokenHandler(cfg, logger, cache)
 	if err != nil {
 		return nil, err

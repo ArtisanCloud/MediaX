@@ -11,11 +11,11 @@ import (
 
 type DouYinService struct {
 	Logger     *logger.Logger        // 全局 Logger
-	Cache      cache.CacheInterface  // 全局 Cache
+	Cache      cache.ICache          // 全局 Cache
 	HttpHelper *helper.RequestHelper // 全局 HttpClient
 }
 
-func NewDouYinService(cfg *config.DouYinConfig, logger *logger.Logger, cache cache.CacheInterface) (*DouYinService, error) {
+func NewDouYinService(cfg *config.DouYinConfig, logger *logger.Logger, cache cache.ICache) (*DouYinService, error) {
 
 	httpHelper, err := helper.NewRequestHelper(&helper.Config{
 		BaseUrl: cfg.ApiUrl,

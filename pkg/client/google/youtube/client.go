@@ -10,7 +10,7 @@ import (
 
 type GoogleYouTubeClient struct {
 	Logger             *logger.Logger
-	Cache              cache.CacheInterface
+	Cache              cache.ICache
 	GoogleClient       *core.GoogleClient
 	YouTubeConfig      *config.GoogleYouTubeConfig
 	AccessTokenHandler *core.GoogleAccessTokenHandler
@@ -19,7 +19,7 @@ type GoogleYouTubeClient struct {
 	video *video.YoutubeVideoClient
 }
 
-func NewGoogleYouTubeClient(cfg *config.GoogleYouTubeConfig, logger *logger.Logger, cache cache.CacheInterface) (*GoogleYouTubeClient, error) {
+func NewGoogleYouTubeClient(cfg *config.GoogleYouTubeConfig, logger *logger.Logger, cache cache.ICache) (*GoogleYouTubeClient, error) {
 	if cfg.ApiUrl == "" {
 		cfg.ApiUrl = "https://www.googleapis.com/youtube/v3"
 	}

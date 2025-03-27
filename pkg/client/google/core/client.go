@@ -12,7 +12,7 @@ type GoogleClient struct {
 	ClientConfig *config.ClientConfig
 }
 
-func NewGoogleClient(cfg *config.ClientConfig, logger *logger.Logger, cache cache.CacheInterface) (*GoogleClient, error) {
+func NewGoogleClient(cfg *config.ClientConfig, logger *logger.Logger, cache cache.ICache) (*GoogleClient, error) {
 	if cfg.ApiUrl == "" {
 		cfg.ApiUrl = "https://api.weixin.qq.com"
 	}

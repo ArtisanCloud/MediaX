@@ -11,12 +11,12 @@ import (
 )
 
 type MediaX struct {
-	Logger *logger.Logger       // 全局 Logger
-	Cache  cache.CacheInterface // 全局 Cache
+	Logger *logger.Logger // 全局 Logger
+	Cache  cache.ICache   // 全局 Cache
 }
 
 // NewMediaX 初始化 MediaX，Logger 和 Cache 是全局共享的
-func NewMediaX(config *config.MediaXConfig, cache cache.CacheInterface) *MediaX {
+func NewMediaX(config *config.MediaXConfig, cache cache.ICache) *MediaX {
 	l := logger.NewLogger(config.Logger)
 	return &MediaX{
 		Logger: l,

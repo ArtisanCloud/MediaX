@@ -17,7 +17,7 @@ type WeChatClient struct {
 	*kernel.BaseClient
 }
 
-func NewWeChatClient(cfg *config.ClientConfig, logger *logger.Logger, cache cache.CacheInterface) (*WeChatClient, error) {
+func NewWeChatClient(cfg *config.ClientConfig, logger *logger.Logger, cache cache.ICache) (*WeChatClient, error) {
 	baseClient, err := kernel.NewBaseClient(cfg, logger, cache)
 	if err != nil {
 		return nil, err

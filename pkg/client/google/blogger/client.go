@@ -10,7 +10,7 @@ import (
 
 type GoogleBloggerClient struct {
 	Logger             *logger.Logger
-	Cache              cache.CacheInterface
+	Cache              cache.ICache
 	GoogleClient       *core.GoogleClient
 	BloggerConfig      *config.GoogleBloggerConfig
 	AccessTokenHandler *core.GoogleAccessTokenHandler
@@ -19,7 +19,7 @@ type GoogleBloggerClient struct {
 	post *post.BloggerPostClient
 }
 
-func NewGoogleBloggerClient(cfg *config.GoogleBloggerConfig, logger *logger.Logger, cache cache.CacheInterface) (*GoogleBloggerClient, error) {
+func NewGoogleBloggerClient(cfg *config.GoogleBloggerConfig, logger *logger.Logger, cache cache.ICache) (*GoogleBloggerClient, error) {
 	if cfg.ApiUrl == "" {
 		cfg.ApiUrl = "https://www.googleapis.com/blogger/v3"
 	}

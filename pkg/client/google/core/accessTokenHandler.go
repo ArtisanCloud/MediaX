@@ -13,7 +13,7 @@ type GoogleAccessTokenHandler struct {
 	AccessTokenHandler *kernel.AccessTokenHandler
 }
 
-func NewGoogleAccessTokenHandler(cfg *config.ClientConfig, logger *logger.Logger, cache cache.CacheInterface) (*GoogleAccessTokenHandler, error) {
+func NewGoogleAccessTokenHandler(cfg *config.ClientConfig, logger *logger.Logger, cache cache.ICache) (*GoogleAccessTokenHandler, error) {
 	handler, err := kernel.NewAccessTokenHandler(cfg, logger, cache)
 	if err != nil {
 		return nil, err
