@@ -20,6 +20,9 @@ MediaX系列产品介绍
 
 - Go 1.18 或更高版本
 
+### 使用知识
+- OAuth2.0 授权流程，可以参考[理解OAuth 2.0](https://www.ruanyifeng.com/blog/2014/05/oauth_2_0.html)文章
+
 ### 安装
 
 1. 初始化项目并下载 MediaX：
@@ -81,9 +84,6 @@ MediaX系列产品介绍
 |        |           |                       | 新增         | 删除 | 修改 | 查询 | 新增         | 删除 | 修改 | 查询 | 管理         |
 | Google | YouTube   | auth_code             | ✔            | ✔    | ✔    | ✔    | ✔            | ✔    | ✔    | ✔    |            |
 | WeChat | 公众号     | client_credential     | ✔            | ✔    | ✔    | ✔    | ✔            | ✔    | ✔    | ✔    |            |
-
-> 注：✔ 表示支持该功能，✘ 表示暂不支持该功能。
-
 
 > 注：✔ 表示支持该功能，✘ 表示暂不支持该功能。
 
