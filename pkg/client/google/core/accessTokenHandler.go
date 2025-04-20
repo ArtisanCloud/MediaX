@@ -23,11 +23,11 @@ func NewGoogleAccessTokenHandler(cfg *config.ClientConfig, logger *logger.Logger
 		AccessTokenHandler: handler,
 	}
 
-	if cfg.OAuthUrl != "" {
-		googleHandler.AccessTokenHandler.EndpointToGetToken = cfg.OAuthUrl
-	} else {
-		googleHandler.AccessTokenHandler.EndpointToGetToken = "https://oauth2.googleapis.com/token"
-	}
+	//if cfg.OAuthUrl != "" {
+	//	googleHandler.AccessTokenHandler.EndpointToGetToken = cfg.OAuthUrl
+	//} else {
+	//	googleHandler.AccessTokenHandler.EndpointToGetToken = "https://oauth2.googleapis.com/token"
+	//}
 	googleHandler.OverrideGetCredentials()
 
 	return googleHandler, nil

@@ -272,7 +272,7 @@ func (acHandler *AccessTokenHandler) GetToken(ctx context.Context, refresh bool)
 		}
 	}
 
-	// request token from power
+	// request token from provider auth token api
 	resToken, err = acHandler.sendRequest(ctx, acHandler.GetCredentials())
 	if err != nil {
 		return nil, err

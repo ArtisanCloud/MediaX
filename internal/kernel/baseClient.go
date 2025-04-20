@@ -170,6 +170,14 @@ func (client *BaseClient) HttpPost(ctx context.Context, url string, data interfa
 	return client.makeRequest(ctx, url, http.MethodPost, nil, data, outHeader, outBody)
 }
 
+func (client *BaseClient) HttpPut(ctx context.Context, url string, data interface{}, outHeader interface{}, outBody interface{}) (interface{}, error) {
+	return client.makeRequest(ctx, url, http.MethodPut, nil, data, outHeader, outBody)
+}
+
+func (client *BaseClient) HttpDelete(ctx context.Context, url string, data interface{}, outHeader interface{}, outBody interface{}) (interface{}, error) {
+	return client.makeRequest(ctx, url, http.MethodDelete, nil, data, outHeader, outBody)
+}
+
 func (client *BaseClient) RequestRaw(ctx context.Context, url string, method string, options *object.HashMap, outHeader interface{}, outBody interface{}) (*http.Response, error) {
 	return client.makeRequest(ctx, url, method, &object.StringMap{}, options, outHeader, outBody)
 }

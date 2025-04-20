@@ -21,7 +21,7 @@ type GoogleYouTubeClient struct {
 
 func NewGoogleYouTubeClient(cfg *config.GoogleYouTubeConfig, logger *logger.Logger, cache cache.ICache) (*GoogleYouTubeClient, error) {
 	if cfg.ApiUrl == "" {
-		cfg.ApiUrl = "https://www.googleapis.com/youtube/v3"
+		cfg.ApiUrl = "https://www.googleapis.com/youtube/v3/"
 	}
 	c, err := core.NewGoogleClient(cfg.ClientConfig, logger, cache)
 	if err != nil {
@@ -35,6 +35,9 @@ func NewGoogleYouTubeClient(cfg *config.GoogleYouTubeConfig, logger *logger.Logg
 
 	// bind token handler to client
 	c.TokenHandler = handler.AccessTokenHandler
+
+	// override get custom token
+	c.TokenHandler.GetCustomToken = cfg.GetOAuthToken
 
 	return &GoogleYouTubeClient{
 		Logger:             logger,

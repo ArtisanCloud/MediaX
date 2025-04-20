@@ -13,9 +13,7 @@ type GoogleClient struct {
 }
 
 func NewGoogleClient(cfg *config.ClientConfig, logger *logger.Logger, cache cache.ICache) (*GoogleClient, error) {
-	if cfg.ApiUrl == "" {
-		cfg.ApiUrl = "https://api.weixin.qq.com"
-	}
+
 	baseClient, err := kernel.NewBaseClient(cfg, logger, cache)
 	if err != nil {
 		return nil, err
