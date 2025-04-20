@@ -2,13 +2,11 @@ module github.com/ArtisanCloud/MediaX
 
 go 1.18
 
-//replace github.com/ArtisanCloud/PowerSocialite/v3 => ../../../../PowerWechat/PowerSocialite
-
 //replace github.com/ArtisanCloud/MediaXCore => ../MediaXCore
 
 require (
-	github.com/ArtisanCloud/MediaXCore v1.0.0
-	github.com/redis/go-redis/v9 v9.7.0
+	github.com/ArtisanCloud/MediaXCore v1.0.1
+	github.com/redis/go-redis/v9 v9.7.3
 	gopkg.in/yaml.v3 v3.0.1
 )
 

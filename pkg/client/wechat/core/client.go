@@ -4,12 +4,8 @@ import (
 	"bytes"
 	"github.com/ArtisanCloud/MediaX/internal/kernel"
 	response2 "github.com/ArtisanCloud/MediaX/internal/kernel/response"
-	"github.com/ArtisanCloud/MediaX/pkg/client/wechat/core/response"
-	"github.com/ArtisanCloud/MediaX/pkg/client/wechat/officialAccount/material"
-	"github.com/ArtisanCloud/MediaX/pkg/client/wechat/officialAccount/media"
-	"github.com/ArtisanCloud/MediaX/pkg/client/wechat/officialAccount/publish"
-
 	"github.com/ArtisanCloud/MediaX/pkg/client/config"
+	"github.com/ArtisanCloud/MediaX/pkg/client/wechat/core/response"
 	"github.com/ArtisanCloud/MediaXCore/pkg/cache"
 	"github.com/ArtisanCloud/MediaXCore/pkg/logger"
 	"io"
@@ -19,22 +15,15 @@ import (
 
 type WeChatClient struct {
 	*kernel.BaseClient
-	Config *config.WeChatOfficialAccountConfig
-
-	// clients
-	media    *media.Client
-	material *material.Client
-	publish  *publish.Client
 }
 
-func NewWeChatClient(cfg *config.WeChatOfficialAccountConfig, logger *logger.Logger, cache cache.CacheInterface) (*WeChatClient, error) {
-	baseClient, err := kernel.NewBaseClient(&cfg.AppConfig, logger, cache)
+func NewWeChatClient(cfg *config.ClientConfig, logger *logger.Logger, cache cache.ICache) (*WeChatClient, error) {
+	baseClient, err := kernel.NewBaseClient(cfg, logger, cache)
 	if err != nil {
 		return nil, err
 	}
 	wechatClient := &WeChatClient{
 		BaseClient: baseClient,
-		Config:     cfg,
 	}
 
 	wechatClient.OverrideCheckTokenNeedRefresh()
@@ -104,25 +93,4 @@ func (client *WeChatClient) OverrideCheckTokenNeedRefresh() {
 
 		return rs, nil
 	}
-}
-
-func (client *WeChatClient) GetMediaClient() *media.Client {
-	if client.media == nil {
-		client.media = media.NewClient(client.BaseClient)
-	}
-	return client.media
-}
-
-func (client *WeChatClient) GetMaterialClient() *material.Client {
-	if client.material == nil {
-		client.material = material.NewClient(client.BaseClient)
-	}
-	return client.material
-}
-
-func (client *WeChatClient) GetPublishClient() *publish.Client {
-	if client.publish == nil {
-		client.publish = publish.NewClient(client.BaseClient)
-	}
-	return client.publish
 }

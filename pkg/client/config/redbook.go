@@ -1,5 +1,5 @@
 package config
 
 type RedBookConfig struct {
-	AppConfig
+	*ClientConfig `yaml:",inline"`
 }

@@ -20,9 +20,9 @@ import (
 type BaseClient struct {
 	HttpHelper *helper.RequestHelper
 	Logger     *logger.Logger
-	Cache      cache.CacheInterface
+	Cache      cache.ICache
 
-	Config   *config.AppConfig
+	Config   *config.ClientConfig
 	QueryRaw bool
 
 	TokenHandler *AccessTokenHandler
@@ -34,15 +34,15 @@ type BaseClient struct {
 }
 
 func NewBaseClient(
-	cfg *config.AppConfig,
-	logger *logger.Logger, cache cache.CacheInterface,
+	cfg *config.ClientConfig,
+	logger *logger.Logger, cache cache.ICache,
 ) (*BaseClient, error) {
 
 	h, err := helper.NewRequestHelper(&helper.Config{
-		BaseUrl: cfg.BaseUri,
+		BaseUrl: cfg.ApiUrl,
 		ClientConfig: &contract.ClientConfig{
 			Timeout:  time.Duration(cfg.Timeout * float64(time.Second)),
-			ProxyURI: cfg.ProxyUri,
+			ProxyURI: cfg.ProxyApiUrl,
 		},
 	})
 	if err != nil {
@@ -168,6 +168,14 @@ func (client *BaseClient) HttpGet(ctx context.Context, url string, query *object
 
 func (client *BaseClient) HttpPost(ctx context.Context, url string, data interface{}, outHeader interface{}, outBody interface{}) (interface{}, error) {
 	return client.makeRequest(ctx, url, http.MethodPost, nil, data, outHeader, outBody)
+}
+
+func (client *BaseClient) HttpPut(ctx context.Context, url string, data interface{}, outHeader interface{}, outBody interface{}) (interface{}, error) {
+	return client.makeRequest(ctx, url, http.MethodPut, nil, data, outHeader, outBody)
+}
+
+func (client *BaseClient) HttpDelete(ctx context.Context, url string, data interface{}, outHeader interface{}, outBody interface{}) (interface{}, error) {
+	return client.makeRequest(ctx, url, http.MethodDelete, nil, data, outHeader, outBody)
 }
 
 func (client *BaseClient) RequestRaw(ctx context.Context, url string, method string, options *object.HashMap, outHeader interface{}, outBody interface{}) (*http.Response, error) {

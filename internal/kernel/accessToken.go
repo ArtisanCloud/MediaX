@@ -17,14 +17,15 @@ import (
 	"github.com/ArtisanCloud/MediaXCore/pkg/logger"
 	"github.com/ArtisanCloud/MediaXCore/utils/object"
 	"net/http"
+	"strings"
 	"time"
 )
 
 type AccessTokenHandler struct {
 	HttpHelper *helper.RequestHelper
-	Cache      cache.CacheInterface
+	Cache      cache.ICache
 	Logger     *logger.Logger
-	Config     *config.AppConfig
+	Config     *config.ClientConfig
 
 	RequestMethod      string
 	EndpointToGetToken string
@@ -43,12 +44,12 @@ type AccessTokenHandler struct {
 	GetMiddlewareOfLog func(l *logger.Logger) contract.RequestMiddleware
 }
 
-func NewAccessTokenHandler(cfg *config.AppConfig, logger *logger.Logger, cache cache.CacheInterface) (*AccessTokenHandler, error) {
+func NewAccessTokenHandler(cfg *config.ClientConfig, logger *logger.Logger, cache cache.ICache) (*AccessTokenHandler, error) {
 	h, err := helper.NewRequestHelper(&helper.Config{
-		BaseUrl: cfg.BaseUri,
+		BaseUrl: cfg.OAuthUrl,
 		ClientConfig: &contract.ClientConfig{
 			Timeout:  time.Duration(cfg.Timeout * float64(time.Second)),
-			ProxyURI: cfg.ProxyUri,
+			ProxyURI: cfg.ProxyOAuthUrl,
 		},
 	})
 	if err != nil {
@@ -120,8 +121,15 @@ func (acHandler *AccessTokenHandler) RegisterHttpMiddlewares() {
 
 func (acHandler *AccessTokenHandler) GetDefaultCacheKey() string {
 	credentials := *acHandler.GetCredentials()
-	data := fmt.Sprintf("%s%s%s", credentials["appid"], credentials["secret"], credentials["neededText"])
-	buffer := md5.Sum([]byte(data))
+	var builder strings.Builder
+
+	// 遍历 credentials map，拼接所有字段值
+	for _, value := range credentials {
+		builder.WriteString(value)
+	}
+
+	// 计算 MD5
+	buffer := md5.Sum([]byte(builder.String()))
 	cacheKey := acHandler.CachePrefix + hex.EncodeToString(buffer[:])
 
 	return cacheKey
@@ -264,7 +272,7 @@ func (acHandler *AccessTokenHandler) GetToken(ctx context.Context, refresh bool)
 		}
 	}
 
-	// request token from power
+	// request token from provider auth token api
 	resToken, err = acHandler.sendRequest(ctx, acHandler.GetCredentials())
 	if err != nil {
 		return nil, err
