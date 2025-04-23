@@ -4,6 +4,7 @@ import (
 	"github.com/ArtisanCloud/MediaX/pkg/client/config"
 	"github.com/ArtisanCloud/MediaX/pkg/client/google/core"
 	"github.com/ArtisanCloud/MediaX/pkg/client/google/youtube/video"
+	"github.com/ArtisanCloud/MediaX/pkg/client/google/youtube/videoCategory"
 	"github.com/ArtisanCloud/MediaXCore/pkg/cache"
 	"github.com/ArtisanCloud/MediaXCore/pkg/logger"
 )
@@ -16,7 +17,8 @@ type GoogleYouTubeClient struct {
 	AccessTokenHandler *core.GoogleAccessTokenHandler
 
 	// clients
-	video *video.YoutubeVideoClient
+	video           *video.YoutubeVideoClient
+	videoCategories *videoCategory.YoutubeVideoCategoryClient
 }
 
 func NewGoogleYouTubeClient(cfg *config.GoogleYouTubeConfig, logger *logger.Logger, cache cache.ICache) (*GoogleYouTubeClient, error) {
@@ -53,4 +55,11 @@ func (client *GoogleYouTubeClient) GetVideoClient() *video.YoutubeVideoClient {
 		client.video = video.NewClient(client.GoogleClient.BaseClient)
 	}
 	return client.video
+}
+
+func (client *GoogleYouTubeClient) GetVideoCategoriesClient() *videoCategory.YoutubeVideoCategoryClient {
+	if client.videoCategories == nil {
+		client.videoCategories = videoCategory.NewClient(client.GoogleClient.BaseClient)
+	}
+	return client.videoCategories
 }
