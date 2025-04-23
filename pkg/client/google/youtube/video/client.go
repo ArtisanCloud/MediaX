@@ -43,7 +43,7 @@ func (comp *YoutubeVideoClient) Insert(ctx context.Context, data *schema.YouTube
 
 	// 假设 BaseClient 有 HttpPost 方法用于处理上传请求
 	// 这里需要根据实际情况处理媒体上传
-	_, err = comp.BaseClient.HttpPost(ctx, "https://www.googleapis.com/upload/youtube/v3/videos", params, nil, result)
+	_, err = comp.BaseClient.HttpPost(ctx, "videos", params, nil, nil, result)
 	return result, err
 }
 
@@ -52,12 +52,7 @@ func (comp *YoutubeVideoClient) Insert(ctx context.Context, data *schema.YouTube
 func (comp *YoutubeVideoClient) Update(ctx context.Context, data *schema.YouTubeVideoUpdateReq) (*schema.YouTubeVideoUpdateRes, error) {
 	result := &schema.YouTubeVideoUpdateRes{}
 
-	params, err := object.StructToStringMap(data)
-	if err != nil {
-		return nil, err
-	}
-
-	_, err = comp.BaseClient.HttpPut(ctx, "videos", params, nil, result)
+	_, err := comp.BaseClient.HttpPut(ctx, "videos", nil, data, nil, result)
 	return result, err
 }
 
@@ -71,6 +66,44 @@ func (comp *YoutubeVideoClient) Delete(ctx context.Context, data *schema.YouTube
 		return nil, err
 	}
 
-	_, err = comp.BaseClient.HttpDelete(ctx, "videos", params, nil, result)
+	_, err = comp.BaseClient.HttpDelete(ctx, "videos", params, nil, nil, result)
 	return result, err
+}
+
+// Videos:Rate 为视频添加“顶”或“踩”评分，或者删除视频的评分。
+// https://developers.google.com/youtube/v3/docs/videos/rate?hl=zh-cn
+func (comp *YoutubeVideoClient) Rate(ctx context.Context, data *schema.YouTubeVideoRateReq) error {
+	params, err := object.StructToStringMap(data)
+	if err != nil {
+		return err
+	}
+
+	_, err = comp.BaseClient.HttpPost(ctx, "videos/rate", params, nil, nil, nil)
+	return err
+}
+
+// Videos: getRating 检索授权用户对指定视频列表的评分。
+// https://developers.google.com/youtube/v3/docs/videos/getRating?hl=zh-cn
+func (comp *YoutubeVideoClient) GetRating(ctx context.Context, data *schema.YouTubeVideoGetRatingReq) (*schema.YouTubeVideoGetRatingRes, error) {
+	result := &schema.YouTubeVideoGetRatingRes{}
+
+	params, err := object.StructToStringMap(data)
+	if err != nil {
+		return nil, err
+	}
+
+	_, err = comp.BaseClient.HttpPost(ctx, "videos/getRating", params, nil, nil, result)
+	return result, err
+}
+
+// Videos:reportAbuse 举报包含侮辱性内容的视频。
+// https://developers.google.com/youtube/v3/docs/videos/reportAbuse?hl=zh-cn
+func (comp *YoutubeVideoClient) ReportAbuse(ctx context.Context, data *schema.YouTubeVideoReportAbuseReq) error {
+	params, err := object.StructToStringMap(data)
+	if err != nil {
+		return err
+	}
+
+	_, err = comp.BaseClient.HttpPost(ctx, "videos/reportAbuse", params, nil, nil, nil)
+	return err
 }
