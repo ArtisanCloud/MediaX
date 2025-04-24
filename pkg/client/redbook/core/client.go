@@ -7,21 +7,21 @@ import (
 	"github.com/ArtisanCloud/MediaXCore/pkg/logger"
 )
 
-type GoogleClient struct {
+type RedBookClient struct {
 	*kernel.BaseClient
 	ClientConfig *config.ClientConfig
 }
 
-func NewGoogleClient(cfg *config.ClientConfig, logger *logger.Logger, cache cache.ICache) (*GoogleClient, error) {
+func NewRedBookClient(cfg *config.ClientConfig, logger *logger.Logger, cache cache.ICache) (*RedBookClient, error) {
 
 	baseClient, err := kernel.NewBaseClient(cfg, logger, cache)
 	if err != nil {
 		return nil, err
 	}
-	youtubeClient := &GoogleClient{
+	redBookClient := &RedBookClient{
 		BaseClient:   baseClient,
 		ClientConfig: cfg,
 	}
 
-	return youtubeClient, nil
+	return redBookClient, nil
 }

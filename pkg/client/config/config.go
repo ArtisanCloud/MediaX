@@ -11,7 +11,8 @@ type LocalConfig struct {
 	*GoogleYouTubeConfig         `yaml:"google_youtube_config" json:"google_youtube_config"`
 	*GoogleBloggerConfig         `yaml:"google_blogger_config" json:"google_blogger_config"`
 	*DouYinConfig                `yaml:"douyin_config" json:"douyin_config"`
-	*RedBookConfig               `yaml:"redbook_config" json:"redbook_config"`
+	*RedBookJuGuangConfig        `yaml:"redbook_config" json:"redbook_config"`
+	*BiliBiliConfig              `yaml:"bilbili_config" json:"bilbili_config"`
 }
 type BaseConfig struct {
 	ApiUrl      string  `yaml:"api_url" json:"api_url"`
