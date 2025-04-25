@@ -17,7 +17,7 @@ func PlayGoogleYouTube(localConfig *config.LocalConfig, mediaX *client.MediaX) {
 	// 调用 WeChatClient 的方法
 	ctx := context.Background()
 	video := googleYouTubeClient.GetVideoClient()
-	res, err := video.List(ctx, &schema.ListVideoReq{})
+	res, err := video.List(ctx, &schema.YouTubeVideoListReq{})
 	if err != nil {
 		panic(err)
 	}

@@ -27,6 +27,7 @@ import (
 	"github.com/ArtisanCloud/MediaXCore/pkg/logger"
 )
 
+// https://developers.google.com/youtube/v3/docs?hl=zh-cn
 type GoogleYouTubeClient struct {
 	GoogleClient       *core.GoogleClient
 	YouTubeConfig      *config.GoogleYouTubeConfig
@@ -57,7 +58,7 @@ type GoogleYouTubeClient struct {
 
 func NewGoogleYouTubeClient(cfg *config.GoogleYouTubeConfig, logger *logger.Logger, cache cache.ICache) (*GoogleYouTubeClient, error) {
 	if cfg.ApiUrl == "" {
-		cfg.ApiUrl = "https://www.googleapis.com/youtube/v3/"
+		cfg.ApiUrl = config.GoogleYoutubeAPIUrl
 	}
 	c, err := core.NewGoogleClient(cfg.ClientConfig, logger, cache)
 	if err != nil {

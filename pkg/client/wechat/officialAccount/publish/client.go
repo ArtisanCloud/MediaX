@@ -24,7 +24,7 @@ func NewClient(c *kernel.BaseClient) *OfficialAccountPublishClient {
 func (comp *OfficialAccountPublishClient) DraftAdd(ctx context.Context, data *request.DraftAddReq) (*response.DraftAddRes, error) {
 	result := &response.DraftAddRes{}
 
-	_, err := comp.BaseClient.HttpPost(ctx, "cgi-bin/draft/add", data, nil, result)
+	_, err := comp.BaseClient.HttpPost(ctx, "cgi-bin/draft/add", nil, data, nil, result)
 	return result, err
 }
 
@@ -33,7 +33,7 @@ func (comp *OfficialAccountPublishClient) DraftAdd(ctx context.Context, data *re
 func (comp *OfficialAccountPublishClient) DraftGet(ctx context.Context, mediaID string) (*response.DraftGetRes, error) {
 	result := &response.DraftGetRes{}
 
-	_, err := comp.BaseClient.HttpPost(ctx, "cgi-bin/draft/get", &object.HashMap{
+	_, err := comp.BaseClient.HttpPost(ctx, "cgi-bin/draft/get", nil, &object.HashMap{
 		"media_id": mediaID,
 	}, nil, result)
 
@@ -45,7 +45,7 @@ func (comp *OfficialAccountPublishClient) DraftGet(ctx context.Context, mediaID 
 func (comp *OfficialAccountPublishClient) DraftDelete(ctx context.Context, mediaID string) (*response2.OfficialAccountRes, error) {
 	result := &response2.OfficialAccountRes{}
 
-	_, err := comp.BaseClient.HttpPost(ctx, "cgi-bin/draft/delete", &object.HashMap{
+	_, err := comp.BaseClient.HttpPost(ctx, "cgi-bin/draft/delete", nil, &object.HashMap{
 		"media_id": mediaID,
 	}, nil, result)
 
@@ -57,7 +57,7 @@ func (comp *OfficialAccountPublishClient) DraftDelete(ctx context.Context, media
 func (comp *OfficialAccountPublishClient) DraftUpdate(ctx context.Context, data *request.DraftUpdateReq) (*response2.OfficialAccountRes, error) {
 	result := &response2.OfficialAccountRes{}
 
-	_, err := comp.BaseClient.HttpPost(ctx, "cgi-bin/draft/update", data, nil, result)
+	_, err := comp.BaseClient.HttpPost(ctx, "cgi-bin/draft/update", nil, data, nil, result)
 
 	return result, err
 }
@@ -77,7 +77,7 @@ func (comp *OfficialAccountPublishClient) DraftCount(ctx context.Context) (*resp
 func (comp *OfficialAccountPublishClient) DraftBatchGet(ctx context.Context, data *request.BatchGetReq) (*response.BatchGetRes, error) {
 	result := &response.BatchGetRes{}
 
-	_, err := comp.BaseClient.HttpPost(ctx, "cgi-bin/draft/batchget", data, nil, result)
+	_, err := comp.BaseClient.HttpPost(ctx, "cgi-bin/draft/batchget", nil, data, nil, result)
 
 	return result, err
 }
@@ -87,7 +87,7 @@ func (comp *OfficialAccountPublishClient) DraftBatchGet(ctx context.Context, dat
 func (comp *OfficialAccountPublishClient) DraftSwitch(ctx context.Context) (*response2.OfficialAccountRes, error) {
 	result := &response2.OfficialAccountRes{}
 
-	_, err := comp.BaseClient.HttpPost(ctx, "cgi-bin/draft/switch", &object.HashMap{}, nil, result)
+	_, err := comp.BaseClient.HttpPost(ctx, "cgi-bin/draft/switch", nil, &object.HashMap{}, nil, result)
 
 	return result, err
 }
@@ -97,7 +97,7 @@ func (comp *OfficialAccountPublishClient) DraftSwitch(ctx context.Context) (*res
 func (comp *OfficialAccountPublishClient) DraftCheckSwitch(ctx context.Context) (*response.CheckSwitchRes, error) {
 	result := &response.CheckSwitchRes{}
 
-	_, err := comp.BaseClient.HttpPost(ctx, "cgi-bin/draft/switch", &object.HashMap{}, &object.StringMap{
+	_, err := comp.BaseClient.HttpPost(ctx, "cgi-bin/draft/switch", nil, &object.HashMap{}, &object.StringMap{
 		"checkonly": "1",
 	}, result)
 
@@ -109,7 +109,7 @@ func (comp *OfficialAccountPublishClient) DraftCheckSwitch(ctx context.Context) 
 func (comp *OfficialAccountPublishClient) PublishSubmit(ctx context.Context, mediaID string) (*response.PublishSubmitRes, error) {
 	result := &response.PublishSubmitRes{}
 
-	_, err := comp.BaseClient.HttpPost(ctx, "cgi-bin/freepublish/submit", &object.HashMap{
+	_, err := comp.BaseClient.HttpPost(ctx, "cgi-bin/freepublish/submit", nil, &object.HashMap{
 		"media_id": mediaID,
 	}, nil, result)
 
@@ -121,7 +121,7 @@ func (comp *OfficialAccountPublishClient) PublishSubmit(ctx context.Context, med
 func (comp *OfficialAccountPublishClient) PublishGet(ctx context.Context, publishID uint64) (*response.PublishGetRes, error) {
 	result := &response.PublishGetRes{}
 
-	_, err := comp.BaseClient.HttpPost(ctx, "cgi-bin/freepublish/get", &object.HashMap{
+	_, err := comp.BaseClient.HttpPost(ctx, "cgi-bin/freepublish/get", nil, &object.HashMap{
 		"publish_id": publishID,
 	}, nil, result)
 
@@ -133,7 +133,7 @@ func (comp *OfficialAccountPublishClient) PublishGet(ctx context.Context, publis
 func (comp *OfficialAccountPublishClient) PublishDelete(ctx context.Context, articleID string, index int) (*response2.OfficialAccountRes, error) {
 	result := &response2.OfficialAccountRes{}
 
-	_, err := comp.BaseClient.HttpPost(ctx, "cgi-bin/freepublish/delete", &object.HashMap{
+	_, err := comp.BaseClient.HttpPost(ctx, "cgi-bin/freepublish/delete", nil, &object.HashMap{
 		"article_id": articleID,
 		"index":      index,
 	}, nil, result)
@@ -146,7 +146,7 @@ func (comp *OfficialAccountPublishClient) PublishDelete(ctx context.Context, art
 func (comp *OfficialAccountPublishClient) PublishGetArticle(ctx context.Context, articleID string) (*response.PublishGetArticleRes, error) {
 	result := &response.PublishGetArticleRes{}
 
-	_, err := comp.BaseClient.HttpPost(ctx, "cgi-bin/freepublish/getarticle", &object.HashMap{
+	_, err := comp.BaseClient.HttpPost(ctx, "cgi-bin/freepublish/getarticle", nil, &object.HashMap{
 		"article_id": articleID,
 	}, nil, result)
 
@@ -158,7 +158,7 @@ func (comp *OfficialAccountPublishClient) PublishGetArticle(ctx context.Context,
 func (comp *OfficialAccountPublishClient) PublishBatchGet(ctx context.Context, data *request.BatchGetReq) (*response.BatchGetRes, error) {
 	result := &response.BatchGetRes{}
 
-	_, err := comp.BaseClient.HttpPost(ctx, "cgi-bin/freepublish/batchget", data, nil, result)
+	_, err := comp.BaseClient.HttpPost(ctx, "cgi-bin/freepublish/batchget", nil, data, nil, result)
 
 	return result, err
 }

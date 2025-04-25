@@ -1,10 +1,10 @@
 package client
 
 import (
+	"github.com/ArtisanCloud/MediaX/pkg/client/byteDance/douYin"
 	"github.com/ArtisanCloud/MediaX/pkg/client/config"
-	"github.com/ArtisanCloud/MediaX/pkg/client/douyin"
 	"github.com/ArtisanCloud/MediaX/pkg/client/google/youtube"
-	"github.com/ArtisanCloud/MediaX/pkg/client/redbook"
+	"github.com/ArtisanCloud/MediaX/pkg/client/redbook/juGuang"
 	"github.com/ArtisanCloud/MediaX/pkg/client/wechat/officialAccount"
 	"github.com/ArtisanCloud/MediaXCore/pkg/cache"
 	"github.com/ArtisanCloud/MediaXCore/pkg/logger"
@@ -34,12 +34,12 @@ func (m *MediaX) CreateGoogleYouTube(cfg *config.GoogleYouTubeConfig) (*youtube.
 	return youtube.NewGoogleYouTubeClient(cfg, m.Logger, m.Cache)
 }
 
-// CreateDouYin 创建 DouYinClient，支持传入 DouYin 配置
-func (m *MediaX) CreateDouYin(cfg *config.DouYinConfig) (*douyin.DouYinService, error) {
-	return douyin.NewDouYinService(cfg, m.Logger, m.Cache)
+// CreateByteDanceDouYin 创建 DouYinClient，支持传入 DouYin 配置
+func (m *MediaX) CreateByteDanceDouYin(cfg *config.ByteDanceDouYinConfig) (*douYin.ByteDanceDouYinClient, error) {
+	return douYin.NewByteDanceDouYinClient(cfg, m.Logger, m.Cache)
 }
 
-// CreateRedBook 创建 RedBookClient，支持传入 RedBook 配置
-func (m *MediaX) CreateRedBook(cfg *config.RedBookConfig) (*redbook.RedBookService, error) {
-	return redbook.NewRedBookService(cfg, m.Logger, m.Cache)
+// CreateRedBookJuGuang 创建 RedBookClient，支持传入 RedBook 配置
+func (m *MediaX) CreateRedBookJuGuang(cfg *config.RedBookJuGuangConfig) (*juGuang.RedBookJuGuangClient, error) {
+	return juGuang.NewRedBookJuGuangClient(cfg, m.Logger, m.Cache)
 }

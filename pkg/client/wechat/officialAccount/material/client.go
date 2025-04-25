@@ -133,7 +133,7 @@ func (client *OfficialAccountMaterialClient) UploadArticle(ctx context.Context, 
 		return nil, err
 	}
 
-	_, err = client.HttpPost(ctx, "cgi-bin/material/add_news", params, nil, result)
+	_, err = client.HttpPost(ctx, "cgi-bin/material/add_news", nil, params, nil, result)
 	return result, err
 }
 
@@ -148,7 +148,7 @@ func (client *OfficialAccountMaterialClient) UpdateArticle(ctx context.Context, 
 		"articles": articles,
 	}
 
-	_, err := client.HttpPost(ctx, "cgi-bin/material/update_news", params, nil, result)
+	_, err := client.HttpPost(ctx, "cgi-bin/material/update_news", nil, params, nil, result)
 	return result, err
 }
 
@@ -165,7 +165,7 @@ func (client *OfficialAccountMaterialClient) UploadArticleImage(ctx context.Cont
 func (client *OfficialAccountMaterialClient) GetMaterial(ctx context.Context, mediaID string) (*http.Response, error) {
 
 	header := &response3.HeaderMediaRes{}
-	res, err := client.RequestRaw(ctx, "cgi-bin/material/get_material", http.MethodPost, &object.HashMap{
+	res, err := client.RequestRaw(ctx, "cgi-bin/material/get_material", http.MethodPost, nil, &object.HashMap{
 		"form_params": &object.HashMap{
 			"media_id": mediaID,
 		},
@@ -184,7 +184,7 @@ func (client *OfficialAccountMaterialClient) GetVideo(ctx context.Context, media
 		"media_id": mediaID,
 	}
 
-	_, err := client.HttpPost(ctx, "cgi-bin/material/get_material", options, nil, result)
+	_, err := client.HttpPost(ctx, "cgi-bin/material/get_material", nil, options, nil, result)
 
 	return result, err
 }
@@ -199,7 +199,7 @@ func (client *OfficialAccountMaterialClient) GetNews(ctx context.Context, mediaI
 		"media_id": mediaID,
 	}
 
-	_, err := client.HttpPost(ctx, "cgi-bin/material/get_material", options, nil, result)
+	_, err := client.HttpPost(ctx, "cgi-bin/material/get_material", nil, options, nil, result)
 
 	return result, err
 }
@@ -214,7 +214,7 @@ func (client *OfficialAccountMaterialClient) Delete(ctx context.Context, mediaID
 		"media_id": mediaID,
 	}
 
-	_, err := client.HttpPost(ctx, "cgi-bin/material/del_material", options, nil, result)
+	_, err := client.HttpPost(ctx, "cgi-bin/material/del_material", nil, options, nil, result)
 
 	return result, err
 }
@@ -225,7 +225,7 @@ func (client *OfficialAccountMaterialClient) List(ctx context.Context, options *
 
 	result := &response.MaterialBatchGetMaterialRes{}
 
-	_, err := client.HttpPost(ctx, "cgi-bin/material/batchget_material", options, nil, result)
+	_, err := client.HttpPost(ctx, "cgi-bin/material/batchget_material", nil, options, nil, result)
 
 	return result, err
 }
@@ -236,7 +236,7 @@ func (client *OfficialAccountMaterialClient) Stats(ctx context.Context) (*respon
 
 	result := &response.MaterialGetMaterialCountRes{}
 
-	_, err := client.HttpPost(ctx, "cgi-bin/material/get_materialcount", nil, nil, result)
+	_, err := client.HttpPost(ctx, "cgi-bin/material/get_materialcount", nil, nil, nil, result)
 
 	return result, err
 

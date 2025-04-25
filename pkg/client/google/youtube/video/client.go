@@ -27,7 +27,7 @@ func (comp *YoutubeVideoClient) List(ctx context.Context, data *schema.YouTubeVi
 		return nil, err
 	}
 
-	_, err = comp.BaseClient.HttpGet(ctx, "videos", params, nil, result)
+	_, err = comp.BaseClient.HttpGet(ctx, "youtube/v3/videos", params, nil, result)
 	return result, err
 }
 
@@ -43,7 +43,7 @@ func (comp *YoutubeVideoClient) Insert(ctx context.Context, data *schema.YouTube
 
 	// 假设 BaseClient 有 HttpPost 方法用于处理上传请求
 	// 这里需要根据实际情况处理媒体上传
-	_, err = comp.BaseClient.HttpPost(ctx, "videos", params, nil, nil, result)
+	_, err = comp.BaseClient.HttpPost(ctx, "youtube/v3/video", params, nil, nil, result)
 	return result, err
 }
 
@@ -52,7 +52,7 @@ func (comp *YoutubeVideoClient) Insert(ctx context.Context, data *schema.YouTube
 func (comp *YoutubeVideoClient) Update(ctx context.Context, data *schema.YouTubeVideoUpdateReq) (*schema.YouTubeVideoUpdateRes, error) {
 	result := &schema.YouTubeVideoUpdateRes{}
 
-	_, err := comp.BaseClient.HttpPut(ctx, "videos", nil, data, nil, result)
+	_, err := comp.BaseClient.HttpPut(ctx, "youtube/v3/video", nil, data, nil, result)
 	return result, err
 }
 
@@ -66,7 +66,7 @@ func (comp *YoutubeVideoClient) Delete(ctx context.Context, data *schema.YouTube
 		return nil, err
 	}
 
-	_, err = comp.BaseClient.HttpDelete(ctx, "videos", params, nil, nil, result)
+	_, err = comp.BaseClient.HttpDelete(ctx, "youtube/v3/video", params, nil, nil, result)
 	return result, err
 }
 

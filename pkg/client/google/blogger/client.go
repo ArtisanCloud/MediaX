@@ -35,7 +35,7 @@ type GoogleBloggerClient struct {
 
 func NewGoogleBloggerClient(cfg *config.GoogleBloggerConfig, logger *logger.Logger, cache cache.ICache) (*GoogleBloggerClient, error) {
 	if cfg.ApiUrl == "" {
-		cfg.ApiUrl = "https://www.googleapis.com/blogger/v3"
+		cfg.ApiUrl = config.GoogleBloggerAPIUrl
 	}
 	c, err := core.NewGoogleClient(cfg.ClientConfig, logger, cache)
 	if err != nil {

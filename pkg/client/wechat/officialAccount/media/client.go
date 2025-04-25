@@ -80,7 +80,7 @@ func (client *OfficialAccountMediaClient) Upload(ctx context.Context, mediaType 
 func (client *OfficialAccountMediaClient) Get(ctx context.Context, mediaID string) (*http.Response, error) {
 
 	header := &response2.HeaderMediaRes{}
-	res, err := client.RequestRaw(ctx, "cgi-bin/media/get", http.MethodPost, &object.HashMap{
+	res, err := client.RequestRaw(ctx, "cgi-bin/media/get", http.MethodPost, nil, &object.HashMap{
 		"query": &object.StringMap{
 			"media_id": mediaID,
 		},
@@ -95,7 +95,7 @@ func (client *OfficialAccountMediaClient) Get(ctx context.Context, mediaID strin
 func (client *OfficialAccountMediaClient) GetJSSDK(ctx context.Context, mediaID string) (*http.Response, error) {
 
 	header := &response2.HeaderMediaRes{}
-	res, err := client.RequestRaw(ctx, "cgi-bin/media/get/jssdk", http.MethodPost, &object.HashMap{
+	res, err := client.RequestRaw(ctx, "cgi-bin/media/get/jssdk", http.MethodPost, nil, &object.HashMap{
 		"query": &object.StringMap{
 			"media_id": mediaID,
 		},
