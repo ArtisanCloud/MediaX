@@ -4,6 +4,7 @@ import (
 	"github.com/ArtisanCloud/MediaX/internal/kernel"
 	"github.com/ArtisanCloud/MediaX/pkg/client/config"
 	"github.com/ArtisanCloud/MediaXCore/pkg/cache"
+	config2 "github.com/ArtisanCloud/MediaXCore/pkg/config"
 	"github.com/ArtisanCloud/MediaXCore/pkg/logger"
 	"github.com/ArtisanCloud/MediaXCore/utils/object"
 )
@@ -37,7 +38,7 @@ func (acHandler *ByteDanceAccessTokenHandler) OverrideGetCredentials() {
 
 	acHandler.AccessTokenHandler.GetCredentials = func() *object.StringMap {
 		return &object.StringMap{
-			"grant_type":    "authorization_code",
+			"grant_type":    string(config2.AuthFlowClientCred),
 			"client_id":     acHandler.Config.ClientID,
 			"client_secret": acHandler.Config.ClientSecret,
 			//"neededText": "",

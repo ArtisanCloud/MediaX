@@ -166,16 +166,16 @@ func (client *BaseClient) HttpGet(ctx context.Context, url string, query *object
 	return client.makeRequest(ctx, url, http.MethodGet, query, nil, outHeader, outBody)
 }
 
-func (client *BaseClient) HttpPost(ctx context.Context, url string, query *object.StringMap, data interface{}, outHeader interface{}, outBody interface{}) (interface{}, error) {
-	return client.makeRequest(ctx, url, http.MethodPost, query, data, outHeader, outBody)
+func (client *BaseClient) HttpPost(ctx context.Context, url string, query *object.StringMap, body interface{}, outHeader interface{}, outBody interface{}) (interface{}, error) {
+	return client.makeRequest(ctx, url, http.MethodPost, query, body, outHeader, outBody)
 }
 
-func (client *BaseClient) HttpPut(ctx context.Context, url string, query *object.StringMap, data interface{}, outHeader interface{}, outBody interface{}) (interface{}, error) {
-	return client.makeRequest(ctx, url, http.MethodPut, query, data, outHeader, outBody)
+func (client *BaseClient) HttpPut(ctx context.Context, url string, query *object.StringMap, body interface{}, outHeader interface{}, outBody interface{}) (interface{}, error) {
+	return client.makeRequest(ctx, url, http.MethodPut, query, body, outHeader, outBody)
 }
 
-func (client *BaseClient) HttpDelete(ctx context.Context, url string, query *object.StringMap, data interface{}, outHeader interface{}, outBody interface{}) (interface{}, error) {
-	return client.makeRequest(ctx, url, http.MethodDelete, query, data, outHeader, outBody)
+func (client *BaseClient) HttpDelete(ctx context.Context, url string, query *object.StringMap, body interface{}, outHeader interface{}, outBody interface{}) (interface{}, error) {
+	return client.makeRequest(ctx, url, http.MethodDelete, query, body, outHeader, outBody)
 }
 
 func (client *BaseClient) RequestRaw(ctx context.Context, url string, method string, query *object.StringMap, options *object.HashMap, outHeader interface{}, outBody interface{}) (*http.Response, error) {

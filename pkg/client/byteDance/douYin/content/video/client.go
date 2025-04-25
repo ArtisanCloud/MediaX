@@ -7,6 +7,8 @@ import (
 	"github.com/ArtisanCloud/MediaXCore/utils/object"
 )
 
+const videoUri = "api/douyin/v1/video/"
+
 type DouYinContentVideoClient struct {
 	*kernel.BaseClient
 }
@@ -27,6 +29,15 @@ func (comp *DouYinContentVideoClient) List(ctx context.Context, data *schema.Dou
 		return nil, err
 	}
 
-	_, err = comp.BaseClient.HttpGet(ctx, "video/video_list/", params, nil, result)
+	_, err = comp.BaseClient.HttpGet(ctx, videoUri+"video_list/", params, nil, result)
+	return result, err
+}
+
+// 查询特定视频的视频数据
+// https://developer.open-douyin.com/docs/resource/zh-CN/dop/develop/openapi/video-management/douyin/search-video/video-data
+func (comp *DouYinContentVideoClient) Data(ctx context.Context, data *schema.DouYinContentVideoDataReq) (*schema.DouYinContentVideoDataRes, error) {
+	result := &schema.DouYinContentVideoDataRes{}
+
+	_, err := comp.BaseClient.HttpPost(ctx, videoUri+"video_data/", nil, data, nil, result)
 	return result, err
 }

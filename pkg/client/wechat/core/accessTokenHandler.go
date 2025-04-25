@@ -5,6 +5,7 @@ import (
 	"github.com/ArtisanCloud/MediaX/internal/kernel"
 	"github.com/ArtisanCloud/MediaX/pkg/client/config"
 	"github.com/ArtisanCloud/MediaXCore/pkg/cache"
+	config2 "github.com/ArtisanCloud/MediaXCore/pkg/config"
 	"github.com/ArtisanCloud/MediaXCore/pkg/logger"
 	"github.com/ArtisanCloud/MediaXCore/utils/object"
 )
@@ -44,7 +45,7 @@ func (acHandler *WeChatAccessTokenHandler) OverrideGetCredentials() {
 
 	acHandler.AccessTokenHandler.GetCredentials = func() *object.StringMap {
 		return &object.StringMap{
-			"grant_type": "client_credential",
+			"grant_type": string(config2.AuthFlowClientCred),
 			"appid":      acHandler.Config.ClientID,
 			"secret":     acHandler.Config.ClientSecret,
 			"neededText": "",
