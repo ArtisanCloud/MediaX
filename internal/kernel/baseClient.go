@@ -166,23 +166,23 @@ func (client *BaseClient) HttpGet(ctx context.Context, url string, query *object
 	return client.makeRequest(ctx, url, http.MethodGet, query, nil, outHeader, outBody)
 }
 
-func (client *BaseClient) HttpPost(ctx context.Context, url string, data interface{}, outHeader interface{}, outBody interface{}) (interface{}, error) {
-	return client.makeRequest(ctx, url, http.MethodPost, nil, data, outHeader, outBody)
+func (client *BaseClient) HttpPost(ctx context.Context, url string, query *object.StringMap, data interface{}, outHeader interface{}, outBody interface{}) (interface{}, error) {
+	return client.makeRequest(ctx, url, http.MethodPost, query, data, outHeader, outBody)
 }
 
-func (client *BaseClient) HttpPut(ctx context.Context, url string, data interface{}, outHeader interface{}, outBody interface{}) (interface{}, error) {
-	return client.makeRequest(ctx, url, http.MethodPut, nil, data, outHeader, outBody)
+func (client *BaseClient) HttpPut(ctx context.Context, url string, query *object.StringMap, data interface{}, outHeader interface{}, outBody interface{}) (interface{}, error) {
+	return client.makeRequest(ctx, url, http.MethodPut, query, data, outHeader, outBody)
 }
 
-func (client *BaseClient) HttpDelete(ctx context.Context, url string, data interface{}, outHeader interface{}, outBody interface{}) (interface{}, error) {
-	return client.makeRequest(ctx, url, http.MethodDelete, nil, data, outHeader, outBody)
+func (client *BaseClient) HttpDelete(ctx context.Context, url string, query *object.StringMap, data interface{}, outHeader interface{}, outBody interface{}) (interface{}, error) {
+	return client.makeRequest(ctx, url, http.MethodDelete, query, data, outHeader, outBody)
 }
 
-func (client *BaseClient) RequestRaw(ctx context.Context, url string, method string, options *object.HashMap, outHeader interface{}, outBody interface{}) (*http.Response, error) {
-	return client.makeRequest(ctx, url, method, &object.StringMap{}, options, outHeader, outBody)
+func (client *BaseClient) RequestRaw(ctx context.Context, url string, method string, query *object.StringMap, options *object.HashMap, outHeader interface{}, outBody interface{}) (*http.Response, error) {
+	return client.makeRequest(ctx, url, method, query, options, outHeader, outBody)
 }
 
-func (client *BaseClient) HttpUpload(ctx context.Context, url string, files *object.HashMap, form *request2.UploadForm, query interface{}, outHeader interface{}, outBody interface{}) (interface{}, error) {
+func (client *BaseClient) HttpUpload(ctx context.Context, url string, files *object.HashMap, form *request2.UploadForm, query *object.StringMap, outHeader interface{}, outBody interface{}) (interface{}, error) {
 	// 请求配置
 	df := client.HttpHelper.Df().WithContext(ctx).Uri(url).Method(http.MethodPost)
 
@@ -228,7 +228,7 @@ func (client *BaseClient) HttpUpload(ctx context.Context, url string, files *obj
 
 	// 设置 query 参数
 	if query != nil {
-		queries := query.(*object.StringMap)
+		queries := query
 		if queries != nil {
 			for k, v := range *queries {
 				df.Query(k, v)

@@ -25,7 +25,7 @@ type WeChatOfficialAccountClient struct {
 
 func NewWeChatOfficialAccountClient(cfg *config.WeChatOfficialAccountConfig, logger *logger.Logger, cache cache.ICache) (*WeChatOfficialAccountClient, error) {
 	if cfg.ApiUrl == "" {
-		cfg.ApiUrl = "https://api.weixin.qq.com"
+		cfg.ApiUrl = config.WechatAppAPIUrl
 	}
 	c, err := core.NewWeChatClient(cfg.ClientConfig, logger, cache)
 	if err != nil {

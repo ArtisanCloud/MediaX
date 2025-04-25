@@ -1,6 +1,7 @@
 package core
 
 import (
+	"errors"
 	"github.com/ArtisanCloud/MediaX/internal/kernel"
 	"github.com/ArtisanCloud/MediaX/pkg/client/config"
 	"github.com/ArtisanCloud/MediaXCore/pkg/cache"
@@ -14,6 +15,12 @@ type WeChatAccessTokenHandler struct {
 }
 
 func NewWeChatAccessTokenHandler(cfg *config.ClientConfig, logger *logger.Logger, cache cache.ICache) (*WeChatAccessTokenHandler, error) {
+	if cfg == nil {
+		return nil, errors.New("wechat cfg is nil")
+	}
+	if cfg.ApiUrl == "" {
+		cfg.ApiUrl = config.WechatAppAPIUrl
+	}
 	handler, err := kernel.NewAccessTokenHandler(cfg, logger, cache)
 	if err != nil {
 		return nil, err
@@ -26,7 +33,7 @@ func NewWeChatAccessTokenHandler(cfg *config.ClientConfig, logger *logger.Logger
 	if cfg.AccessTokenUrl != "" {
 		wechatHandler.AccessTokenHandler.EndpointToGetToken = cfg.AccessTokenUrl
 	} else {
-		wechatHandler.AccessTokenHandler.EndpointToGetToken = "https://api.weixin.qq.com/cgi-bin/token"
+		wechatHandler.AccessTokenHandler.EndpointToGetToken = config.WechatAuthTokenUrl
 	}
 	wechatHandler.OverrideGetCredentials()
 

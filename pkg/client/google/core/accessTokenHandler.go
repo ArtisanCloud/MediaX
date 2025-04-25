@@ -1,6 +1,7 @@
 package core
 
 import (
+	"errors"
 	"github.com/ArtisanCloud/MediaX/internal/kernel"
 	"github.com/ArtisanCloud/MediaX/pkg/client/config"
 	"github.com/ArtisanCloud/MediaXCore/pkg/cache"
@@ -14,6 +15,12 @@ type GoogleAccessTokenHandler struct {
 }
 
 func NewGoogleAccessTokenHandler(cfg *config.ClientConfig, logger *logger.Logger, cache cache.ICache) (*GoogleAccessTokenHandler, error) {
+	if cfg == nil {
+		return nil, errors.New("google config is nil")
+	}
+	if cfg.ApiUrl == "" {
+		cfg.ApiUrl = config.GoogleAppAPIUrl
+	}
 	handler, err := kernel.NewAccessTokenHandler(cfg, logger, cache)
 	if err != nil {
 		return nil, err

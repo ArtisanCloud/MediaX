@@ -26,18 +26,18 @@ type Video struct {
 
 // Snippet 结构体
 type Snippet struct {
-	PublishedAt      time.Time            `json:"publishedAt"`
-	ChannelID        string               `json:"channelId"`
-	Title            string               `json:"title"`
-	Description      string               `json:"description"`
-	Thumbnails       map[string]Thumbnail `json:"thumbnails"`
-	ChannelTitle     string               `json:"channelTitle"`
-	Tags             []string             `json:"tags"`
-	CategoryID       string               `json:"categoryId"`
-	LiveBroadcast    string               `json:"liveBroadcastContent"`
-	DefaultLanguage  string               `json:"defaultLanguage"`
-	Localized        Localization         `json:"localized"`
-	DefaultAudioLang string               `json:"defaultAudioLanguage"`
+	PublishedAt      time.Time            `json:"publishedAt,omitempty"`
+	ChannelID        string               `json:"channelId,omitempty"`
+	Title            string               `json:"title,omitempty"`
+	Description      string               `json:"description,omitempty"`
+	Thumbnails       map[string]Thumbnail `json:"thumbnails,omitempty"`
+	ChannelTitle     string               `json:"channelTitle,omitempty"`
+	Tags             []string             `json:"tags,omitempty"`
+	CategoryID       string               `json:"categoryId,omitempty"`
+	LiveBroadcast    string               `json:"liveBroadcastContent,omitempty"`
+	DefaultLanguage  string               `json:"defaultLanguage,omitempty"`
+	Localized        Localization         `json:"localized,omitempty"`
+	DefaultAudioLang string               `json:"defaultAudioLanguage,omitempty"`
 }
 
 // Thumbnail 结构体

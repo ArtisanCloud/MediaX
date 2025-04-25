@@ -23,7 +23,5 @@ func NewGoogleClient(cfg *config.ClientConfig, logger *logger.Logger, cache cach
 		ClientConfig: cfg,
 	}
 
-	youtubeClient.OverrideCheckTokenNeedRefresh()
-
 	return youtubeClient, nil
 }

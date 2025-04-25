@@ -46,7 +46,7 @@ type AccessTokenHandler struct {
 
 func NewAccessTokenHandler(cfg *config.ClientConfig, logger *logger.Logger, cache cache.ICache) (*AccessTokenHandler, error) {
 	h, err := helper.NewRequestHelper(&helper.Config{
-		BaseUrl: cfg.OAuthUrl,
+		BaseUrl: cfg.ApiUrl,
 		ClientConfig: &contract.ClientConfig{
 			Timeout:  time.Duration(cfg.Timeout * float64(time.Second)),
 			ProxyURI: cfg.ProxyOAuthUrl,
