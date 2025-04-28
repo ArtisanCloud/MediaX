@@ -38,7 +38,7 @@ func NewWeChatOfficialAccountClient(cfg *config.WeChatOfficialAccountConfig, log
 	}
 
 	// bind token handler to client
-	c.TokenHandler = handler.AccessTokenHandler
+	c.TokenHandler = handler.ClientTokenHandler
 
 	return &WeChatOfficialAccountClient{
 		Logger:                logger,

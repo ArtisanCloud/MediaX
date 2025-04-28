@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"github.com/ArtisanCloud/MediaX/internal/kernel"
 	response2 "github.com/ArtisanCloud/MediaX/internal/kernel/response"
-	"github.com/ArtisanCloud/MediaX/pkg/client/byteDance/core/response"
+	"github.com/ArtisanCloud/MediaX/pkg/client/byteDance/douYin/core/response"
 	"github.com/ArtisanCloud/MediaX/pkg/client/config"
 	"github.com/ArtisanCloud/MediaXCore/pkg/cache"
 	"github.com/ArtisanCloud/MediaXCore/pkg/logger"
@@ -63,7 +63,8 @@ func (client *ByteDanceClient) OverrideCheckTokenNeedRefresh() {
 
 				// clone 一个request
 				client.Logger.WithContext(ctx).InfoF("refresh token, retry:%d", retry)
-				token, err := client.TokenHandler.GetToken(ctx, false)
+				token := response2.AccessTokenRes{}
+				err = client.TokenHandler.GetToken(ctx, false, token)
 				if err != nil {
 					return nil, err
 				}

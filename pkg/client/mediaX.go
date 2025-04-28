@@ -35,8 +35,13 @@ func (m *MediaX) CreateGoogleYouTube(cfg *config.GoogleYouTubeConfig) (*youtube.
 }
 
 // CreateByteDanceDouYin 创建 DouYinClient，支持传入 DouYin 配置
-func (m *MediaX) CreateByteDanceDouYin(cfg *config.ByteDanceDouYinConfig) (*douYin.ByteDanceDouYinClient, error) {
-	return douYin.NewByteDanceDouYinClient(cfg, m.Logger, m.Cache)
+func (m *MediaX) CreateByteDanceDouYinAccessTokenClient(cfg *config.ByteDanceDouYinConfig) (*douYin.ByteDanceDouYinAccessTokenClient, error) {
+	return douYin.NewByteDanceDouYinAccessTokenClient(cfg, m.Logger, m.Cache)
+}
+
+// CreateByteDanceDouYin 创建 DouYinClient，支持传入 DouYin 配置
+func (m *MediaX) CreateByteDanceDouYinClientTokenClient(cfg *config.ByteDanceDouYinConfig) (*douYin.ByteDanceDouYinClientTokenClient, error) {
+	return douYin.NewByteDanceDouYinClientTokenClient(cfg, m.Logger, m.Cache)
 }
 
 // CreateRedBookJuGuang 创建 RedBookClient，支持传入 RedBook 配置

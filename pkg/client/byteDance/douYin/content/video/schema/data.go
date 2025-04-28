@@ -1,6 +1,8 @@
 package schema
 
-import "github.com/ArtisanCloud/MediaX/pkg/client/byteDance/core/response"
+import (
+	"github.com/ArtisanCloud/MediaX/pkg/client/byteDance/douYin/core/response"
+)
 
 type DouYinContentVideoDataReq struct {
 }

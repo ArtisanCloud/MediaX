@@ -1,6 +1,8 @@
 package schema
 
-import "github.com/ArtisanCloud/MediaX/pkg/client/byteDance/core/response"
+import (
+	"github.com/ArtisanCloud/MediaX/pkg/client/byteDance/douYin/core/response"
+)
 
 type DouYinContentVideoListReq struct {
 	Count  string `json:"count" validate:"required,max=20"` // 每页数量，必填，每次查询小于等于20

@@ -25,7 +25,7 @@ type BaseClient struct {
 	Config   *config.ClientConfig
 	QueryRaw bool
 
-	TokenHandler *AccessTokenHandler
+	TokenHandler *TokenHandler
 
 	GetMiddlewareOfAccessToken        contract.RequestMiddleware
 	GetMiddlewareOfLog                func(l *logger.Logger) contract.RequestMiddleware
@@ -56,8 +56,9 @@ func NewBaseClient(
 		Config:     cfg,
 	}
 
-	// to be setup middleware here
+	// to initialize these middlewares here
 	client.OverrideGetMiddlewares()
+	// register these middlewares initialized above
 	client.RegisterMiddlewares()
 
 	return client, nil

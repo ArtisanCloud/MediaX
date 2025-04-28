@@ -1,7 +1,8 @@
 package douYin
 
 import (
-	"github.com/ArtisanCloud/MediaX/pkg/client/byteDance/core"
+	"context"
+	"fmt"
 	"github.com/ArtisanCloud/MediaX/pkg/client/byteDance/douYin/connection/data"
 	"github.com/ArtisanCloud/MediaX/pkg/client/byteDance/douYin/connection/fan"
 	"github.com/ArtisanCloud/MediaX/pkg/client/byteDance/douYin/connection/fanData"
@@ -9,6 +10,8 @@ import (
 	"github.com/ArtisanCloud/MediaX/pkg/client/byteDance/douYin/content/schema"
 	"github.com/ArtisanCloud/MediaX/pkg/client/byteDance/douYin/content/task"
 	"github.com/ArtisanCloud/MediaX/pkg/client/byteDance/douYin/content/video"
+	core2 "github.com/ArtisanCloud/MediaX/pkg/client/byteDance/douYin/core"
+	"github.com/ArtisanCloud/MediaX/pkg/client/byteDance/douYin/core/response"
 	"github.com/ArtisanCloud/MediaX/pkg/client/byteDance/douYin/im/group"
 	"github.com/ArtisanCloud/MediaX/pkg/client/byteDance/douYin/im/message"
 	"github.com/ArtisanCloud/MediaX/pkg/client/byteDance/douYin/im/tool"
@@ -21,13 +24,14 @@ import (
 	"github.com/ArtisanCloud/MediaX/pkg/client/config"
 	"github.com/ArtisanCloud/MediaXCore/pkg/cache"
 	"github.com/ArtisanCloud/MediaXCore/pkg/logger"
+	"github.com/ArtisanCloud/MediaXCore/utils/object"
 )
 
 // https://developer.open-douyin.com/docs/resource/zh-CN/dop/overview/usage-guide
-type ByteDanceDouYinClient struct {
-	ByteDanceClient    *core.ByteDanceClient
+type ByteDanceDouYinAccessTokenClient struct {
+	ByteDanceClient    *core2.ByteDanceClient
 	DouYinConfig       *config.ByteDanceDouYinConfig
-	AccessTokenHandler *core.ByteDanceAccessTokenHandler
+	AccessTokenHandler *core2.ByteDanceTokenHandler
 
 	// clients
 	video             *video.DouYinContentVideoClient
@@ -48,136 +52,166 @@ type ByteDanceDouYinClient struct {
 	marketService     *service.DouYinMarketServiceClient
 }
 
-func NewByteDanceDouYinClient(cfg *config.ByteDanceDouYinConfig, logger *logger.Logger, cache cache.ICache) (*ByteDanceDouYinClient, error) {
+func NewByteDanceDouYinAccessTokenClient(cfg *config.ByteDanceDouYinConfig, logger *logger.Logger, cache cache.ICache) (*ByteDanceDouYinAccessTokenClient, error) {
 	if cfg.ApiUrl == "" {
 		cfg.ApiUrl = config.ByteDanceDouYinAPIUrl
 	}
-	c, err := core.NewByteDanceClient(cfg.ClientConfig, logger, cache)
+	c, err := core2.NewByteDanceClient(cfg.ClientConfig, logger, cache)
 	if err != nil {
 		return nil, err
 	}
 
-	handler, err := core.NewByteDanceAccessTokenHandler(cfg.ClientConfig, logger, cache)
+	handler, err := core2.NewByteDanceTokenHandler(cfg.ClientConfig, logger, cache)
 	if err != nil {
 		return nil, err
 	}
 
 	// bind token handler to client
-	c.TokenHandler = handler.AccessTokenHandler
+	c.TokenHandler = handler.TokenHandler
 
-	return &ByteDanceDouYinClient{
+	return &ByteDanceDouYinAccessTokenClient{
 		ByteDanceClient:    c,
 		DouYinConfig:       cfg,
 		AccessTokenHandler: handler,
 	}, nil
 }
 
-func (c *ByteDanceDouYinClient) GetContentVideoClient() *video.DouYinContentVideoClient {
+func (c *ByteDanceDouYinAccessTokenClient) OverrideGetQuery() {
+	tHandler := c.AccessTokenHandler.TokenHandler
+	tHandler.GetTokenQuery = func(ctx context.Context) (*object.StringMap, error) {
+		// set the current token key
+		var key string
+		if tHandler.QueryName != "" {
+			key = tHandler.QueryName
+		} else {
+			key = tHandler.TokenKey
+		}
+
+		// get token string power
+		resToken := &response.ByteDanceAccessTokenRes{}
+		err := tHandler.GetToken(ctx, false, resToken)
+		if err != nil {
+			return nil, err
+		}
+		if resToken.AccessToken == "" {
+			return nil, fmt.Errorf("get access token error")
+		}
+
+		arrayReturn := &object.StringMap{
+			key:       resToken.AccessToken,
+			"open_id": resToken.OpenId,
+		}
+
+		return arrayReturn, err
+	}
+}
+
+func (c *ByteDanceDouYinAccessTokenClient) GetContentVideoClient() *video.DouYinContentVideoClient {
 	if c.video == nil {
 		c.video = video.NewClient(c.ByteDanceClient.BaseClient)
 	}
 	return c.video
 }
 
-func (c *ByteDanceDouYinClient) GetOAuthClient() *oauth.DouYinOAuthClient {
+func (c *ByteDanceDouYinAccessTokenClient) GetOAuthClient() *oauth.DouYinOAuthClient {
 	if c.oauth == nil {
 		c.oauth = oauth.NewClient(c.ByteDanceClient.BaseClient)
 	}
 	return c.oauth
 }
 
-func (c *ByteDanceDouYinClient) GetSearchClient() *search.DouYinSearchClient {
+func (c *ByteDanceDouYinAccessTokenClient) GetSearchClient() *search.DouYinSearchClient {
 	if c.search == nil {
 		c.search = search.NewClient(c.ByteDanceClient.BaseClient)
 	}
 	return c.search
 }
 
-func (c *ByteDanceDouYinClient) GetConnectionFanClient() *fan.DouYinConnectionFanClient {
+func (c *ByteDanceDouYinAccessTokenClient) GetConnectionFanClient() *fan.DouYinConnectionFanClient {
 	if c.connectionFan == nil {
 		c.connectionFan = fan.NewClient(c.ByteDanceClient.BaseClient)
 	}
 	return c.connectionFan
 }
 
-func (c *ByteDanceDouYinClient) GetConnectionFanDataClient() *fanData.DouYinConnectionFanDataClient {
+func (c *ByteDanceDouYinAccessTokenClient) GetConnectionFanDataClient() *fanData.DouYinConnectionFanDataClient {
 	if c.connectionFanData == nil {
 		c.connectionFanData = fanData.NewClient(c.ByteDanceClient.BaseClient)
 	}
 	return c.connectionFanData
 }
 
-func (c *ByteDanceDouYinClient) GetConnectionDataClient() *data.DouYinConnectionDataClient {
+func (c *ByteDanceDouYinAccessTokenClient) GetConnectionDataClient() *data.DouYinConnectionDataClient {
 	if c.connectionData == nil {
 		c.connectionData = data.NewClient(c.ByteDanceClient.BaseClient)
 	}
 	return c.connectionData
 }
 
-func (c *ByteDanceDouYinClient) GetIMMessageClient() *message.DouYinIMMessageClient {
+func (c *ByteDanceDouYinAccessTokenClient) GetIMMessageClient() *message.DouYinIMMessageClient {
 	if c.imMessage == nil {
 		c.imMessage = message.NewClient(c.ByteDanceClient.BaseClient)
 	}
 	return c.imMessage
 }
 
-func (c *ByteDanceDouYinClient) GetIMToolClient() *tool.DouYinIMToolClient {
+func (c *ByteDanceDouYinAccessTokenClient) GetIMToolClient() *tool.DouYinIMToolClient {
 	if c.imTool == nil {
 		c.imTool = tool.NewClient(c.ByteDanceClient.BaseClient)
 	}
 	return c.imTool
 }
 
-func (c *ByteDanceDouYinClient) GetIMGroupClient() *group.DouYinIMGroupClient {
+func (c *ByteDanceDouYinAccessTokenClient) GetIMGroupClient() *group.DouYinIMGroupClient {
 	if c.imGroup == nil {
 		c.imGroup = group.NewClient(c.ByteDanceClient.BaseClient)
 	}
 	return c.imGroup
 }
 
-func (c *ByteDanceDouYinClient) GetContentTaskClient() *task.DouYinContentTaskClient {
+func (c *ByteDanceDouYinAccessTokenClient) GetContentTaskClient() *task.DouYinContentTaskClient {
 	if c.task == nil {
 		c.task = task.NewClient(c.ByteDanceClient.BaseClient)
 	}
 	return c.task
 }
 
-func (c *ByteDanceDouYinClient) GetContentActivityClient() *activity.DouYinContentActivityClient {
+func (c *ByteDanceDouYinAccessTokenClient) GetContentActivityClient() *activity.DouYinContentActivityClient {
 	if c.activity == nil {
 		c.activity = activity.NewClient(c.ByteDanceClient.BaseClient)
 	}
 	return c.activity
 }
 
-func (c *ByteDanceDouYinClient) GetContentSchemaClient() *schema.DouYinContentSchemaClient {
+func (c *ByteDanceDouYinAccessTokenClient) GetContentSchemaClient() *schema.DouYinContentSchemaClient {
 	if c.contentSchema == nil {
 		c.contentSchema = schema.NewClient(c.ByteDanceClient.BaseClient)
 	}
 	return c.contentSchema
 }
 
-func (c *ByteDanceDouYinClient) GetSandboxClient() *sandbox.DouYinSandboxClient {
+func (c *ByteDanceDouYinAccessTokenClient) GetSandboxClient() *sandbox.DouYinSandboxClient {
 	if c.sandbox == nil {
 		c.sandbox = sandbox.NewClient(c.ByteDanceClient.BaseClient)
 	}
 	return c.sandbox
 }
 
-func (c *ByteDanceDouYinClient) GetMicAppClient() *micApp.DouYinMicAppClient {
+func (c *ByteDanceDouYinAccessTokenClient) GetMicAppClient() *micApp.DouYinMicAppClient {
 	if c.micApp == nil {
 		c.micApp = micApp.NewClient(c.ByteDanceClient.BaseClient)
 	}
 	return c.micApp
 }
 
-func (c *ByteDanceDouYinClient) GetTicketClient() *ticket.DouYinTicketClient {
+func (c *ByteDanceDouYinAccessTokenClient) GetTicketClient() *ticket.DouYinTicketClient {
 	if c.ticket == nil {
 		c.ticket = ticket.NewClient(c.ByteDanceClient.BaseClient)
 	}
 	return c.ticket
 }
 
-func (c *ByteDanceDouYinClient) GetMarketServiceClient() *service.DouYinMarketServiceClient {
+func (c *ByteDanceDouYinAccessTokenClient) GetMarketServiceClient() *service.DouYinMarketServiceClient {
 	if c.marketService == nil {
 		c.marketService = service.NewClient(c.ByteDanceClient.BaseClient)
 	}

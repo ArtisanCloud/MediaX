@@ -62,7 +62,8 @@ func (client *WeChatClient) OverrideCheckTokenNeedRefresh() {
 
 				// clone 一个request
 				client.Logger.WithContext(ctx).InfoF("refresh token, retry:%d", retry)
-				token, err := client.TokenHandler.GetToken(ctx, false)
+				token := response2.AccessTokenRes{}
+				err = client.TokenHandler.GetToken(ctx, false, token)
 				if err != nil {
 					return nil, err
 				}
