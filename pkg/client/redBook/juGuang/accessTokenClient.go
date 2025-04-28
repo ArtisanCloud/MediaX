@@ -16,7 +16,7 @@ import (
 )
 
 // https://ad-market.xiaohongshu.com/docs-center?articleId=3180&bizType=943
-type RedBookJuGuangClient struct {
+type RedBookJuGuangACClient struct {
 	RedBookClient      *core.RedBookClient
 	JuGuangConfig      *config.RedBookJuGuangConfig
 	AccessTokenHandler *core.RedBookAccessTokenHandler
@@ -32,7 +32,7 @@ type RedBookJuGuangClient struct {
 	tools          *tools.JuGuangToolClient
 }
 
-func NewRedBookJuGuangClient(cfg *config.RedBookJuGuangConfig, logger *logger.Logger, cache cache.ICache) (*RedBookJuGuangClient, error) {
+func NewRedBookJuGuangACClient(cfg *config.RedBookJuGuangConfig, logger *logger.Logger, cache cache.ICache) (*RedBookJuGuangACClient, error) {
 	if cfg.ApiUrl == "" {
 		cfg.ApiUrl = "https://adapi.xiaohongshu.com/"
 	}
@@ -52,63 +52,63 @@ func NewRedBookJuGuangClient(cfg *config.RedBookJuGuangConfig, logger *logger.Lo
 	// override get custom token
 	c.TokenHandler.GetCustomToken = cfg.GetOAuthToken
 
-	return &RedBookJuGuangClient{
+	return &RedBookJuGuangACClient{
 		RedBookClient:      c,
 		JuGuangConfig:      cfg,
 		AccessTokenHandler: handler,
 	}, nil
 }
 
-func (client *RedBookJuGuangClient) GetAccountClient() *account.JuGuangAccountClient {
+func (client *RedBookJuGuangACClient) GetAccountClient() *account.JuGuangAccountClient {
 	if client.account == nil {
 		client.account = account.NewClient(client.RedBookClient.BaseClient)
 	}
 	return client.account
 }
 
-func (client *RedBookJuGuangClient) GetOfflineReportClient() *offline.JuGuangDataReportOfflineClient {
+func (client *RedBookJuGuangACClient) GetOfflineReportClient() *offline.JuGuangDataReportOfflineClient {
 	if client.offlineReport == nil {
 		client.offlineReport = offline.NewClient(client.RedBookClient.BaseClient)
 	}
 	return client.offlineReport
 }
 
-func (client *RedBookJuGuangClient) GetRealtimeReportClient() *realtime.JuGuangDataReportRealtimeClient {
+func (client *RedBookJuGuangACClient) GetRealtimeReportClient() *realtime.JuGuangDataReportRealtimeClient {
 	if client.realtimeReport == nil {
 		client.realtimeReport = realtime.NewClient(client.RedBookClient.BaseClient)
 	}
 	return client.realtimeReport
 }
 
-func (client *RedBookJuGuangClient) GetNoteClient() *note.JuGuangNoteClient {
+func (client *RedBookJuGuangACClient) GetNoteClient() *note.JuGuangNoteClient {
 	if client.note == nil {
 		client.note = note.NewClient(client.RedBookClient.BaseClient)
 	}
 	return client.note
 }
 
-func (client *RedBookJuGuangClient) GetCampaignClient() *campaign.JuGuangPromoteCampaignClient {
+func (client *RedBookJuGuangACClient) GetCampaignClient() *campaign.JuGuangPromoteCampaignClient {
 	if client.campaign == nil {
 		client.campaign = campaign.NewClient(client.RedBookClient.BaseClient)
 	}
 	return client.campaign
 }
 
-func (client *RedBookJuGuangClient) GetCreativityClient() *creativity.JuGuangPromoteCreativityClient {
+func (client *RedBookJuGuangACClient) GetCreativityClient() *creativity.JuGuangPromoteCreativityClient {
 	if client.creativity == nil {
 		client.creativity = creativity.NewClient(client.RedBookClient.BaseClient)
 	}
 	return client.creativity
 }
 
-func (client *RedBookJuGuangClient) GetUnitClient() *unit.JuGuangPromoteUnitClient {
+func (client *RedBookJuGuangACClient) GetUnitClient() *unit.JuGuangPromoteUnitClient {
 	if client.unit == nil {
 		client.unit = unit.NewClient(client.RedBookClient.BaseClient)
 	}
 	return client.unit
 }
 
-func (client *RedBookJuGuangClient) GetToolsClient() *tools.JuGuangToolClient {
+func (client *RedBookJuGuangACClient) GetToolsClient() *tools.JuGuangToolClient {
 	if client.tools == nil {
 		client.tools = tools.NewClient(client.RedBookClient.BaseClient)
 	}

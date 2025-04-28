@@ -3,7 +3,7 @@ package video
 import (
 	"context"
 	"github.com/ArtisanCloud/MediaX/internal/kernel"
-	"github.com/ArtisanCloud/MediaX/pkg/client/byteDance/douYin/content/video/schema"
+	"github.com/ArtisanCloud/MediaX/pkg/client/byteDance/douYin/accessTokenClient/content/video/schema"
 	"github.com/ArtisanCloud/MediaXCore/utils/object"
 )
 

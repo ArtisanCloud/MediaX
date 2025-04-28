@@ -40,7 +40,7 @@ type TokenHandler struct {
 
 	SetCustomToken func(token interface{}) interface{}
 	GetCustomToken func(key string, refresh bool) object.HashMap
-	GetTokenQuery  func(ctx context.Context) (*object.StringMap, error)
+	GetTokenQuery  func(ctx context.Context) (arrayQuery *object.StringMap, arrayHeader *object.StringMap, err error)
 
 	GetMiddlewareOfLog func(l *logger.Logger) contract.RequestMiddleware
 }
@@ -285,7 +285,7 @@ func (tHandler *TokenHandler) GetToken(ctx context.Context, refresh bool, resTok
 }
 
 func (tHandler *TokenHandler) OverrideGetTokenQuery() {
-	tHandler.GetTokenQuery = func(ctx context.Context) (*object.StringMap, error) {
+	tHandler.GetTokenQuery = func(ctx context.Context) (arrayQuery *object.StringMap, arrayHeader *object.StringMap, err error) {
 		// set the current token key
 		var key string
 		if tHandler.QueryName != "" {
@@ -296,33 +296,43 @@ func (tHandler *TokenHandler) OverrideGetTokenQuery() {
 
 		// get token string power
 		resToken := &response.AccessTokenRes{}
-		err := tHandler.GetToken(ctx, false, resToken)
+		err = tHandler.GetToken(ctx, false, resToken)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 		if resToken.AccessToken == "" {
-			return nil, fmt.Errorf("get access token error")
+			return nil, nil, fmt.Errorf("get access token error")
 		}
 
-		arrayReturn := &object.StringMap{
+		arrayQuery = &object.StringMap{
 			key: resToken.AccessToken,
 		}
 
-		return arrayReturn, err
+		return arrayQuery, nil, err
 	}
 }
 
 func (tHandler *TokenHandler) ApplyToRequest(request *http.Request) (*http.Request, error) {
 	// query Access Token power
-	mapToken, err := tHandler.GetTokenQuery(request.Context())
+	queryParams, headerParams, err := tHandler.GetTokenQuery(request.Context())
 	if err != nil {
 		return nil, err
 	}
-	q := request.URL.Query()
-	for key, value := range *mapToken {
-		q.Set(key, value)
+	// 设置 Query 参数
+	if queryParams != nil {
+		q := request.URL.Query()
+		for key, value := range *queryParams {
+			q.Set(key, value)
+		}
+		request.URL.RawQuery = q.Encode()
 	}
-	request.URL.RawQuery = q.Encode()
 
-	return request, err
+	// 设置 Header 参数
+	if headerParams != nil {
+		for key, value := range *headerParams {
+			request.Header.Set(key, value)
+		}
+	}
+
+	return request, nil
 }

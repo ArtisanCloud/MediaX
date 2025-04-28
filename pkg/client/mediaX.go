@@ -1,7 +1,8 @@
 package client
 
 import (
-	"github.com/ArtisanCloud/MediaX/pkg/client/byteDance/douYin"
+	"github.com/ArtisanCloud/MediaX/pkg/client/byteDance/douYin/accessTokenClient"
+	"github.com/ArtisanCloud/MediaX/pkg/client/byteDance/douYin/clientTokenClient"
 	"github.com/ArtisanCloud/MediaX/pkg/client/config"
 	"github.com/ArtisanCloud/MediaX/pkg/client/google/youtube"
 	"github.com/ArtisanCloud/MediaX/pkg/client/redbook/juGuang"
@@ -30,21 +31,21 @@ func (m *MediaX) CreateWechatOfficialAccount(cfg *config.WeChatOfficialAccountCo
 }
 
 // CreateGoogleYouTube 创建 CreateGoogleYouTube，支持传入 Google 配置
-func (m *MediaX) CreateGoogleYouTube(cfg *config.GoogleYouTubeConfig) (*youtube.GoogleYouTubeClient, error) {
-	return youtube.NewGoogleYouTubeClient(cfg, m.Logger, m.Cache)
+func (m *MediaX) CreateGoogleYouTubeACClient(cfg *config.GoogleYouTubeConfig) (*youtube.GoogleYouTubeACClient, error) {
+	return youtube.NewGoogleYouTubeACClient(cfg, m.Logger, m.Cache)
 }
 
 // CreateByteDanceDouYin 创建 DouYinClient，支持传入 DouYin 配置
-func (m *MediaX) CreateByteDanceDouYinAccessTokenClient(cfg *config.ByteDanceDouYinConfig) (*douYin.ByteDanceDouYinAccessTokenClient, error) {
-	return douYin.NewByteDanceDouYinAccessTokenClient(cfg, m.Logger, m.Cache)
+func (m *MediaX) CreateByteDanceDouYinACClient(cfg *config.ByteDanceDouYinConfig) (*accessTokenClient.ByteDanceDouYinACClient, error) {
+	return accessTokenClient.NewByteDanceDouYinACClient(cfg, m.Logger, m.Cache)
 }
 
 // CreateByteDanceDouYin 创建 DouYinClient，支持传入 DouYin 配置
-func (m *MediaX) CreateByteDanceDouYinClientTokenClient(cfg *config.ByteDanceDouYinConfig) (*douYin.ByteDanceDouYinClientTokenClient, error) {
-	return douYin.NewByteDanceDouYinClientTokenClient(cfg, m.Logger, m.Cache)
+func (m *MediaX) CreateByteDanceDouYinCTClient(cfg *config.ByteDanceDouYinConfig) (*clientTokenClient.ByteDanceDouYinCTClient, error) {
+	return clientTokenClient.NewByteDanceDouYinCTClient(cfg, m.Logger, m.Cache)
 }
 
 // CreateRedBookJuGuang 创建 RedBookClient，支持传入 RedBook 配置
-func (m *MediaX) CreateRedBookJuGuang(cfg *config.RedBookJuGuangConfig) (*juGuang.RedBookJuGuangClient, error) {
-	return juGuang.NewRedBookJuGuangClient(cfg, m.Logger, m.Cache)
+func (m *MediaX) CreateRedBookJuGuangACClient(cfg *config.RedBookJuGuangConfig) (*juGuang.RedBookJuGuangACClient, error) {
+	return juGuang.NewRedBookJuGuangACClient(cfg, m.Logger, m.Cache)
 }

@@ -28,7 +28,7 @@ import (
 )
 
 // https://developers.google.com/youtube/v3/docs?hl=zh-cn
-type GoogleYouTubeClient struct {
+type GoogleYouTubeACClient struct {
 	GoogleClient       *core.GoogleClient
 	YouTubeConfig      *config.GoogleYouTubeConfig
 	AccessTokenHandler *core.GoogleAccessTokenHandler
@@ -56,7 +56,7 @@ type GoogleYouTubeClient struct {
 	watermarks              *watermarks.YoutubeWatermarksClient
 }
 
-func NewGoogleYouTubeClient(cfg *config.GoogleYouTubeConfig, logger *logger.Logger, cache cache.ICache) (*GoogleYouTubeClient, error) {
+func NewGoogleYouTubeACClient(cfg *config.GoogleYouTubeConfig, logger *logger.Logger, cache cache.ICache) (*GoogleYouTubeACClient, error) {
 	if cfg.ApiUrl == "" {
 		cfg.ApiUrl = config.GoogleYoutubeAPIUrl
 	}
@@ -76,140 +76,140 @@ func NewGoogleYouTubeClient(cfg *config.GoogleYouTubeConfig, logger *logger.Logg
 	// override get custom token
 	c.TokenHandler.GetCustomToken = cfg.GetOAuthToken
 
-	return &GoogleYouTubeClient{
+	return &GoogleYouTubeACClient{
 		GoogleClient:       c,
 		YouTubeConfig:      cfg,
 		AccessTokenHandler: handler,
 	}, nil
 }
 
-func (client *GoogleYouTubeClient) GetVideoClient() *video.YoutubeVideoClient {
+func (client *GoogleYouTubeACClient) GetVideoClient() *video.YoutubeVideoClient {
 	if client.video == nil {
 		client.video = video.NewClient(client.GoogleClient.BaseClient)
 	}
 	return client.video
 }
 
-func (client *GoogleYouTubeClient) GetVideoCategoriesClient() *videoCategory.YoutubeVideoCategoryClient {
+func (client *GoogleYouTubeACClient) GetVideoCategoriesClient() *videoCategory.YoutubeVideoCategoryClient {
 	if client.videoCategories == nil {
 		client.videoCategories = videoCategory.NewClient(client.GoogleClient.BaseClient)
 	}
 	return client.videoCategories
 }
 
-func (client *GoogleYouTubeClient) GetActivitiesClient() *activities.YoutubeActivitiesClient {
+func (client *GoogleYouTubeACClient) GetActivitiesClient() *activities.YoutubeActivitiesClient {
 	if client.activities == nil {
 		client.activities = activities.NewClient(client.GoogleClient.BaseClient)
 	}
 	return client.activities
 }
 
-func (client *GoogleYouTubeClient) GetCaptionsClient() *captions.YoutubeCaptionsClient {
+func (client *GoogleYouTubeACClient) GetCaptionsClient() *captions.YoutubeCaptionsClient {
 	if client.captions == nil {
 		client.captions = captions.NewClient(client.GoogleClient.BaseClient)
 	}
 	return client.captions
 }
 
-func (client *GoogleYouTubeClient) GetChannelBannersClient() *channelBanners.YoutubeChannelBannersClient {
+func (client *GoogleYouTubeACClient) GetChannelBannersClient() *channelBanners.YoutubeChannelBannersClient {
 	if client.channelBanners == nil {
 		client.channelBanners = channelBanners.NewClient(client.GoogleClient.BaseClient)
 	}
 	return client.channelBanners
 }
 
-func (client *GoogleYouTubeClient) GetChannelsClient() *channels.YoutubeChannelsClient {
+func (client *GoogleYouTubeACClient) GetChannelsClient() *channels.YoutubeChannelsClient {
 	if client.channels == nil {
 		client.channels = channels.NewClient(client.GoogleClient.BaseClient)
 	}
 	return client.channels
 }
 
-func (client *GoogleYouTubeClient) GetCommentsClient() *comments.YoutubeCommentsClient {
+func (client *GoogleYouTubeACClient) GetCommentsClient() *comments.YoutubeCommentsClient {
 	if client.comments == nil {
 		client.comments = comments.NewClient(client.GoogleClient.BaseClient)
 	}
 	return client.comments
 }
 
-func (client *GoogleYouTubeClient) GetCommentThreadsClient() *commentThreads.YoutubeCommentThreadsClient {
+func (client *GoogleYouTubeACClient) GetCommentThreadsClient() *commentThreads.YoutubeCommentThreadsClient {
 	if client.commentThreads == nil {
 		client.commentThreads = commentThreads.NewClient(client.GoogleClient.BaseClient)
 	}
 	return client.commentThreads
 }
 
-func (client *GoogleYouTubeClient) GetI18nLanguagesClient() *i18nLanguages.YoutubeI18nLanguagesClient {
+func (client *GoogleYouTubeACClient) GetI18nLanguagesClient() *i18nLanguages.YoutubeI18nLanguagesClient {
 	if client.i18nLanguages == nil {
 		client.i18nLanguages = i18nLanguages.NewClient(client.GoogleClient.BaseClient)
 	}
 	return client.i18nLanguages
 }
 
-func (client *GoogleYouTubeClient) GetI18nRegionsClient() *i18nRegions.YoutubeI18nRegionsClient {
+func (client *GoogleYouTubeACClient) GetI18nRegionsClient() *i18nRegions.YoutubeI18nRegionsClient {
 	if client.i18nRegions == nil {
 		client.i18nRegions = i18nRegions.NewClient(client.GoogleClient.BaseClient)
 	}
 	return client.i18nRegions
 }
 
-func (client *GoogleYouTubeClient) GetMembersClient() *members.YoutubeMembersClient {
+func (client *GoogleYouTubeACClient) GetMembersClient() *members.YoutubeMembersClient {
 	if client.members == nil {
 		client.members = members.NewClient(client.GoogleClient.BaseClient)
 	}
 	return client.members
 }
 
-func (client *GoogleYouTubeClient) GetMembershipsLevelsClient() *membershipsLevels.YoutubeMembershipsLevelsClient {
+func (client *GoogleYouTubeACClient) GetMembershipsLevelsClient() *membershipsLevels.YoutubeMembershipsLevelsClient {
 	if client.membershipsLevels == nil {
 		client.membershipsLevels = membershipsLevels.NewClient(client.GoogleClient.BaseClient)
 	}
 	return client.membershipsLevels
 }
 
-func (client *GoogleYouTubeClient) GetPlaylistItemsClient() *playlistItems.YoutubePlaylistItemsClient {
+func (client *GoogleYouTubeACClient) GetPlaylistItemsClient() *playlistItems.YoutubePlaylistItemsClient {
 	if client.playlistItems == nil {
 		client.playlistItems = playlistItems.NewClient(client.GoogleClient.BaseClient)
 	}
 	return client.playlistItems
 }
 
-func (client *GoogleYouTubeClient) GetPlaylistsClient() *playlists.YoutubePlaylistsClient {
+func (client *GoogleYouTubeACClient) GetPlaylistsClient() *playlists.YoutubePlaylistsClient {
 	if client.playlists == nil {
 		client.playlists = playlists.NewClient(client.GoogleClient.BaseClient)
 	}
 	return client.playlists
 }
 
-func (client *GoogleYouTubeClient) GetSearchClient() *search.YoutubeSearchClient {
+func (client *GoogleYouTubeACClient) GetSearchClient() *search.YoutubeSearchClient {
 	if client.search == nil {
 		client.search = search.NewClient(client.GoogleClient.BaseClient)
 	}
 	return client.search
 }
 
-func (client *GoogleYouTubeClient) GetSubscriptionsClient() *subscriptions.YoutubeSubscriptionsClient {
+func (client *GoogleYouTubeACClient) GetSubscriptionsClient() *subscriptions.YoutubeSubscriptionsClient {
 	if client.subscriptions == nil {
 		client.subscriptions = subscriptions.NewClient(client.GoogleClient.BaseClient)
 	}
 	return client.subscriptions
 }
 
-func (client *GoogleYouTubeClient) GetThumbnailsClient() *thumbnails.YoutubeThumbnailsClient {
+func (client *GoogleYouTubeACClient) GetThumbnailsClient() *thumbnails.YoutubeThumbnailsClient {
 	if client.thumbnails == nil {
 		client.thumbnails = thumbnails.NewClient(client.GoogleClient.BaseClient)
 	}
 	return client.thumbnails
 }
 
-func (client *GoogleYouTubeClient) GetChannelSectionsClient() *channelSections.YoutubeChannelSectionsClient {
+func (client *GoogleYouTubeACClient) GetChannelSectionsClient() *channelSections.YoutubeChannelSectionsClient {
 	if client.channelSections == nil {
 		client.channelSections = channelSections.NewClient(client.GoogleClient.BaseClient)
 	}
 	return client.channelSections
 }
 
-func (client *GoogleYouTubeClient) GetWatermarksClient() *watermarks.YoutubeWatermarksClient {
+func (client *GoogleYouTubeACClient) GetWatermarksClient() *watermarks.YoutubeWatermarksClient {
 	if client.watermarks == nil {
 		client.watermarks = watermarks.NewClient(client.GoogleClient.BaseClient)
 	}
