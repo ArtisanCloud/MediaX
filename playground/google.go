@@ -9,7 +9,7 @@ import (
 )
 
 func PlayGoogleYouTube(localConfig *config.LocalConfig, mediaX *client.MediaX) {
-	googleYouTubeClient, err := mediaX.CreateGoogleYouTube(localConfig.GoogleYouTubeConfig)
+	googleYouTubeClient, err := mediaX.CreateGoogleYouTubeACClient(localConfig.GoogleYouTubeConfig)
 	if err != nil {
 		panic(err)
 	}
