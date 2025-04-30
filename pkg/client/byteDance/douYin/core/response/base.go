@@ -7,6 +7,8 @@ type DouYinRes struct {
 	SubDescription string `json:"sub_description,omitempty"`
 	LogId          string `json:"logid,omitempty"`
 	Now            int64  `json:"now,omitempty"`
+	Cursor         int    `json:"cursor,omitempty"`
+	HasMore        bool   `json:"has_more,omitempty"`
 }
 
 type DouYinDataRes struct {
