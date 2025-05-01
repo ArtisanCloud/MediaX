@@ -1,6 +1,7 @@
 package clientTokenClient
 
 import (
+	"github.com/ArtisanCloud/MediaX/pkg/client/byteDance/douYin/clientTokenClient/content/task"
 	"github.com/ArtisanCloud/MediaX/pkg/client/byteDance/douYin/clientTokenClient/content/video"
 	"github.com/ArtisanCloud/MediaX/pkg/client/byteDance/douYin/core"
 	"github.com/ArtisanCloud/MediaX/pkg/client/config"
@@ -16,6 +17,7 @@ type ByteDanceDouYinCTClient struct {
 
 	// clients
 	video *video.DouYinContentVideoClient
+	task  *task.DouYinContentTaskClient
 }
 
 func NewByteDanceDouYinCTClient(cfg *config.ByteDanceDouYinConfig, logger *logger.Logger, cache cache.ICache) (*ByteDanceDouYinCTClient, error) {
@@ -47,4 +49,11 @@ func (c *ByteDanceDouYinCTClient) GetContentVideoClient() *video.DouYinContentVi
 		c.video = video.NewClient(c.ByteDanceClient.BaseClient)
 	}
 	return c.video
+}
+
+func (c *ByteDanceDouYinCTClient) GetContentTaskClient() *task.DouYinContentTaskClient {
+	if c.task == nil {
+		c.task = task.NewClient(c.ByteDanceClient.BaseClient)
+	}
+	return c.task
 }

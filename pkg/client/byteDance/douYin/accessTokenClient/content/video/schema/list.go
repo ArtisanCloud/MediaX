@@ -25,6 +25,7 @@ type DouYinContentVideoListRes struct {
 	// Data 业务数据主体，包含具体的业务响应信息和视频列表。
 	Extra response.DouYinRes `json:"extra,omitempty"`
 	Data  struct {
+		// Data通用返回信息
 		response.DouYinRes
 		HasMore bool    `json:"has_more"`
 		List    []Video `json:"list"`

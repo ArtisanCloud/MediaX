@@ -25,13 +25,9 @@ type DouYinContentVideoPoiSearchRes struct {
 
 	// Data 业务数据主体。
 	Data struct {
+		// Data通用返回信息
+		response.DouYinRes
 		// ShareId 视频分享 ID。
 		ShareId string `json:"share_id"`
-
-		// ErrorCode 错误码，0 表示成功，其它表示失败。
-		ErrorCode int `json:"error_code"`
-
-		// Description 错误描述或状态说明。
-		Description string `json:"description"`
 	} `json:"data"`
 }

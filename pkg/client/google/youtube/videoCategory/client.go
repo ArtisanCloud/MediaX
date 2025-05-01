@@ -19,7 +19,7 @@ func NewClient(c *kernel.BaseClient) *YoutubeVideoCategoryClient {
 
 // VideoCategories:list 返回可与 YouTube 视频相关联的类别列表。
 // https://developers.google.com/youtube/v3/docs/videoCategories/list?hl=zh-cn
-func (comp *YoutubeVideoCategoryClient) List(ctx context.Context, data *schema.YouTubeVideoCategoriesReq) (*schema.YouTubeVideoCategoriesRes, error) {
+func (c *YoutubeVideoCategoryClient) List(ctx context.Context, data *schema.YouTubeVideoCategoriesReq) (*schema.YouTubeVideoCategoriesRes, error) {
 	result := &schema.YouTubeVideoCategoriesRes{}
 
 	params, err := object.StructToStringMap(data)
@@ -27,6 +27,6 @@ func (comp *YoutubeVideoCategoryClient) List(ctx context.Context, data *schema.Y
 		return nil, err
 	}
 
-	_, err = comp.BaseClient.HttpGet(ctx, "videoCategories", params, nil, result)
+	_, err = c.BaseClient.HttpGet(ctx, "videoCategories", params, nil, result)
 	return result, err
 }

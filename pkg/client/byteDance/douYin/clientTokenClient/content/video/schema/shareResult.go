@@ -55,6 +55,7 @@ type DouYinContentVideoShareResultRes struct {
 
 	// Data 业务数据主体。
 	Data struct {
+		// Data通用返回信息
 		response.DouYinRes
 		Pois []Poi `json:"pois"`
 	} `json:"data"`

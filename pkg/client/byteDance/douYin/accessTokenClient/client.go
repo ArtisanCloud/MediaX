@@ -7,7 +7,6 @@ import (
 	"github.com/ArtisanCloud/MediaX/pkg/client/byteDance/douYin/accessTokenClient/connection/fan"
 	"github.com/ArtisanCloud/MediaX/pkg/client/byteDance/douYin/accessTokenClient/connection/fanData"
 	"github.com/ArtisanCloud/MediaX/pkg/client/byteDance/douYin/accessTokenClient/content/activity"
-	"github.com/ArtisanCloud/MediaX/pkg/client/byteDance/douYin/accessTokenClient/content/schema"
 	"github.com/ArtisanCloud/MediaX/pkg/client/byteDance/douYin/accessTokenClient/content/task"
 	"github.com/ArtisanCloud/MediaX/pkg/client/byteDance/douYin/accessTokenClient/content/video"
 	"github.com/ArtisanCloud/MediaX/pkg/client/byteDance/douYin/accessTokenClient/im/group"
@@ -45,7 +44,7 @@ type ByteDanceDouYinACClient struct {
 	imGroup           *group.DouYinIMGroupClient
 	task              *task.DouYinContentTaskClient
 	activity          *activity.DouYinContentActivityClient
-	contentSchema     *schema.DouYinContentSchemaClient
+	contentSchema     *schemas.DouYinContentSchemaClient
 	sandbox           *sandbox.DouYinSandboxClient
 	micApp            *micApp.DouYinMicAppClient
 	ticket            *ticket.DouYinTicketClient
@@ -185,9 +184,9 @@ func (c *ByteDanceDouYinACClient) GetContentActivityClient() *activity.DouYinCon
 	return c.activity
 }
 
-func (c *ByteDanceDouYinACClient) GetContentSchemaClient() *schema.DouYinContentSchemaClient {
+func (c *ByteDanceDouYinACClient) GetContentSchemaClient() *schemas.DouYinContentSchemaClient {
 	if c.contentSchema == nil {
-		c.contentSchema = schema.NewClient(c.ByteDanceClient.BaseClient)
+		c.contentSchema = schemas.NewClient(c.ByteDanceClient.BaseClient)
 	}
 	return c.contentSchema
 }

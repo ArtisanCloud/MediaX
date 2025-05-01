@@ -1,4 +1,4 @@
-package schema
+package schemas
 
 import "github.com/ArtisanCloud/MediaX/internal/kernel"
 
