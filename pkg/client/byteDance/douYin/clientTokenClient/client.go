@@ -1,8 +1,11 @@
 package clientTokenClient
 
 import (
+	"github.com/ArtisanCloud/MediaX/pkg/client/byteDance/douYin/clientTokenClient/content/activity"
+	"github.com/ArtisanCloud/MediaX/pkg/client/byteDance/douYin/clientTokenClient/content/schemas"
 	"github.com/ArtisanCloud/MediaX/pkg/client/byteDance/douYin/clientTokenClient/content/task"
 	"github.com/ArtisanCloud/MediaX/pkg/client/byteDance/douYin/clientTokenClient/content/video"
+	"github.com/ArtisanCloud/MediaX/pkg/client/byteDance/douYin/clientTokenClient/search"
 	"github.com/ArtisanCloud/MediaX/pkg/client/byteDance/douYin/core"
 	"github.com/ArtisanCloud/MediaX/pkg/client/config"
 	"github.com/ArtisanCloud/MediaXCore/pkg/cache"
@@ -16,8 +19,11 @@ type ByteDanceDouYinCTClient struct {
 	ClientTokenHandler *core.ByteDanceTokenHandler
 
 	// clients
-	video *video.DouYinContentVideoClient
-	task  *task.DouYinContentTaskClient
+	video    *video.DouYinContentVideoClient
+	task     *task.DouYinContentTaskClient
+	schemas  *schemas.DouYinContentSchemasClient
+	activity *activity.DouYinContentActivityClient
+	search   *search.DouYinSearchClient
 }
 
 func NewByteDanceDouYinCTClient(cfg *config.ByteDanceDouYinConfig, logger *logger.Logger, cache cache.ICache) (*ByteDanceDouYinCTClient, error) {
@@ -56,4 +62,25 @@ func (c *ByteDanceDouYinCTClient) GetContentTaskClient() *task.DouYinContentTask
 		c.task = task.NewClient(c.ByteDanceClient.BaseClient)
 	}
 	return c.task
+}
+
+func (c *ByteDanceDouYinCTClient) GetContentSchemasClient() *schemas.DouYinContentSchemasClient {
+	if c.schemas == nil {
+		c.schemas = schemas.NewClient(c.ByteDanceClient.BaseClient)
+	}
+	return c.schemas
+}
+
+func (c *ByteDanceDouYinCTClient) GetContentActivityClient() *activity.DouYinContentActivityClient {
+	if c.activity == nil {
+		c.activity = activity.NewClient(c.ByteDanceClient.BaseClient)
+	}
+	return c.activity
+}
+
+func (c *ByteDanceDouYinCTClient) GetSearchClient() *search.DouYinSearchClient {
+	if c.search == nil {
+		c.search = search.NewClient(c.ByteDanceClient.BaseClient)
+	}
+	return c.search
 }

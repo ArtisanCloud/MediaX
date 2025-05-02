@@ -18,6 +18,7 @@ import (
 	"github.com/ArtisanCloud/MediaX/pkg/client/byteDance/douYin/accessTokenClient/tools/micApp"
 	"github.com/ArtisanCloud/MediaX/pkg/client/byteDance/douYin/accessTokenClient/tools/sandbox"
 	"github.com/ArtisanCloud/MediaX/pkg/client/byteDance/douYin/accessTokenClient/tools/ticket"
+	"github.com/ArtisanCloud/MediaX/pkg/client/byteDance/douYin/clientTokenClient/content/schemas"
 	core2 "github.com/ArtisanCloud/MediaX/pkg/client/byteDance/douYin/core"
 	"github.com/ArtisanCloud/MediaX/pkg/client/byteDance/douYin/core/response"
 	"github.com/ArtisanCloud/MediaX/pkg/client/config"
@@ -34,6 +35,9 @@ type ByteDanceDouYinACClient struct {
 
 	// clients
 	video             *video.DouYinContentVideoClient
+	task              *task.DouYinContentTaskClient
+	schemas           *schemas.DouYinContentSchemasClient
+	activity          *activity.DouYinContentActivityClient
 	oauth             *oauth.DouYinOAuthClient
 	search            *search.DouYinSearchClient
 	connectionFan     *fan.DouYinConnectionFanClient
@@ -42,9 +46,6 @@ type ByteDanceDouYinACClient struct {
 	imMessage         *message.DouYinIMMessageClient
 	imTool            *tool.DouYinIMToolClient
 	imGroup           *group.DouYinIMGroupClient
-	task              *task.DouYinContentTaskClient
-	activity          *activity.DouYinContentActivityClient
-	contentSchema     *schemas.DouYinContentSchemaClient
 	sandbox           *sandbox.DouYinSandboxClient
 	micApp            *micApp.DouYinMicAppClient
 	ticket            *ticket.DouYinTicketClient
@@ -184,11 +185,11 @@ func (c *ByteDanceDouYinACClient) GetContentActivityClient() *activity.DouYinCon
 	return c.activity
 }
 
-func (c *ByteDanceDouYinACClient) GetContentSchemaClient() *schemas.DouYinContentSchemaClient {
-	if c.contentSchema == nil {
-		c.contentSchema = schemas.NewClient(c.ByteDanceClient.BaseClient)
+func (c *ByteDanceDouYinACClient) GetContentSchemaClient() *schemas.DouYinContentSchemasClient {
+	if c.schemas == nil {
+		c.schemas = schemas.NewClient(c.ByteDanceClient.BaseClient)
 	}
-	return c.contentSchema
+	return c.schemas
 }
 
 func (c *ByteDanceDouYinACClient) GetSandboxClient() *sandbox.DouYinSandboxClient {

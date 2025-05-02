@@ -34,8 +34,11 @@ type DouYinContentCreatePostRes struct {
 	Extra response.DouYinRes `json:"extra,omitempty"`
 	// Data 业务数据主体
 	Data struct {
-		c.
-		TaskId     string `json:"task_id"`
-		TaskStatus int    `json:"task_status"`
+		// Data通用返回信息
+		response.DouYinRes
+		// TaskId 任务ID
+		TaskId string `json:"task_id"`
+		// TaskStatus 任务状态
+		TaskStatus int `json:"task_status"`
 	} `json:"data"`
 }

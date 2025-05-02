@@ -1,6 +1,8 @@
 package schemas
 
-import "github.com/ArtisanCloud/MediaX/internal/kernel"
+import (
+	"github.com/ArtisanCloud/MediaX/internal/kernel"
+)
 
 type DouYinContentSchemaClient struct {
 	*kernel.BaseClient

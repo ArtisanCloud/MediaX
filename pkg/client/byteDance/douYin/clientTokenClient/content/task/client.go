@@ -7,10 +7,13 @@ import (
 	"github.com/ArtisanCloud/MediaXCore/utils/object"
 )
 
+// DouYinContentTaskClient 抖音内容任务客户端
+// 提供与抖音内容任务相关的接口封装
 type DouYinContentTaskClient struct {
 	*kernel.BaseClient
 }
 
+// NewClient 初始化并返回一个新的 DouYinContentTaskClient 实例
 func NewClient(c *kernel.BaseClient) *DouYinContentTaskClient {
 	return &DouYinContentTaskClient{
 		BaseClient: c,
@@ -50,5 +53,34 @@ func (c *DouYinContentTaskClient) CreatePost(ctx context.Context, data *schema.D
 		return nil, err
 	}
 	_, err = c.BaseClient.HttpPost(ctx, "/task/posting/create/", nil, params, nil, result)
+	return result, err
+}
+
+// ## UserVerifyPost 核销投稿任务
+//
+// 接口文档参考：
+// https://developer.open-douyin.com/docs/resource/zh-CN/dop/develop/openapi/video-management/posting-task/verify-posting-task
+//
+// 参数：
+//
+//	ctx  - 请求上下文
+//	data - 请求参数，包含核销任务所需的信息
+//
+// 返回值：
+//
+//	*schema.DouYinContentVerifyPostRes 包含以下字段：
+//	  • Extra: 通用返回信息（log_id、now、error_code 等）
+//	  • Data:
+//	      - TaskId: 任务ID
+//	      - TaskStatus: 任务状态
+//	      - ErrorCode: 错误码，0 表示成功，其他为失败
+//	      - Description: 错误描述或状态说明
+//
+//	error 调用过程中遇到的错误（如有）
+func (c *DouYinContentTaskClient) UserVerifyPost(ctx context.Context, data *schema.DouYinContentVerifyPostReq) (*schema.DouYinContentVerifyPostRes, error) {
+	result := &schema.DouYinContentVerifyPostRes{}
+
+	_, err := c.BaseClient.HttpPost(ctx, "/task/posting/user/", nil, data, nil, result)
+
 	return result, err
 }
