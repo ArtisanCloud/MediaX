@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"github.com/ArtisanCloud/MediaX/pkg/client/byteDance/douYin/accessTokenClient/connection/data"
 	"github.com/ArtisanCloud/MediaX/pkg/client/byteDance/douYin/accessTokenClient/connection/fan"
-	"github.com/ArtisanCloud/MediaX/pkg/client/byteDance/douYin/accessTokenClient/connection/fanData"
+	"github.com/ArtisanCloud/MediaX/pkg/client/byteDance/douYin/accessTokenClient/connection/fanProfile"
 	"github.com/ArtisanCloud/MediaX/pkg/client/byteDance/douYin/accessTokenClient/content/activity"
 	"github.com/ArtisanCloud/MediaX/pkg/client/byteDance/douYin/accessTokenClient/content/task"
 	"github.com/ArtisanCloud/MediaX/pkg/client/byteDance/douYin/accessTokenClient/content/video"
@@ -34,22 +34,22 @@ type ByteDanceDouYinACClient struct {
 	AccessTokenHandler *core2.ByteDanceTokenHandler
 
 	// clients
-	video             *video.DouYinContentVideoClient
-	task              *task.DouYinContentTaskClient
-	schemas           *schemas.DouYinContentSchemasClient
-	activity          *activity.DouYinContentActivityClient
-	search            *search.DouYinSearchClient
-	oauth             *oauth.DouYinOAuthClient
-	connectionFan     *fan.DouYinConnectionFanClient
-	connectionFanData *fanData.DouYinConnectionFanDataClient
-	connectionData    *data.DouYinConnectionDataClient
-	imMessage         *message.DouYinIMMessageClient
-	imTool            *tool.DouYinIMToolClient
-	imGroup           *group.DouYinIMGroupClient
-	sandbox           *sandbox.DouYinSandboxClient
-	micApp            *micApp.DouYinMicAppClient
-	ticket            *ticket.DouYinTicketClient
-	marketService     *service.DouYinMarketServiceClient
+	video                *video.DouYinContentVideoClient
+	task                 *task.DouYinContentTaskClient
+	schemas              *schemas.DouYinContentSchemasClient
+	activity             *activity.DouYinContentActivityClient
+	search               *search.DouYinSearchClient
+	oauth                *oauth.DouYinOAuthClient
+	connectionFan        *fan.DouYinConnectionFanClient
+	connectionFanProfile *fanProfile.DouYinConnectionFanProfileClient
+	connectionData       *data.DouYinConnectionDataClient
+	imMessage            *message.DouYinIMMessageClient
+	imTool               *tool.DouYinIMToolClient
+	imGroup              *group.DouYinIMGroupClient
+	sandbox              *sandbox.DouYinSandboxClient
+	micApp               *micApp.DouYinMicAppClient
+	ticket               *ticket.DouYinTicketClient
+	marketService        *service.DouYinMarketServiceClient
 }
 
 func NewByteDanceDouYinACClient(cfg *config.ByteDanceDouYinConfig, logger *logger.Logger, cache cache.ICache) (*ByteDanceDouYinACClient, error) {
@@ -136,11 +136,11 @@ func (c *ByteDanceDouYinACClient) GetConnectionFanClient() *fan.DouYinConnection
 	return c.connectionFan
 }
 
-func (c *ByteDanceDouYinACClient) GetConnectionFanDataClient() *fanData.DouYinConnectionFanDataClient {
-	if c.connectionFanData == nil {
-		c.connectionFanData = fanData.NewClient(c.ByteDanceClient.BaseClient)
+func (c *ByteDanceDouYinACClient) GetConnectionFanProfileClient() *fanProfile.DouYinConnectionFanProfileClient {
+	if c.connectionFanProfile == nil {
+		c.connectionFanProfile = fanProfile.NewClient(c.ByteDanceClient.BaseClient)
 	}
-	return c.connectionFanData
+	return c.connectionFanProfile
 }
 
 func (c *ByteDanceDouYinACClient) GetConnectionDataClient() *data.DouYinConnectionDataClient {
