@@ -38,8 +38,8 @@ type ByteDanceDouYinACClient struct {
 	task              *task.DouYinContentTaskClient
 	schemas           *schemas.DouYinContentSchemasClient
 	activity          *activity.DouYinContentActivityClient
-	oauth             *oauth.DouYinOAuthClient
 	search            *search.DouYinSearchClient
+	oauth             *oauth.DouYinOAuthClient
 	connectionFan     *fan.DouYinConnectionFanClient
 	connectionFanData *fanData.DouYinConnectionFanDataClient
 	connectionData    *data.DouYinConnectionDataClient
