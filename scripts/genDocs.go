@@ -159,9 +159,9 @@ func main() {
 
 	// 排除某些子目录
 	excludeDirs := map[string]bool{
-		"core":   true,
+		//"core":   true,
 		"schema": true,
-		"config": true,
+		//"config": true,
 	}
 	_, err := traverseDirectoryAndGenerateMD(targetDir, docsDir, excludeDirs)
 	if err != nil {

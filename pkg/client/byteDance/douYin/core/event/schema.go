@@ -1,15 +1,16 @@
-package core
+package event
 
-// 事件类型常量
+// DouYinEventTypeMessage 事件类型常量
 const (
 	DouYinEventTypeMessageIMReceiveMsg          = "im_receive_msg"           // 收到消息
 	DouYinEventTypeMessageIMEnterDirectMsg      = "im_enter_direct_msg"      // 进入私信
 	DouYinEventTypeMessageIMRecallMsg           = "im_recall_msg"            // 消息撤回
+	DouYinEventTypeMessageIMGroupReceiveMsg     = "im_group_receive_msg"     // 收到群消息
 	DouYinEventTypeMessageEnterGroupFanEvent    = "group_fans_event"         // 进群事件
 	DouYinEventTypeMessageEnterGroupAuditChange = "enter_group_audit_change" // 进群审核状态变更
 )
 
-// 事件消息类型
+// DouYinIMMessageType 事件消息类型
 const (
 	DouYinIMMessageTypeText              = "text"                // 文本消息
 	DouYinIMMessageTypeImage             = "image"               // 图片消息
@@ -33,6 +34,7 @@ type UserInfo struct {
 	Avatar   string `json:"avatar"`    // 用户头像
 }
 
+// EventContent 消息内容
 type EventContent struct {
 	ConversationShortId string     `json:"conversation_short_id"` // 会话短ID
 	ServerMessageId     string     `json:"server_message_id"`     // 服务端消息ID

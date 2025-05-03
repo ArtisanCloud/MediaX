@@ -11,7 +11,7 @@ import (
 	"github.com/ArtisanCloud/MediaX/pkg/client/byteDance/douYin/accessTokenClient/content/video"
 	"github.com/ArtisanCloud/MediaX/pkg/client/byteDance/douYin/accessTokenClient/im/group"
 	"github.com/ArtisanCloud/MediaX/pkg/client/byteDance/douYin/accessTokenClient/im/message"
-	"github.com/ArtisanCloud/MediaX/pkg/client/byteDance/douYin/accessTokenClient/im/tool"
+	"github.com/ArtisanCloud/MediaX/pkg/client/byteDance/douYin/accessTokenClient/im/tool/retainCard"
 	"github.com/ArtisanCloud/MediaX/pkg/client/byteDance/douYin/accessTokenClient/market/service"
 	"github.com/ArtisanCloud/MediaX/pkg/client/byteDance/douYin/accessTokenClient/oauth"
 	"github.com/ArtisanCloud/MediaX/pkg/client/byteDance/douYin/accessTokenClient/search"
@@ -44,7 +44,7 @@ type ByteDanceDouYinACClient struct {
 	connectionFanProfile *fanProfile.DouYinConnectionFanProfileClient
 	connectionData       *data.DouYinConnectionDataClient
 	imMessage            *message.DouYinIMMessageClient
-	imTool               *tool.DouYinIMToolClient
+	imTool               *retainCard.DouYinIMToolClient
 	imGroup              *group.DouYinIMGroupClient
 	sandbox              *sandbox.DouYinSandboxClient
 	micApp               *micApp.DouYinMicAppClient
@@ -157,9 +157,9 @@ func (c *ByteDanceDouYinACClient) GetIMMessageClient() *message.DouYinIMMessageC
 	return c.imMessage
 }
 
-func (c *ByteDanceDouYinACClient) GetIMToolClient() *tool.DouYinIMToolClient {
+func (c *ByteDanceDouYinACClient) GetIMToolClient() *retainCard.DouYinIMToolClient {
 	if c.imTool == nil {
-		c.imTool = tool.NewClient(c.ByteDanceClient.BaseClient)
+		c.imTool = retainCard.NewClient(c.ByteDanceClient.BaseClient)
 	}
 	return c.imTool
 }

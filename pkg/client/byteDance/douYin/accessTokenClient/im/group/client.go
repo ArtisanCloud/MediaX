@@ -190,4 +190,50 @@ func (c *DouYinIMGroupClient) GetUserEnterAudit(ctx context.Context, data *schem
 	_, err = c.BaseClient.HttpGet(ctx, "/im/group/enter/audit/get/", params, nil, result)
 	return result, err
 }
-t s
+
+// ## Send 发送群消息
+//
+// 接口文档参考：
+// https://developer.open-douyin.com/docs/resource/zh-CN/dop/develop/openapi/search-management/group-chat/join-group/send-group-message
+//
+// 参数：
+//   ctx  - 请求上下文
+//   data - 发送群消息请求参数
+//     • GroupId: 群ID，来源于群消息webhook事件或查询群信息接口
+//     • Content: 消息体，支持文本、图片、视频、留资卡片、小程序引导卡片等
+//     • GroupToken: 群Token
+//
+// 返回值：
+//   *schema.DouYinIMGroupSendRes 包含以下字段：
+//     • MsgId: 消息ID，发送成功后返回的消息ID
+//     • Extra: 通用返回信息（log_id、now、error_code 等）
+//     • Data: 业务数据主体，包含具体的业务响应信息
+//   error 调用过程中遇到的错误（如有）
+func (c *DouYinIMGroupClient) Send(ctx context.Context, data *schema.DouYinIMGroupSendReq) (*schema.DouYinIMGroupSendRes, error) {
+	result := &schema.DouYinIMGroupSendRes{}
+	_, err := c.BaseClient.HttpPost(ctx, "/im/send/msg/group/", nil, data, nil, result)
+	return result, err
+}
+
+// ## Recall 撤回群消息
+//
+// 接口文档参考：
+// https://developer.open-douyin.com/docs/resource/zh-CN/dop/develop/openapi/search-management/group-chat/join-group/recall-group-message
+//
+// 参数：
+//   ctx  - 请求上下文
+//   data - 撤回群消息请求参数
+//     • MsgId: 消息ID，来源于发送群消息接口返回的MsgId
+//     • GroupToken: 群Token
+//
+// 返回值：
+//   *schema.DouYinIMGroupRecallRes 包含以下字段：
+//     • ErrMsg: 错误信息
+//     • ErrNo: 错误码，0-成功，非0-失败
+//     • LogId: 日志ID，用于问题定位
+//   error 调用过程中遇到的错误（如有）
+func (c *DouYinIMGroupClient) Recall(ctx context.Context, data *schema.DouYinIMGroupRecallReq) (*schema.DouYinIMGroupRecallRes, error) {
+	result := &schema.DouYinIMGroupRecallRes{}
+	_, err := c.BaseClient.HttpPost(ctx, "/im/recall/msg/", nil, data, nil, result)
+	return result, err
+}
