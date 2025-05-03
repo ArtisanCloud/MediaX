@@ -217,7 +217,7 @@ func (tHandler *TokenHandler) sendRequest(ctx context.Context, credential *objec
 		return nil, err
 	}
 
-	// decode response body to outBody
+	// security response body to outBody
 	err = tHandler.HttpHelper.ParseResponseBodyContent(rs, res)
 
 	return res, err

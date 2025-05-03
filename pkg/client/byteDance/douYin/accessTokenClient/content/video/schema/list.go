@@ -27,8 +27,6 @@ type DouYinContentVideoListRes struct {
 	Data  struct {
 		// Data通用返回信息
 		response.DouYinRes
-		HasMore bool    `json:"has_more"`
-		List    []Video `json:"list"`
-		Cursor  int     `json:"cursor"`
+		List []Video `json:"list"`
 	} `json:"data"`
 }
