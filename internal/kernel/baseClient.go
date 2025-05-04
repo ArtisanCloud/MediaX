@@ -254,6 +254,30 @@ func (client *BaseClient) HttpUpload(ctx context.Context, url string, files *obj
 	return response, nil
 }
 
+func (client *BaseClient) UploadMedia(ctx context.Context, url string, path string, form *object.HashMap, outHeader interface{}, outBody interface{}) (interface{}, error) {
+
+	var files *object.HashMap
+	if path != "" {
+		files = &object.HashMap{
+			"media": path,
+		}
+	}
+
+	var formData *request2.UploadForm
+	if form != nil {
+		formData = &request2.UploadForm{
+			Contents: []*request2.UploadContent{
+				&request2.UploadContent{
+					Name:  (*form)["name"].(string),
+					Value: (*form)["value"],
+				},
+			},
+		}
+	}
+
+	return client.HttpUpload(ctx, url, files, formData, nil, outHeader, outBody)
+}
+
 // Simplified request handler
 func (client *BaseClient) makeRequest(ctx context.Context, url, method string,
 	query *object.StringMap, formData interface{},

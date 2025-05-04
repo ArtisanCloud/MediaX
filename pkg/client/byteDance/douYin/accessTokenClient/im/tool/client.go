@@ -3,7 +3,6 @@ package tool
 import (
 	"context"
 	"github.com/ArtisanCloud/MediaX/internal/kernel"
-	"github.com/ArtisanCloud/MediaX/internal/kernel/request"
 	"github.com/ArtisanCloud/MediaX/pkg/client/byteDance/douYin/accessTokenClient/im/tool/schema"
 	"github.com/ArtisanCloud/MediaXCore/utils/object"
 )
@@ -41,27 +40,8 @@ func NewClient(c *kernel.BaseClient) *DouYinIMToolClient {
 func (c *DouYinIMToolClient) UploadImage(ctx context.Context, path string, form *object.HashMap) (*schema.DouYinIMToolUploadImageRes, error) {
 	result := &schema.DouYinIMToolUploadImageRes{}
 
-	var files *object.HashMap
-	if path != "" {
-		files = &object.HashMap{
-			"media": path,
-		}
-	}
-
-	var formData *request.UploadForm
-	if form != nil {
-		formData = &request.UploadForm{
-			Contents: []*request.UploadContent{
-				&request.UploadContent{
-					Name:  (*form)["name"].(string),
-					Value: (*form)["value"],
-				},
-			},
-		}
-	}
-
 	// 上传图片
-	_, err := c.BaseClient.HttpUpload(ctx, "/tool/imagex/client_upload/", files, formData, nil, nil, nil)
+	_, err := c.BaseClient.UploadMedia(ctx, "/tool/imagex/client_upload/", path, form, nil, result)
 	if err != nil {
 		return nil, err
 	}
