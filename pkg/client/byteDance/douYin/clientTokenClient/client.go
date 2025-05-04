@@ -6,6 +6,8 @@ import (
 	"github.com/ArtisanCloud/MediaX/pkg/client/byteDance/douYin/clientTokenClient/content/task"
 	"github.com/ArtisanCloud/MediaX/pkg/client/byteDance/douYin/clientTokenClient/content/video"
 	"github.com/ArtisanCloud/MediaX/pkg/client/byteDance/douYin/clientTokenClient/search"
+	"github.com/ArtisanCloud/MediaX/pkg/client/byteDance/douYin/clientTokenClient/tools/micApp"
+	"github.com/ArtisanCloud/MediaX/pkg/client/byteDance/douYin/clientTokenClient/tools/sandbox"
 	"github.com/ArtisanCloud/MediaX/pkg/client/byteDance/douYin/core"
 	"github.com/ArtisanCloud/MediaX/pkg/client/config"
 	"github.com/ArtisanCloud/MediaXCore/pkg/cache"
@@ -19,11 +21,13 @@ type ByteDanceDouYinCTClient struct {
 	ClientTokenHandler *core.ByteDanceTokenHandler
 
 	// clients
-	video    *video.DouYinContentVideoClient
-	task     *task.DouYinContentTaskClient
-	schemas  *schemas.DouYinContentSchemasClient
-	activity *activity.DouYinContentActivityClient
-	search   *search.DouYinSearchClient
+	video       *video.DouYinContentVideoClient
+	task        *task.DouYinContentTaskClient
+	schemas     *schemas.DouYinContentSchemasClient
+	activity    *activity.DouYinContentActivityClient
+	search      *search.DouYinSearchClient
+	toolMicApp  *micApp.DouYinToolMicAppClient
+	toolSandbox *sandbox.DouYinSandboxClient
 }
 
 func NewByteDanceDouYinCTClient(cfg *config.ByteDanceDouYinConfig, logger *logger.Logger, cache cache.ICache) (*ByteDanceDouYinCTClient, error) {
@@ -83,4 +87,24 @@ func (c *ByteDanceDouYinCTClient) GetSearchClient() *search.DouYinSearchClient {
 		c.search = search.NewClient(c.ByteDanceClient.BaseClient)
 	}
 	return c.search
+}
+
+func (c *ByteDanceDouYinCTClient) GetContentSchemaClient() *schemas.DouYinContentSchemasClient {
+	if c.schemas == nil {
+		c.schemas = schemas.NewClient(c.ByteDanceClient.BaseClient)
+	}
+	return c.schemas
+}
+func (c *ByteDanceDouYinCTClient) GetMicAppClient() *micApp.DouYinToolMicAppClient {
+	if c.toolMicApp == nil {
+		c.toolMicApp = micApp.NewClient(c.ByteDanceClient.BaseClient)
+	}
+	return c.toolMicApp
+}
+
+func (c *ByteDanceDouYinCTClient) GetSandboxClient() *sandbox.DouYinSandboxClient {
+	if c.toolSandbox == nil {
+		c.toolSandbox = sandbox.NewClient(c.ByteDanceClient.BaseClient)
+	}
+	return c.toolSandbox
 }

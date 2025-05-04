@@ -2,12 +2,12 @@ package micApp
 
 import "github.com/ArtisanCloud/MediaX/internal/kernel"
 
-type DouYinMicAppClient struct {
+type DouYinToolMicAppClient struct {
 	*kernel.BaseClient
 }
 
-func NewClient(c *kernel.BaseClient) *DouYinMicAppClient {
-	return &DouYinMicAppClient{
+func NewClient(c *kernel.BaseClient) *DouYinToolMicAppClient {
+	return &DouYinToolMicAppClient{
 		BaseClient: c,
 	}
 }

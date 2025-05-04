@@ -11,14 +11,12 @@ import (
 	"github.com/ArtisanCloud/MediaX/pkg/client/byteDance/douYin/accessTokenClient/content/video"
 	"github.com/ArtisanCloud/MediaX/pkg/client/byteDance/douYin/accessTokenClient/im/group"
 	"github.com/ArtisanCloud/MediaX/pkg/client/byteDance/douYin/accessTokenClient/im/message"
+	"github.com/ArtisanCloud/MediaX/pkg/client/byteDance/douYin/accessTokenClient/im/tool/appletTemplate"
 	"github.com/ArtisanCloud/MediaX/pkg/client/byteDance/douYin/accessTokenClient/im/tool/retainCard"
 	"github.com/ArtisanCloud/MediaX/pkg/client/byteDance/douYin/accessTokenClient/market/service"
 	"github.com/ArtisanCloud/MediaX/pkg/client/byteDance/douYin/accessTokenClient/oauth"
 	"github.com/ArtisanCloud/MediaX/pkg/client/byteDance/douYin/accessTokenClient/search"
-	"github.com/ArtisanCloud/MediaX/pkg/client/byteDance/douYin/accessTokenClient/tools/micApp"
-	"github.com/ArtisanCloud/MediaX/pkg/client/byteDance/douYin/accessTokenClient/tools/sandbox"
 	"github.com/ArtisanCloud/MediaX/pkg/client/byteDance/douYin/accessTokenClient/tools/ticket"
-	"github.com/ArtisanCloud/MediaX/pkg/client/byteDance/douYin/clientTokenClient/content/schemas"
 	core2 "github.com/ArtisanCloud/MediaX/pkg/client/byteDance/douYin/core"
 	"github.com/ArtisanCloud/MediaX/pkg/client/byteDance/douYin/core/response"
 	"github.com/ArtisanCloud/MediaX/pkg/client/config"
@@ -34,9 +32,9 @@ type ByteDanceDouYinACClient struct {
 	AccessTokenHandler *core2.ByteDanceTokenHandler
 
 	// clients
-	video                *video.DouYinContentVideoClient
-	task                 *task.DouYinContentTaskClient
-	schemas              *schemas.DouYinContentSchemasClient
+	video *video.DouYinContentVideoClient
+	task  *task.DouYinContentTaskClient
+
 	activity             *activity.DouYinContentActivityClient
 	search               *search.DouYinSearchClient
 	oauth                *oauth.DouYinOAuthClient
@@ -44,10 +42,9 @@ type ByteDanceDouYinACClient struct {
 	connectionFanProfile *fanProfile.DouYinConnectionFanProfileClient
 	connectionData       *data.DouYinConnectionDataClient
 	imMessage            *message.DouYinIMMessageClient
-	imTool               *retainCard.DouYinIMToolClient
 	imGroup              *group.DouYinIMGroupClient
-	sandbox              *sandbox.DouYinSandboxClient
-	micApp               *micApp.DouYinMicAppClient
+	imToolAppletTemplate *appletTemplate.DouYinIMToolAppletTemplateClient
+	imToolRetainCard     *retainCard.DouYinIMToolRetainCardClient
 	ticket               *ticket.DouYinTicketClient
 	marketService        *service.DouYinMarketServiceClient
 }
@@ -157,11 +154,17 @@ func (c *ByteDanceDouYinACClient) GetIMMessageClient() *message.DouYinIMMessageC
 	return c.imMessage
 }
 
-func (c *ByteDanceDouYinACClient) GetIMToolClient() *retainCard.DouYinIMToolClient {
-	if c.imTool == nil {
-		c.imTool = retainCard.NewClient(c.ByteDanceClient.BaseClient)
+func (c *ByteDanceDouYinACClient) GetIMToolAppletTemplateClient() *appletTemplate.DouYinIMToolAppletTemplateClient {
+	if c.imToolAppletTemplate == nil {
+		c.imToolAppletTemplate = appletTemplate.NewClient(c.ByteDanceClient.BaseClient)
 	}
-	return c.imTool
+	return c.imToolAppletTemplate
+}
+func (c *ByteDanceDouYinACClient) GetIMToolRetainCardClient() *retainCard.DouYinIMToolRetainCardClient {
+	if c.imToolRetainCard == nil {
+		c.imToolRetainCard = retainCard.NewClient(c.ByteDanceClient.BaseClient)
+	}
+	return c.imToolRetainCard
 }
 
 func (c *ByteDanceDouYinACClient) GetIMGroupClient() *group.DouYinIMGroupClient {
@@ -183,27 +186,6 @@ func (c *ByteDanceDouYinACClient) GetContentActivityClient() *activity.DouYinCon
 		c.activity = activity.NewClient(c.ByteDanceClient.BaseClient)
 	}
 	return c.activity
-}
-
-func (c *ByteDanceDouYinACClient) GetContentSchemaClient() *schemas.DouYinContentSchemasClient {
-	if c.schemas == nil {
-		c.schemas = schemas.NewClient(c.ByteDanceClient.BaseClient)
-	}
-	return c.schemas
-}
-
-func (c *ByteDanceDouYinACClient) GetSandboxClient() *sandbox.DouYinSandboxClient {
-	if c.sandbox == nil {
-		c.sandbox = sandbox.NewClient(c.ByteDanceClient.BaseClient)
-	}
-	return c.sandbox
-}
-
-func (c *ByteDanceDouYinACClient) GetMicAppClient() *micApp.DouYinMicAppClient {
-	if c.micApp == nil {
-		c.micApp = micApp.NewClient(c.ByteDanceClient.BaseClient)
-	}
-	return c.micApp
 }
 
 func (c *ByteDanceDouYinACClient) GetTicketClient() *ticket.DouYinTicketClient {
