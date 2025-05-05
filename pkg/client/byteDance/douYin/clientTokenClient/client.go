@@ -8,6 +8,7 @@ import (
 	"github.com/ArtisanCloud/MediaX/pkg/client/byteDance/douYin/clientTokenClient/search"
 	"github.com/ArtisanCloud/MediaX/pkg/client/byteDance/douYin/clientTokenClient/tools/micApp"
 	"github.com/ArtisanCloud/MediaX/pkg/client/byteDance/douYin/clientTokenClient/tools/sandbox"
+	"github.com/ArtisanCloud/MediaX/pkg/client/byteDance/douYin/clientTokenClient/tools/ticket"
 	"github.com/ArtisanCloud/MediaX/pkg/client/byteDance/douYin/core"
 	"github.com/ArtisanCloud/MediaX/pkg/client/config"
 	"github.com/ArtisanCloud/MediaXCore/pkg/cache"
@@ -27,7 +28,8 @@ type ByteDanceDouYinCTClient struct {
 	activity    *activity.DouYinContentActivityClient
 	search      *search.DouYinSearchClient
 	toolMicApp  *micApp.DouYinToolMicAppClient
-	toolSandbox *sandbox.DouYinSandboxClient
+	toolSandbox *sandbox.DouYinToolSandboxClient
+	toolTicket  *ticket.DouYinToolTicketClient
 }
 
 func NewByteDanceDouYinCTClient(cfg *config.ByteDanceDouYinConfig, logger *logger.Logger, cache cache.ICache) (*ByteDanceDouYinCTClient, error) {
@@ -102,9 +104,15 @@ func (c *ByteDanceDouYinCTClient) GetMicAppClient() *micApp.DouYinToolMicAppClie
 	return c.toolMicApp
 }
 
-func (c *ByteDanceDouYinCTClient) GetSandboxClient() *sandbox.DouYinSandboxClient {
+func (c *ByteDanceDouYinCTClient) GetSandboxClient() *sandbox.DouYinToolSandboxClient {
 	if c.toolSandbox == nil {
 		c.toolSandbox = sandbox.NewClient(c.ByteDanceClient.BaseClient)
 	}
 	return c.toolSandbox
+}
+func (c *ByteDanceDouYinCTClient) GetTicketClient() *ticket.DouYinToolTicketClient {
+	if c.toolTicket == nil {
+		c.toolTicket = ticket.NewClient(c.ByteDanceClient.BaseClient)
+	}
+	return c.toolTicket
 }
