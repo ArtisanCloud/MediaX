@@ -22,7 +22,7 @@ func ParseResponseToObject(res *http.Response, obj interface{}) error {
 	// 读取响应体的内容
 	bodyBytes, err := io.ReadAll(teeReader)
 	if err != nil {
-		return fmt.Errorf("error reading response body: %v", err)
+		return fmt.Errorf("error reading schema body: %v", err)
 	}
 
 	// 打印响应内容 (可选)
@@ -31,7 +31,7 @@ func ParseResponseToObject(res *http.Response, obj interface{}) error {
 	// 将响应体内容解析到目标对象
 	err = json.Unmarshal(bodyBytes, obj)
 	if err != nil {
-		return fmt.Errorf("error unmarshaling response: %v", err)
+		return fmt.Errorf("error unmarshaling schema: %v", err)
 	}
 
 	// 将缓冲区的数据重新设置回 res.Body，这样外部调用不会受到影响

@@ -34,6 +34,17 @@ MediaX系列产品介绍
    2. 创建一个简单的示例，本项目作者正在自己系统中使用，陆续会迭代版本：
 
       ```go
+      
+      import (
+         "github.com/ArtisanCloud/MediaX/pkg/client"
+         config2 "github.com/ArtisanCloud/MediaX/pkg/client/config"
+         "github.com/ArtisanCloud/MediaX/pkg/utils"
+         "github.com/ArtisanCloud/MediaXCore/pkg/cache"
+         "github.com/ArtisanCloud/MediaXCore/pkg/logger/config"
+         "github.com/ArtisanCloud/MediaXCore/utils/fmt"
+         "github.com/ArtisanCloud/MediaX/pkg/client/wechat/officialAccount/clientTokenClient/publish/schema"
+         "github.com/redis/go-redis/v9"
+      )
    
       // 配置Media Client实例的信息
       mediaXClient := client.NewMediaX(&config2.MediaXConfig{
@@ -46,8 +57,8 @@ MediaX系列产品介绍
         },
       }, c)
    
-      // 从MediaXClient实例中获取到微信平台中公众号到实例
-      wechatOAClient, err := mediaXClient.MediaXClient.CreateWechatOfficialAccount(&config2.WeChatOfficialAccountConfig{
+      // 从MediaXClient实例中获取到微信平台中公众号的实例，该实例是Client Token模式，不需要用户授权
+      wechatOAClient, err := mediaXClient.MediaXClient.NewWeChatOfficialAccountCTClient(&config2.WeChatOfficialAccountConfig{
         ClientConfig: &ClientConfig{
             BaseConfig: &BaseConfig{
                Timeout: 30,
@@ -65,8 +76,8 @@ MediaX系列产品介绍
    
       // 调用 wechatOAClient 的方法
       ctx := context.Background()
-      var content = ...
-      resData, err := oaClient.GetPublishClient().DraftAdd(ctx, &reqData)
+      var reqData = &schema.DraftAddReq{}
+      resData, err := oaClient.GetPublishClient().DraftAdd(ctx, reqData)
       if err != nil {
          return nil, err
       }

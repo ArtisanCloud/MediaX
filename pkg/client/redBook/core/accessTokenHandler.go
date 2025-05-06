@@ -10,11 +10,11 @@ import (
 
 type RedBookAccessTokenHandler struct {
 	Config             *config.ClientConfig
-	AccessTokenHandler *kernel.AccessTokenHandler
+	AccessTokenHandler *kernel.TokenHandler
 }
 
 func NewRedBookAccessTokenHandler(cfg *config.ClientConfig, logger *logger.Logger, cache cache.ICache) (*RedBookAccessTokenHandler, error) {
-	handler, err := kernel.NewAccessTokenHandler(cfg, logger, cache)
+	handler, err := kernel.NewTokenHandler(cfg, logger, cache)
 	if err != nil {
 		return nil, err
 	}

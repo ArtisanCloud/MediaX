@@ -22,7 +22,7 @@ func PlayWechatOfficialAccount(localConfig *config.LocalConfig, mediaX *client.M
 	}
 	fmt.Dump(res)
 
-	ips, err := wechatOAClient.GetCallbackIp(ctx)
+	ips, err := wechatOAClient.GetBaseClient().GetCallbackIp(ctx)
 	if err != nil {
 		panic(err)
 	}

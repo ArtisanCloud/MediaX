@@ -25,7 +25,7 @@ type BaseClient struct {
 	Config   *config.ClientConfig
 	QueryRaw bool
 
-	TokenHandler *AccessTokenHandler
+	TokenHandler *TokenHandler
 
 	GetMiddlewareOfAccessToken        contract.RequestMiddleware
 	GetMiddlewareOfLog                func(l *logger.Logger) contract.RequestMiddleware
@@ -56,8 +56,9 @@ func NewBaseClient(
 		Config:     cfg,
 	}
 
-	// to be setup middleware here
+	// to initialize these middlewares here
 	client.OverrideGetMiddlewares()
+	// register these middlewares initialized above
 	client.RegisterMiddlewares()
 
 	return client, nil
@@ -135,7 +136,7 @@ func (client *BaseClient) OverrideGetMiddlewareOfRefreshAccessToken() {
 				}
 
 				if response.StatusCode != http.StatusOK {
-					return response, fmt.Errorf("http response code:%d", response.StatusCode)
+					return response, fmt.Errorf("http schema code:%d", response.StatusCode)
 				}
 
 				// Token refresh logic here if needed
@@ -166,16 +167,16 @@ func (client *BaseClient) HttpGet(ctx context.Context, url string, query *object
 	return client.makeRequest(ctx, url, http.MethodGet, query, nil, outHeader, outBody)
 }
 
-func (client *BaseClient) HttpPost(ctx context.Context, url string, query *object.StringMap, data interface{}, outHeader interface{}, outBody interface{}) (interface{}, error) {
-	return client.makeRequest(ctx, url, http.MethodPost, query, data, outHeader, outBody)
+func (client *BaseClient) HttpPost(ctx context.Context, url string, query *object.StringMap, body interface{}, outHeader interface{}, outBody interface{}) (interface{}, error) {
+	return client.makeRequest(ctx, url, http.MethodPost, query, body, outHeader, outBody)
 }
 
-func (client *BaseClient) HttpPut(ctx context.Context, url string, query *object.StringMap, data interface{}, outHeader interface{}, outBody interface{}) (interface{}, error) {
-	return client.makeRequest(ctx, url, http.MethodPut, query, data, outHeader, outBody)
+func (client *BaseClient) HttpPut(ctx context.Context, url string, query *object.StringMap, body interface{}, outHeader interface{}, outBody interface{}) (interface{}, error) {
+	return client.makeRequest(ctx, url, http.MethodPut, query, body, outHeader, outBody)
 }
 
-func (client *BaseClient) HttpDelete(ctx context.Context, url string, query *object.StringMap, data interface{}, outHeader interface{}, outBody interface{}) (interface{}, error) {
-	return client.makeRequest(ctx, url, http.MethodDelete, query, data, outHeader, outBody)
+func (client *BaseClient) HttpDelete(ctx context.Context, url string, query *object.StringMap, body interface{}, outHeader interface{}, outBody interface{}) (interface{}, error) {
+	return client.makeRequest(ctx, url, http.MethodDelete, query, body, outHeader, outBody)
 }
 
 func (client *BaseClient) RequestRaw(ctx context.Context, url string, method string, query *object.StringMap, options *object.HashMap, outHeader interface{}, outBody interface{}) (*http.Response, error) {
@@ -253,6 +254,30 @@ func (client *BaseClient) HttpUpload(ctx context.Context, url string, files *obj
 	return response, nil
 }
 
+func (client *BaseClient) UploadMedia(ctx context.Context, url string, path string, form *object.HashMap, outHeader interface{}, outBody interface{}) (interface{}, error) {
+
+	var files *object.HashMap
+	if path != "" {
+		files = &object.HashMap{
+			"media": path,
+		}
+	}
+
+	var formData *request2.UploadForm
+	if form != nil {
+		formData = &request2.UploadForm{
+			Contents: []*request2.UploadContent{
+				&request2.UploadContent{
+					Name:  (*form)["name"].(string),
+					Value: (*form)["value"],
+				},
+			},
+		}
+	}
+
+	return client.HttpUpload(ctx, url, files, formData, nil, outHeader, outBody)
+}
+
 // Simplified request handler
 func (client *BaseClient) makeRequest(ctx context.Context, url, method string,
 	query *object.StringMap, formData interface{},
@@ -291,7 +316,7 @@ func (client *BaseClient) makeRequestByEncodedData(ctx context.Context, url, met
 	return client.executeRequest(df, outHeader, outBody)
 }
 
-// Executes the HTTP request and processes the response
+// Executes the HTTP request and processes the schema
 func (client *BaseClient) executeRequest(df contract.RequestDataflowInterface, outHeader interface{}, outBody interface{}) (*http.Response, error) {
 	response, err := df.Request()
 	if err != nil {

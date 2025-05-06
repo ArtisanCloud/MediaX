@@ -5,13 +5,14 @@ import (
 	"github.com/ArtisanCloud/MediaX/internal/kernel"
 	"github.com/ArtisanCloud/MediaX/pkg/client/config"
 	"github.com/ArtisanCloud/MediaXCore/pkg/cache"
+	config2 "github.com/ArtisanCloud/MediaXCore/pkg/config"
 	"github.com/ArtisanCloud/MediaXCore/pkg/logger"
 	"github.com/ArtisanCloud/MediaXCore/utils/object"
 )
 
 type GoogleAccessTokenHandler struct {
 	Config             *config.ClientConfig
-	AccessTokenHandler *kernel.AccessTokenHandler
+	AccessTokenHandler *kernel.TokenHandler
 }
 
 func NewGoogleAccessTokenHandler(cfg *config.ClientConfig, logger *logger.Logger, cache cache.ICache) (*GoogleAccessTokenHandler, error) {
@@ -21,7 +22,7 @@ func NewGoogleAccessTokenHandler(cfg *config.ClientConfig, logger *logger.Logger
 	if cfg.ApiUrl == "" {
 		cfg.ApiUrl = config.GoogleAppAPIUrl
 	}
-	handler, err := kernel.NewAccessTokenHandler(cfg, logger, cache)
+	handler, err := kernel.NewTokenHandler(cfg, logger, cache)
 	if err != nil {
 		return nil, err
 	}
@@ -44,7 +45,7 @@ func (acHandler *GoogleAccessTokenHandler) OverrideGetCredentials() {
 
 	acHandler.AccessTokenHandler.GetCredentials = func() *object.StringMap {
 		return &object.StringMap{
-			"grant_type":    "authorization_code",
+			"grant_type":    string(config2.AuthFlowAuthCode),
 			"client_id":     acHandler.Config.ClientID,
 			"client_secret": acHandler.Config.ClientSecret,
 			//"neededText": "",
