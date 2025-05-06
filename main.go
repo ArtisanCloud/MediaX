@@ -4,10 +4,8 @@ import (
 	"github.com/ArtisanCloud/MediaX/pkg/client"
 	config2 "github.com/ArtisanCloud/MediaX/pkg/client/config"
 	"github.com/ArtisanCloud/MediaX/pkg/utils"
-	"github.com/ArtisanCloud/MediaX/playground"
 	"github.com/ArtisanCloud/MediaXCore/pkg/cache"
 	"github.com/ArtisanCloud/MediaXCore/pkg/logger/config"
-	"github.com/ArtisanCloud/MediaXCore/utils/fmt"
 	"github.com/redis/go-redis/v9"
 )
 
@@ -29,7 +27,7 @@ func main() {
 			},
 		},
 	}, c)
-	fmt.Dump(mediaX)
+	//fmt.Dump(mediaX)
 
 	localConfig := &config2.LocalConfig{}
 	err := utils.LoadYAML("config.yaml", localConfig)
@@ -39,6 +37,6 @@ func main() {
 	//fmt.Dump(localConfig)
 
 	// 创建 WeChatClient
-	playground.PlayWechatOfficialAccount(localConfig, mediaX)
+	//playground.PlayWechatOfficialAccount(localConfig, mediaX)
 	//playground.PlayGoogleYouTube(localConfig, mediaX)
 }

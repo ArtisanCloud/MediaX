@@ -8,6 +8,8 @@ const (
 	DouYinEventTypeMessageIMGroupReceiveMsg     = "im_group_receive_msg"     // 收到群消息
 	DouYinEventTypeMessageEnterGroupFanEvent    = "group_fans_event"         // 进群事件
 	DouYinEventTypeMessageEnterGroupAuditChange = "enter_group_audit_change" // 进群审核状态变更
+	DouYinEventTypeMessageUnionAuthInfoForC     = "union_auth_info_for_c"    // 联合授权完成后，对c端应用进行授权信息通知
+	DouYinEventTypeMessageUnionAuthInfoForB     = "union_auth_info_for_b"    // 联合授权完成后，对b端应用进行授权信息通知
 )
 
 // DouYinIMMessageType 事件消息类型
