@@ -6,7 +6,7 @@ import (
 	"github.com/ArtisanCloud/MediaX/pkg/client/config"
 	"github.com/ArtisanCloud/MediaX/pkg/client/google/youtube"
 	"github.com/ArtisanCloud/MediaX/pkg/client/redbook/juGuang"
-	"github.com/ArtisanCloud/MediaX/pkg/client/wechat/officialAccount"
+	"github.com/ArtisanCloud/MediaX/pkg/client/wechat/officialAccount/clientTokenClient"
 	"github.com/ArtisanCloud/MediaXCore/pkg/cache"
 	"github.com/ArtisanCloud/MediaXCore/pkg/logger"
 )
@@ -26,8 +26,8 @@ func NewMediaX(config *config.MediaXConfig, cache cache.ICache) *MediaX {
 }
 
 // CreateWechatOfficialAccount 创建 WechatOfficialAccountClient，支持传入 WeChat 配置
-func (m *MediaX) CreateWechatOfficialAccount(cfg *config.WeChatOfficialAccountConfig) (*officialAccount.WeChatOfficialAccountClient, error) {
-	return officialAccount.NewWeChatOfficialAccountClient(cfg, m.Logger, m.Cache)
+func (m *MediaX) CreateWechatOfficialAccount(cfg *config.WeChatOfficialAccountConfig) (*officialAccount.WeChatOfficialAccountCTClient, error) {
+	return officialAccount.NewWeChatOfficialAccountCTClient(cfg, m.Logger, m.Cache)
 }
 
 // CreateGoogleYouTube 创建 CreateGoogleYouTube，支持传入 Google 配置

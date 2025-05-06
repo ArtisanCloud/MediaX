@@ -34,8 +34,8 @@ func NewClient(c *kernel.BaseClient) *DouYinContentVideoClient {
 //	       • Count: 每页返回数量，必填字段，控制每次查询返回的视频分享结果数量
 //	       • Keyword: 查询关键字，例如美食，必填字段，用于筛选视频分享结果
 //	       • City: 查询城市，例如上海、北京，可选字段，用于按城市筛选视频分享结果
-//	       • Cursor: 分页游标，第一页请求 cursor 是 0，response 中会返回下一页请求用到的 cursor，
-//	         同时 response 还会返回 has_more 来表明是否有更多的数据
+//	       • Cursor: 分页游标，第一页请求 cursor 是 0，schema 中会返回下一页请求用到的 cursor，
+//	         同时 schema 还会返回 has_more 来表明是否有更多的数据
 //
 // 返回值：
 //

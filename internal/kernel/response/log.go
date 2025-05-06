@@ -13,7 +13,7 @@ func LogResponse(needLog bool, l *logger.Logger, response *http.Response) {
 	}
 	var output bytes.Buffer
 	output.Write([]byte("------------------"))
-	output.Write([]byte("response content:"))
+	output.Write([]byte("schema content:"))
 	dumpRes, _ := httputil.DumpResponse(response, true)
 	output.Write(dumpRes)
 	l.Info(output.String())

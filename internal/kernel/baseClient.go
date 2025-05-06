@@ -136,7 +136,7 @@ func (client *BaseClient) OverrideGetMiddlewareOfRefreshAccessToken() {
 				}
 
 				if response.StatusCode != http.StatusOK {
-					return response, fmt.Errorf("http response code:%d", response.StatusCode)
+					return response, fmt.Errorf("http schema code:%d", response.StatusCode)
 				}
 
 				// Token refresh logic here if needed
@@ -316,7 +316,7 @@ func (client *BaseClient) makeRequestByEncodedData(ctx context.Context, url, met
 	return client.executeRequest(df, outHeader, outBody)
 }
 
-// Executes the HTTP request and processes the response
+// Executes the HTTP request and processes the schema
 func (client *BaseClient) executeRequest(df contract.RequestDataflowInterface, outHeader interface{}, outBody interface{}) (*http.Response, error) {
 	response, err := df.Request()
 	if err != nil {

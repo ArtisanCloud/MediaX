@@ -43,7 +43,6 @@ func generateMarkdownWithGodocdown(goFilePath, docsDir string) (markdownFile str
 
 // 遍历目录并调用 godocdown 生成 Markdown
 func traverseDirectoryAndGenerateMD(directory string, docsDir string, excludeDirs map[string]bool) ([]string, error) {
-	visited := map[string]bool{} // 避免重复处理同一目录
 	markdownFiles := []string{}
 	err := filepath.Walk(directory, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
@@ -62,13 +61,6 @@ func traverseDirectoryAndGenerateMD(directory string, docsDir string, excludeDir
 		if !strings.HasSuffix(info.Name(), ".go") {
 			return nil
 		}
-
-		// 避免对同一目录多次执行 godocdown
-		dir := filepath.Dir(path)
-		if visited[dir] {
-			return nil
-		}
-		visited[dir] = true
 
 		mdFilePath, err := generateMarkdownWithGodocdown(path, docsDir)
 		if err != nil {
