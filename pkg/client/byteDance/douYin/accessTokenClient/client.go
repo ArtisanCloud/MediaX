@@ -25,30 +25,36 @@ import (
 	"github.com/ArtisanCloud/MediaXCore/utils/object"
 )
 
-// https://developer.open-douyin.com/docs/resource/zh-CN/dop/overview/usage-guide
+// ByteDanceDouYinACClient 抖音访问Token客户端
+// 提供抖音开放平台的各种功能接口，使用访问Token进行认证
+// 文档：https://developer.open-douyin.com/docs/resource/zh-CN/dop/overview/usage-guide
 type ByteDanceDouYinACClient struct {
-	ByteDanceClient    *core2.ByteDanceClient
-	DouYinConfig       *config.ByteDanceDouYinConfig
-	AccessTokenHandler *core2.ByteDanceTokenHandler
+	ByteDanceClient    *core2.ByteDanceClient        // 字节跳动基础客户端
+	DouYinConfig       *config.ByteDanceDouYinConfig // 抖音配置
+	AccessTokenHandler *core2.ByteDanceTokenHandler  // 访问Token处理器
 
 	// clients
-	video *video.DouYinContentVideoClient
-	task  *task.DouYinContentTaskClient
+	video *video.DouYinContentVideoClient // 视频管理客户端
+	task  *task.DouYinContentTaskClient   // 任务管理客户端
 
-	activity             *activity.DouYinContentActivityClient
-	search               *search.DouYinSearchClient
-	oauth                *oauth.DouYinOAuthClient
-	connectionFan        *fan.DouYinConnectionFanClient
-	connectionFanProfile *fanProfile.DouYinConnectionFanProfileClient
-	connectionData       *data.DouYinConnectionDataClient
-	imMessage            *message.DouYinIMMessageClient
-	imGroup              *group.DouYinIMGroupClient
-	imToolAppletTemplate *appletTemplate.DouYinIMToolAppletTemplateClient
-	imToolRetainCard     *retainCard.DouYinIMToolRetainCardClient
-	ticket               *ticket.DouYinTicketClient
-	marketService        *service.DouYinMarketServiceClient
+	activity             *activity.DouYinContentActivityClient            // 活动管理客户端
+	search               *search.DouYinSearchClient                       // 搜索管理客户端
+	oauth                *oauth.DouYinOAuthClient                         // OAuth认证客户端
+	connectionFan        *fan.DouYinConnectionFanClient                   // 粉丝连接管理客户端
+	connectionFanProfile *fanProfile.DouYinConnectionFanProfileClient     // 粉丝资料管理客户端
+	connectionData       *data.DouYinConnectionDataClient                 // 数据连接管理客户端
+	imMessage            *message.DouYinIMMessageClient                   // IM消息管理客户端
+	imGroup              *group.DouYinIMGroupClient                       // IM群组管理客户端
+	imToolAppletTemplate *appletTemplate.DouYinIMToolAppletTemplateClient // IM小程序模板工具客户端
+	imToolRetainCard     *retainCard.DouYinIMToolRetainCardClient         // IM留存卡片工具客户端
+	ticket               *ticket.DouYinTicketClient                       // 票据管理客户端
+	marketService        *service.DouYinMarketServiceClient               // 市场服务管理客户端
 }
 
+// NewByteDanceDouYinACClient 创建新的抖音访问Token客户端实例
+// cfg: 抖音配置
+// logger: 日志记录器
+// cache: 缓存接口
 func NewByteDanceDouYinACClient(cfg *config.ByteDanceDouYinConfig, logger *logger.Logger, cache cache.ICache) (*ByteDanceDouYinACClient, error) {
 	if cfg.ApiUrl == "" {
 		cfg.ApiUrl = config.ByteDanceDouYinAPIUrl
@@ -73,6 +79,8 @@ func NewByteDanceDouYinACClient(cfg *config.ByteDanceDouYinConfig, logger *logge
 	}, nil
 }
 
+// OverrideGetQuery 重写获取查询参数的方法
+// 用于自定义获取访问Token时的查询参数和请求头
 func (c *ByteDanceDouYinACClient) OverrideGetQuery() {
 	tHandler := c.AccessTokenHandler.TokenHandler
 	tHandler.GetTokenQuery = func(ctx context.Context) (arrayQuery *object.StringMap, arrayHeader *object.StringMap, err error) {
@@ -105,6 +113,7 @@ func (c *ByteDanceDouYinACClient) OverrideGetQuery() {
 	}
 }
 
+// GetContentVideoClient 获取抖音内容管理-视频管理客户端
 func (c *ByteDanceDouYinACClient) GetContentVideoClient() *video.DouYinContentVideoClient {
 	if c.video == nil {
 		c.video = video.NewClient(c.ByteDanceClient.BaseClient)
@@ -112,6 +121,7 @@ func (c *ByteDanceDouYinACClient) GetContentVideoClient() *video.DouYinContentVi
 	return c.video
 }
 
+// GetOAuthClient 获取抖音OAuth认证客户端
 func (c *ByteDanceDouYinACClient) GetOAuthClient() *oauth.DouYinOAuthClient {
 	if c.oauth == nil {
 		c.oauth = oauth.NewClient(c.ByteDanceClient.BaseClient)
@@ -119,6 +129,7 @@ func (c *ByteDanceDouYinACClient) GetOAuthClient() *oauth.DouYinOAuthClient {
 	return c.oauth
 }
 
+// GetSearchClient 获取抖音搜索管理客户端
 func (c *ByteDanceDouYinACClient) GetSearchClient() *search.DouYinSearchClient {
 	if c.search == nil {
 		c.search = search.NewClient(c.ByteDanceClient.BaseClient)
@@ -126,6 +137,7 @@ func (c *ByteDanceDouYinACClient) GetSearchClient() *search.DouYinSearchClient {
 	return c.search
 }
 
+// GetConnectionFanClient 获取抖音粉丝连接管理客户端
 func (c *ByteDanceDouYinACClient) GetConnectionFanClient() *fan.DouYinConnectionFanClient {
 	if c.connectionFan == nil {
 		c.connectionFan = fan.NewClient(c.ByteDanceClient.BaseClient)
@@ -133,6 +145,7 @@ func (c *ByteDanceDouYinACClient) GetConnectionFanClient() *fan.DouYinConnection
 	return c.connectionFan
 }
 
+// GetConnectionFanProfileClient 获取抖音粉丝资料管理客户端
 func (c *ByteDanceDouYinACClient) GetConnectionFanProfileClient() *fanProfile.DouYinConnectionFanProfileClient {
 	if c.connectionFanProfile == nil {
 		c.connectionFanProfile = fanProfile.NewClient(c.ByteDanceClient.BaseClient)
@@ -140,6 +153,7 @@ func (c *ByteDanceDouYinACClient) GetConnectionFanProfileClient() *fanProfile.Do
 	return c.connectionFanProfile
 }
 
+// GetConnectionDataClient 获取抖音数据连接管理客户端
 func (c *ByteDanceDouYinACClient) GetConnectionDataClient() *data.DouYinConnectionDataClient {
 	if c.connectionData == nil {
 		c.connectionData = data.NewClient(c.ByteDanceClient.BaseClient)
@@ -147,6 +161,7 @@ func (c *ByteDanceDouYinACClient) GetConnectionDataClient() *data.DouYinConnecti
 	return c.connectionData
 }
 
+// GetIMMessageClient 获取抖音IM消息管理客户端
 func (c *ByteDanceDouYinACClient) GetIMMessageClient() *message.DouYinIMMessageClient {
 	if c.imMessage == nil {
 		c.imMessage = message.NewClient(c.ByteDanceClient.BaseClient)
@@ -154,12 +169,15 @@ func (c *ByteDanceDouYinACClient) GetIMMessageClient() *message.DouYinIMMessageC
 	return c.imMessage
 }
 
+// GetIMToolAppletTemplateClient 获取抖音IM小程序模板工具客户端
 func (c *ByteDanceDouYinACClient) GetIMToolAppletTemplateClient() *appletTemplate.DouYinIMToolAppletTemplateClient {
 	if c.imToolAppletTemplate == nil {
 		c.imToolAppletTemplate = appletTemplate.NewClient(c.ByteDanceClient.BaseClient)
 	}
 	return c.imToolAppletTemplate
 }
+
+// GetIMToolRetainCardClient 获取抖音IM留存卡片工具客户端
 func (c *ByteDanceDouYinACClient) GetIMToolRetainCardClient() *retainCard.DouYinIMToolRetainCardClient {
 	if c.imToolRetainCard == nil {
 		c.imToolRetainCard = retainCard.NewClient(c.ByteDanceClient.BaseClient)
@@ -167,6 +185,7 @@ func (c *ByteDanceDouYinACClient) GetIMToolRetainCardClient() *retainCard.DouYin
 	return c.imToolRetainCard
 }
 
+// GetIMGroupClient 获取抖音IM群组管理客户端
 func (c *ByteDanceDouYinACClient) GetIMGroupClient() *group.DouYinIMGroupClient {
 	if c.imGroup == nil {
 		c.imGroup = group.NewClient(c.ByteDanceClient.BaseClient)
@@ -174,6 +193,7 @@ func (c *ByteDanceDouYinACClient) GetIMGroupClient() *group.DouYinIMGroupClient 
 	return c.imGroup
 }
 
+// GetContentTaskClient 获取抖音内容管理-任务管理客户端
 func (c *ByteDanceDouYinACClient) GetContentTaskClient() *task.DouYinContentTaskClient {
 	if c.task == nil {
 		c.task = task.NewClient(c.ByteDanceClient.BaseClient)
@@ -181,6 +201,7 @@ func (c *ByteDanceDouYinACClient) GetContentTaskClient() *task.DouYinContentTask
 	return c.task
 }
 
+// GetMarketServiceClient 获取抖音市场服务管理客户端
 func (c *ByteDanceDouYinACClient) GetContentActivityClient() *activity.DouYinContentActivityClient {
 	if c.activity == nil {
 		c.activity = activity.NewClient(c.ByteDanceClient.BaseClient)
@@ -188,6 +209,7 @@ func (c *ByteDanceDouYinACClient) GetContentActivityClient() *activity.DouYinCon
 	return c.activity
 }
 
+// GetTicketClient 获取抖音票据管理客户端
 func (c *ByteDanceDouYinACClient) GetTicketClient() *ticket.DouYinTicketClient {
 	if c.ticket == nil {
 		c.ticket = ticket.NewClient(c.ByteDanceClient.BaseClient)
@@ -195,6 +217,7 @@ func (c *ByteDanceDouYinACClient) GetTicketClient() *ticket.DouYinTicketClient {
 	return c.ticket
 }
 
+// GetContentActivityClient 获取抖音内容管理-活动管理客户端
 func (c *ByteDanceDouYinACClient) GetMarketServiceClient() *service.DouYinMarketServiceClient {
 	if c.marketService == nil {
 		c.marketService = service.NewClient(c.ByteDanceClient.BaseClient)

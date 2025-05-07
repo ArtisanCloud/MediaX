@@ -19,6 +19,9 @@ const (
 	// ByteDance
 	ByteDanceDouYinAPIUrl       string = "https://open.douyin.com/"
 	ByteDanceDouYinAuthTokenUrl string = "https://open.douyin.com/oauth/client_token/"
+
+	// RedBook
+	RedBookJuGuangAPIUrl string = "https://adapi.xiaohongshu.com/"
 )
 
 type LocalConfig struct {
