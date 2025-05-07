@@ -14,6 +14,7 @@ import (
 	"github.com/ArtisanCloud/MediaX/pkg/client/google/youtube/accessTokenClient/i18nRegions"
 	"github.com/ArtisanCloud/MediaX/pkg/client/google/youtube/accessTokenClient/members"
 	"github.com/ArtisanCloud/MediaX/pkg/client/google/youtube/accessTokenClient/membershipsLevels"
+	"github.com/ArtisanCloud/MediaX/pkg/client/google/youtube/accessTokenClient/playlistImages"
 	"github.com/ArtisanCloud/MediaX/pkg/client/google/youtube/accessTokenClient/playlistItems"
 	"github.com/ArtisanCloud/MediaX/pkg/client/google/youtube/accessTokenClient/playlists"
 	"github.com/ArtisanCloud/MediaX/pkg/client/google/youtube/accessTokenClient/search"
@@ -49,6 +50,7 @@ type GoogleYouTubeACClient struct {
 	i18nRegions             *i18nRegions.YoutubeI18nRegionsClient                         // 国际化地区管理客户端
 	members                 *members.YoutubeMembersClient                                 // 会员管理客户端
 	membershipsLevels       *membershipsLevels.YoutubeMembershipsLevelsClient             // 会员等级管理客户端
+	playlistImages          *playlistImages.YoutubePlaylistImagesClient                   // 播放列表图像管理客户端
 	playlistItems           *playlistItems.YoutubePlaylistItemsClient                     // 播放列表项管理客户端
 	playlists               *playlists.YoutubePlaylistsClient                             // 播放列表管理客户端
 	search                  *search.YoutubeSearchClient                                   // 搜索管理客户端
@@ -183,6 +185,13 @@ func (client *GoogleYouTubeACClient) GetMembershipsLevelsClient() *membershipsLe
 		client.membershipsLevels = membershipsLevels.NewClient(client.GoogleClient.BaseClient)
 	}
 	return client.membershipsLevels
+}
+
+func (client *GoogleYouTubeACClient) GetPlaylistImagesClient() *playlistImages.YoutubePlaylistImagesClient {
+	if client.playlistImages == nil {
+		client.playlistImages = playlistImages.NewClient(client.GoogleClient.BaseClient)
+	}
+	return client.playlistImages
 }
 
 // GetPlaylistItemsClient 获取播放列表项管理客户端
