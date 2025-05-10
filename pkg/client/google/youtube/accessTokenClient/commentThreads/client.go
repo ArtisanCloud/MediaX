@@ -31,7 +31,7 @@ func NewClient(c *kernel.BaseClient) *YoutubeCommentThreadsClient {
 	}
 }
 
-// List 获取YouTube视频的评论会话列表
+// ## List 获取YouTube视频的评论会话列表
 // 接口文档参考：https://developers.google.cn/youtube/v3/docs/commentThreads/list?hl=zh-cn
 // 参数：
 //
@@ -62,7 +62,7 @@ func (c *YoutubeCommentThreadsClient) List(ctx context.Context, data *schema.You
 	return result, err
 }
 
-// Insert 创建新的评论会话
+// ## Insert 创建新的评论会话
 // 接口文档参考：https://developers.google.cn/youtube/v3/docs/commentThreads/insert?hl=zh-cn
 // 参数：
 //
