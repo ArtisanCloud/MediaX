@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/ArtisanCloud/MediaX/internal/kernel"
-	"github.com/ArtisanCloud/MediaX/pkg/client/bilibili/accessTokenClient/user/schema"
+	"github.com/ArtisanCloud/MediaX/pkg/client/bilibili/b/accessTokenClient/user/schema"
 )
 
 // BiliBiliUserClient 是BiliBili用户API的客户端
