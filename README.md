@@ -105,12 +105,13 @@ MediaX 系列产品介绍
 | 字节     | 抖音    | auth_code         | ✔    | ✔    | ✔        | ✔        | ✔        |
 | 字节     | 抖音    | client_credential | ✔    | ✔    | ✔        | ✔        | ✔        |
 | Bilibili | B 站    | auth_code         | 🚧   | 🚧   | 🚧       | 🚧       | 🚧       |
+| ......   |
 
 > 注：✔ 表示支持该功能，✘ 表示暂不支持该功能，🚧 表示功能开发中。
 
-## 功能介绍
+<!-- ## 功能介绍
 
-\*\*\* [项目功能的开发安排](https://github.com/orgs/ArtisanCloud/projects/5/views/2)
+\*\*\* [项目功能的开发安排](https://github.com/orgs/ArtisanCloud/projects/5/views/2) -->
 
 ## 许可证
 
