@@ -150,7 +150,7 @@ func (c *YoutubeCaptionsClient) Download(ctx context.Context, data *schema.Youtu
 	if err != nil {
 		return nil, err
 	}
-	resp, err := c.BaseClient.HttpGet(ctx, "/youtube/v3/captions", params, nil, result)
+	resp, err := c.BaseClient.HttpGet(ctx, "/youtube/v3/captions/id", params, nil, result)
 	if err != nil {
 		return nil, err
 	}
@@ -195,6 +195,6 @@ func (c *YoutubeCaptionsClient) Delete(ctx context.Context, data *schema.Youtube
 	if err != nil {
 		return nil, err
 	}
-	_, err = c.BaseClient.HttpDelete(ctx, "/youtube/v3/captions", params, nil, result)
+	_, err = c.BaseClient.HttpDelete(ctx, "/youtube/v3/captions", params, nil, nil, result)
 	return result, err
 }
