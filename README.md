@@ -103,13 +103,14 @@ ArisanCloud 团队已经成功维护了 [PowerWechat](https://powerwechat.artisa
 
 | 平台     | 应用    | 授权类型          | 图文 | 视频 | 素材管理 | 评论管理 | 数据管理 |
 | -------- | ------- | ----------------- | ---- | ---- | -------- | -------- | -------- |
-| Google   | YouTube | auth_code         | ✔    | ✔    | ✔        | ✔        | ✔        |
 | WeChat   | 公众号  | client_credential | ✔    | 🚧   | ✔        | 🚧       | 🚧       |
 | 小红书   | 聚光    | auth_code         | 🚧   | 🚧   | 🚧       | 🚧       | 🚧       |
 | 字节     | 抖音    | auth_code         | ✔    | ✔    | ✔        | ✔        | ✔        |
 | 字节     | 抖音    | client_credential | ✔    | ✔    | ✔        | ✔        | ✔        |
 | Bilibili | B 站    | auth_code         | 🚧   | 🚧   | 🚧       | 🚧       | 🚧       |
-| ......   |
+| Google   | YouTube | auth_code         | ✔    | ✔    | ✔        | ✔        | ✔        |
+| Google   | Blogger | auth_code         | 🚧   | ✘    | 🚧       | 🚧       | 🚧       |
+| ......   |         |                   |      |      |          |          |          |
 
 > 注：✔ 表示支持该功能，✘ 表示暂不支持该功能，🚧 表示功能开发中。
 

@@ -64,7 +64,7 @@ func (c *YoutubeChannelsClient) List(ctx context.Context, data *schema.YoutubeCh
 
 // ## Channels: update - 更新频道
 // 接口文档参考：
-// `https://developers.google.cn/youtube/v3/docs/channels/update?hl=zh-cn`
+// https://developers.google.cn/youtube/v3/docs/channels/update?hl=zh-cn
 // 功能：更新YouTube频道的元数据
 // 注意：此方法仅支持对channel资源的brandingSettings、invideoPromotion和localizations对象及其子属性进行更新
 // 配额影响：每次调用消耗50个配额单位
