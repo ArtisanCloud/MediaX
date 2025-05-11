@@ -2,26 +2,28 @@
 
 MediaX 是一个支持多平台内容发布的轻量级 SDK，旨在帮助开发者快速集成到主流自媒体平台，实现统一的内容发布接口。
 
-MediaX系列产品介绍
-- MediaX：一个 开源的Golang SDK，可以直接被其他项目引用。
+MediaX 系列产品介绍
+
+- MediaX：一个 开源的 Golang SDK，可以直接被其他项目引用。
 - MediaX Pro：基于 MediaX 构建的商业化服务，包含 API（gRPC/HTTP）、高级功能和闭源插件，面向企业用户。
 
 ## 功能特点
 
-1. **多平台支持**：支持主流的自媒体平台如抖音、小红书，youtube等。
+1. **多平台支持**：支持主流的自媒体平台如抖音、小红书，youtube 等。
 2. **统一接口**：通过标准化的接口，实现对多个平台的内容发布。
-3. **开源与闭源结合**：Pro支持插件化架构，开源插件可自由扩展，闭源插件提供增强功能。
-4. **跨语言支持**：Pro通过 gRPC 实现跨语言调用，支持 Go 和其他语言集成。
+3. **开源与闭源结合**：Pro 支持插件化架构，开源插件可自由扩展，闭源插件提供增强功能。
+4. **跨语言支持**：Pro 通过 gRPC 实现跨语言调用，支持 Go 和其他语言集成。
 5. **可扩展性**：灵活的 Provider 机制，轻松接入新平台。
 
-## MediaX快速开始
+## MediaX 快速开始
 
 ### 环境要求
 
 - Go 1.18 或更高版本
 
 ### 使用知识
-- OAuth2.0 授权流程，可以参考[理解OAuth 2.0](https://www.ruanyifeng.com/blog/2014/05/oauth_2_0.html)文章
+
+- OAuth2.0 授权流程，可以参考[理解 OAuth 2.0](https://www.ruanyifeng.com/blog/2014/05/oauth_2_0.html)文章
 
 ### 安装
 
@@ -34,7 +36,7 @@ MediaX系列产品介绍
    2. 创建一个简单的示例，本项目作者正在自己系统中使用，陆续会迭代版本：
 
       ```go
-      
+
       import (
          "github.com/ArtisanCloud/MediaX/pkg/client"
          config2 "github.com/ArtisanCloud/MediaX/pkg/client/config"
@@ -45,7 +47,7 @@ MediaX系列产品介绍
          "github.com/ArtisanCloud/MediaX/pkg/client/wechat/officialAccount/clientTokenClient/publish/schema"
          "github.com/redis/go-redis/v9"
       )
-   
+
       // 配置Media Client实例的信息
       mediaXClient := client.NewMediaX(&config2.MediaXConfig{
         &config.LogConfig{
@@ -56,7 +58,7 @@ MediaX系列产品介绍
             },
         },
       }, c)
-   
+
       // 从MediaXClient实例中获取到微信平台中公众号的实例，该实例是Client Token模式，不需要用户授权
       wechatOAClient, err := mediaXClient.MediaXClient.NewWeChatOfficialAccountCTClient(&config2.WeChatOfficialAccountConfig{
         ClientConfig: &ClientConfig{
@@ -73,7 +75,7 @@ MediaX系列产品介绍
       if err != nil {
         panic(err)
       }
-   
+
       // 调用 wechatOAClient 的方法
       ctx := context.Background()
       var reqData = &schema.DraftAddReq{}
@@ -81,30 +83,28 @@ MediaX系列产品介绍
       if err != nil {
          return nil, err
       }
-   
+
       ```
 
-[//]: # (## 更多文档介绍)
-
-[//]: # ([文档]&#40;./docs&#41;)
+[//]: # "## 更多文档介绍"
+[//]: # "[文档](./docs)"
 
 ## 功能矩阵
 
-| 平台   | 应用      | 授权类型              | **文章功能** |      |      |      | **视频功能** |     |     |     | **媒体管理** |
-|--------|-----------|-----------------------|--------------|------|------|------|--------------|-----|-----|-----|------------|
-|        |           |                       | 新增         | 删除 | 修改 | 查询 | 新增         | 删除 | 修改 | 查询 | 管理         |
-| Google | YouTube   | auth_code             | ✔            | ✔    | ✔    | ✔    | ✔            | ✔   | ✔   | ✔   |            |
-| WeChat | 公众号     | client_credential     | ✔            | ✔    | ✔    | ✔    |             |     |     |     |            |
+| 平台      | 应用    | 授权类型          | 图文 | 视频 | 素材管理 | 评论管理 | 数据管理 |
+| --------- | ------- | ----------------- | ---- | ---- | -------- | -------- | -------- |
+| Google    | YouTube | auth_code         | ✘    | ✔    | ✔        | ✔        | ✔        |
+| WeChat    | 公众号  | client_credential | ✔    | ✘    | ✔        | ✘        | ✔        |
+| Xiaohong  | 小红书  | auth_code         | ✔    | ✔    | ✔        | ✔        | ✔        |
+| ByteDance | 抖音    | auth_code         | ✔    | ✔    | ✔        | ✔        | ✔        |
+| Bilibili  | B 站    | auth_code         | ✔    | ✔    | ✔        | ✔        | ✔        |
 
 > 注：✔ 表示支持该功能，✘ 表示暂不支持该功能。
 
-
 ## 功能介绍
-*** [项目功能的开发安排](https://github.com/orgs/ArtisanCloud/projects/5/views/2)
 
-
+\*\*\* [项目功能的开发安排](https://github.com/orgs/ArtisanCloud/projects/5/views/2)
 
 ## 许可证
 
-MediaX SDK项目 采用 [MIT License](./LICENSE) 开源。
-
+MediaX SDK 项目 采用 [MIT License](./LICENSE) 开源。
