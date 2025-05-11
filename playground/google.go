@@ -4,7 +4,7 @@ import (
 	"context"
 	"github.com/ArtisanCloud/MediaX/pkg/client"
 	"github.com/ArtisanCloud/MediaX/pkg/client/config"
-	"github.com/ArtisanCloud/MediaX/pkg/client/google/youtube/video/schema"
+	"github.com/ArtisanCloud/MediaX/pkg/client/google/youtube/accessTokenClient/video/schema"
 	"github.com/ArtisanCloud/MediaXCore/utils/fmt"
 )
 

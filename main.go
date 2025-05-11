@@ -6,6 +6,7 @@ import (
 	"github.com/ArtisanCloud/MediaX/pkg/utils"
 	"github.com/ArtisanCloud/MediaXCore/pkg/cache"
 	"github.com/ArtisanCloud/MediaXCore/pkg/logger/config"
+	"github.com/ArtisanCloud/MediaXCore/utils/fmt"
 	"github.com/redis/go-redis/v9"
 )
 
@@ -27,7 +28,7 @@ func main() {
 			},
 		},
 	}, c)
-	//fmt.Dump(mediaX)
+	fmt.Dump(mediaX)
 
 	localConfig := &config2.LocalConfig{}
 	err := utils.LoadYAML("config.yaml", localConfig)

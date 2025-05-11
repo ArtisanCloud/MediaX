@@ -11,20 +11,26 @@ import (
 	"github.com/ArtisanCloud/MediaXCore/pkg/logger"
 )
 
+// WeChatOfficialAccountCTClient 微信公众号客户端Token客户端
+// 提供微信公众号平台的各种功能接口
 type WeChatOfficialAccountCTClient struct {
-	Logger                *logger.Logger
-	Cache                 cache.ICache
-	WeChatClient          *core.WeChatClient
-	OfficialAccountConfig *config.WeChatOfficialAccountConfig
-	AccessTokenHandler    *core.WeChatAccessTokenHandler
+	Logger                *logger.Logger                      // 日志记录器
+	Cache                 cache.ICache                        // 缓存接口
+	WeChatClient          *core.WeChatClient                  // 微信基础客户端
+	OfficialAccountConfig *config.WeChatOfficialAccountConfig // 微信公众号配置
+	AccessTokenHandler    *core.WeChatAccessTokenHandler      // 访问Token处理器
 
 	// clients
-	base     *base.OfficialAccountBaseClient
-	media    *media.OfficialAccountMediaClient
-	material *material.OfficialAccountMaterialClient
-	publish  *publish.OfficialAccountPublishClient
+	base     *base.OfficialAccountBaseClient         // 基础功能客户端
+	media    *media.OfficialAccountMediaClient       // 媒体管理客户端
+	material *material.OfficialAccountMaterialClient // 素材管理客户端
+	publish  *publish.OfficialAccountPublishClient   // 发布管理客户端
 }
 
+// NewWeChatOfficialAccountCTClient 创建新的微信公众号客户端Token客户端实例
+// cfg: 微信公众号配置
+// logger: 日志记录器
+// cache: 缓存接口
 func NewWeChatOfficialAccountCTClient(cfg *config.WeChatOfficialAccountConfig, logger *logger.Logger, cache cache.ICache) (*WeChatOfficialAccountCTClient, error) {
 	if cfg.ApiUrl == "" {
 		cfg.ApiUrl = config.WechatAppAPIUrl
@@ -51,6 +57,7 @@ func NewWeChatOfficialAccountCTClient(cfg *config.WeChatOfficialAccountConfig, l
 	}, nil
 }
 
+// GetBaseClient 获取微信公众号基础功能客户端
 func (c *WeChatOfficialAccountCTClient) GetBaseClient() *base.OfficialAccountBaseClient {
 	if c.base == nil {
 		c.base = base.NewClient(c.WeChatClient.BaseClient)
@@ -58,6 +65,7 @@ func (c *WeChatOfficialAccountCTClient) GetBaseClient() *base.OfficialAccountBas
 	return c.base
 }
 
+// GetMediaClient 获取微信公众号媒体管理客户端
 func (c *WeChatOfficialAccountCTClient) GetMediaClient() *media.OfficialAccountMediaClient {
 	if c.media == nil {
 		c.media = media.NewClient(c.WeChatClient.BaseClient)
@@ -65,6 +73,7 @@ func (c *WeChatOfficialAccountCTClient) GetMediaClient() *media.OfficialAccountM
 	return c.media
 }
 
+// GetMaterialClient 获取微信公众号素材管理客户端
 func (c *WeChatOfficialAccountCTClient) GetMaterialClient() *material.OfficialAccountMaterialClient {
 	if c.material == nil {
 		c.material = material.NewClient(c.WeChatClient.BaseClient)
@@ -72,6 +81,7 @@ func (c *WeChatOfficialAccountCTClient) GetMaterialClient() *material.OfficialAc
 	return c.material
 }
 
+// GetPublishClient 获取微信公众号发布管理客户端
 func (c *WeChatOfficialAccountCTClient) GetPublishClient() *publish.OfficialAccountPublishClient {
 	if c.publish == nil {
 		c.publish = publish.NewClient(c.WeChatClient.BaseClient)
