@@ -1,8 +1,8 @@
 package schema
 
 type PageInfo struct {
-	TotalResults   int         `json:"totalResults"`
-	ResultsPerPage interface{} `json:"resultsPerPage"`
+	TotalResults   int `json:"totalResults"`
+	ResultsPerPage int `json:"resultsPerPage"`
 }
 
 // YouTubeVideosReq 表示 GET /youtube/v3/videos API 的请求参数

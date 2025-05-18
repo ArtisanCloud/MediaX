@@ -1,0 +1,14 @@
+syntax = "proto3";
+
+package provider.byteDance.douYin.media;
+
+option go_package = "provider/byteDance/douYin/media";
+
+import "provider/byteDance/douYin/accessTokenClient/tools/media/model.proto";
+
+service DouYinMediaService {
+  rpc Upload(model.DouYinToolMediaUploadReq) returns (model.DouYinToolMediaUploadRes);
+  rpc UploadTempMedia(model.DouYinToolMediaUploadReq) returns (model.DouYinToolMediaUploadRes);
+  rpc List(model.DouYinToolMediaGetListReq) returns (model.DouYinToolMediaGetListRes);
+  rpc Delete(model.DouYinToolMediaDeleteReq) returns (model.DouYinToolMediaDeleteRes);
+}

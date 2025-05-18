@@ -1,0 +1,19 @@
+syntax = "proto3";
+
+package provider.google.youtube.video;
+
+option go_package = "provider/google/youtube/video";
+
+message PageInfo {
+  int32 total_results = 1;
+  int32 results_per_page = 2;
+}
+
+message Snippet {
+  string title = 1;
+}
+
+message Video {
+  string id = 1;
+  Snippet snippet = 2;
+}

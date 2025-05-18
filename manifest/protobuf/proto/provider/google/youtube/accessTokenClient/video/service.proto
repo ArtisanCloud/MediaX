@@ -1,0 +1,34 @@
+syntax = "proto3";
+
+package provider.google.youtube.video;
+
+option go_package = "provider/google/youtube/video";
+
+import "video/model.proto";
+
+service YouTubeVideoService {
+  rpc ListVideos (YouTubeVideoListReq) returns (YouTubeVideoListRes);
+  rpc InsertVideo (YouTubeVideoInsertReq) returns (YouTubeVideoInsertRes);
+  rpc UpdateVideo (YouTubeVideoUpdateReq) returns (YouTubeVideoUpdateRes);
+  rpc DeleteVideo (YouTubeVideoDeleteReq) returns (YouTubeVideoDeleteRes);
+  rpc RateVideo (YouTubeVideoRateReq) returns (YouTubeVideoRateRes);
+  rpc GetVideoRating (YouTubeVideoGetRatingReq) returns (YouTubeVideoGetRatingRes);
+  rpc ReportVideoAbuse (YouTubeVideoReportAbuseReq) returns (YouTubeVideoReportAbuseRes);
+}
+
+
+
+message YouTubeVideoListReq {
+    string part = 1;
+    string chart = 2;
+    string page_token = 3;
+  }
+  
+  message YouTubeVideoListRes {
+    string kind = 1;
+    string etag = 2;
+    string next_page_token = 3;
+    string prev_page_token = 4;
+    PageInfo page_info = 5;
+    repeated Video items = 6;
+  }
