@@ -34,7 +34,6 @@ func NewRedBookAccessTokenHandler(cfg *config.ClientConfig, logger *logger.Logge
 }
 
 func (acHandler *RedBookAccessTokenHandler) OverrideGetCredentials() {
-
 	acHandler.AccessTokenHandler.GetCredentials = func() *object.StringMap {
 		return &object.StringMap{
 			"grant_type":    "authorization_code",

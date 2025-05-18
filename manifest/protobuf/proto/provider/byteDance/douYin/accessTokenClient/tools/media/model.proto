@@ -1,0 +1,45 @@
+syntax = "proto3";
+
+package provider.byteDance.douYin.media;
+
+option go_package = "provider/byteDance/douYin/media";
+
+message Media {
+  string media_id = 1;
+  repeated string url_list = 2;
+  string status = 3;
+}
+
+message DouYinToolMediaUploadRes {
+  message Data {
+    Media media = 1;
+  }
+  Data data = 1;
+}
+
+message DouYinToolMediaGetListRes {
+  message Data {
+    repeated Media medias = 1;
+  }
+  Data data = 1;
+}
+
+message DouYinToolMediaUploadReq {
+  string media_type = 1;
+  bytes file_data = 2;
+}
+
+message DouYinToolMediaGetListReq {
+  string cursor = 1;
+  int32 count = 2;
+}
+
+message DouYinToolMediaDeleteReq {
+  string media_id = 1;
+}
+
+message DouYinToolMediaDeleteRes {
+  message Data {
+  }
+  Data data = 1;
+}

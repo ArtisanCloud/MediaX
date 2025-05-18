@@ -2,6 +2,7 @@ package accessTokenClient
 
 import (
 	"github.com/ArtisanCloud/MediaX/pkg/client/config"
+	"github.com/ArtisanCloud/MediaX/pkg/client/redBook/core"
 	"github.com/ArtisanCloud/MediaX/pkg/client/redBook/juGuang/accessTokenClient/account"
 	"github.com/ArtisanCloud/MediaX/pkg/client/redBook/juGuang/accessTokenClient/dataReport/offline"
 	"github.com/ArtisanCloud/MediaX/pkg/client/redBook/juGuang/accessTokenClient/dataReport/realtime"
@@ -10,7 +11,6 @@ import (
 	"github.com/ArtisanCloud/MediaX/pkg/client/redBook/juGuang/accessTokenClient/promote/creativity"
 	"github.com/ArtisanCloud/MediaX/pkg/client/redBook/juGuang/accessTokenClient/promote/unit"
 	"github.com/ArtisanCloud/MediaX/pkg/client/redBook/juGuang/accessTokenClient/tools"
-	"github.com/ArtisanCloud/MediaX/pkg/client/redbook/core"
 	"github.com/ArtisanCloud/MediaXCore/pkg/cache"
 	"github.com/ArtisanCloud/MediaXCore/pkg/logger"
 )
