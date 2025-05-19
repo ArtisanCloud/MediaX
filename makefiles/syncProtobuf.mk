@@ -7,9 +7,5 @@ TARGET_DIR := $(TARGET_REPO)/proto
 
 # 创建目标目录并复制 proto 文件
 copy_protos:
-	@echo "创建目标目录: $(TARGET_DIR)"
-	mkdir -p $(TARGET_DIR)
-	@echo "复制 proto 文件到 MediaXProtobuf..."
-	cp -rf $(SRC_DIR)/* $(TARGET_DIR)
-	@echo "复制完成 ✅"
+	go run scripts/syncProtobuf/main.go -src=$(SRC_DIR) -dst=$(TARGET_DIR)
 
