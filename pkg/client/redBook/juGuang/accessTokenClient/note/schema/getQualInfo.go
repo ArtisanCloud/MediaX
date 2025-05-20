@@ -18,6 +18,12 @@ type JuGuangNoteGetQualInfoReq struct {
 	} `json:"page"`
 }
 
+type GetQualInfoData struct {
+	QualInfos        []QualInfo        `json:"qual_infos"`
+	ProductQualInfos []ProductQualInfo `json:"product_qual_infos"`
+	BrandQualInfos   []BrandQualInfo   `json:"brand_qual_infos"`
+}
+
 // ## JuGuangNoteGetQualInfoRes 获取资质信息返回结果
 //
 // 字段说明：
@@ -31,11 +37,7 @@ type JuGuangNoteGetQualInfoReq struct {
 //	  • BrandQualInfos - 产品资质信息列表
 type JuGuangNoteGetQualInfoRes struct {
 	response.JuGuangRes
-	Data struct {
-		QualInfos        []QualInfo        `json:"qual_infos"`
-		ProductQualInfos []ProductQualInfo `json:"product_qual_infos"`
-		BrandQualInfos   []BrandQualInfo   `json:"brand_qual_infos"`
-	} `json:"data"`
+	Data GetQualInfoData `json:"data"`
 }
 
 // QualInfo 资质信息
