@@ -7,10 +7,12 @@ import (
 	"github.com/ArtisanCloud/MediaX/pkg/client/redBook/juGuang/accessTokenClient/promote/unit/schema"
 )
 
+// ## JuGuangPromoteUnitClient 推广单元客户端
 type JuGuangPromoteUnitClient struct {
 	*kernel.BaseClient
 }
 
+// ## NewClient 新建推广单元客户端
 func NewClient(c *kernel.BaseClient) *JuGuangPromoteUnitClient {
 	return &JuGuangPromoteUnitClient{
 		BaseClient: c,
