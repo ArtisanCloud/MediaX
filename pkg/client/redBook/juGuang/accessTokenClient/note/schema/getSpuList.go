@@ -1,5 +1,7 @@
 package schema
 
+import "github.com/ArtisanCloud/MediaX/pkg/client/redBook/core/response"
+
 // JuGuangNoteGetSpuListReq 表示获取SPU列表的请求参数
 type JuGuangNoteGetSpuListReq struct {
 	AdvertiserID int64   `json:"advertiser_id"`       // 广告主ID
@@ -9,15 +11,15 @@ type JuGuangNoteGetSpuListReq struct {
 	PageSize     *int    `json:"page_size,omitempty"` // 页大小
 }
 
+type GetSpuListData struct {
+	Total int         `json:"total"` // 总数
+	Spu   []SpuDetail `json:"spu"`   // SPU列表
+}
+
 // JuGuangNoteGetSpuListRes 表示获取SPU列表的响应
 type JuGuangNoteGetSpuListRes struct {
-	Code    int    `json:"code"`    // 返回码
-	Msg     string `json:"msg"`     // 返回信息
-	Success bool   `json:"success"` // 接口是否成功
-	Data    struct {
-		Total int         `json:"total"` // 总数
-		Spu   []SpuDetail `json:"spu"`   // SPU列表
-	} `json:"data"`
+	response.RedBookAccessTokenRes
+	Data GetSpuListData `json:"data"`
 }
 
 // SpuDetail 表示SPU详细信息

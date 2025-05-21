@@ -90,6 +90,7 @@ type AggregationData struct {
 	CTR            float64   `json:"ctr"`
 	ACP            float64   `json:"acp"`
 	CPM            float64   `json:"cpm"`
+	Interaction    int64     `json:"interaction"`
 }
 
 // DataItem 表示单个数据项

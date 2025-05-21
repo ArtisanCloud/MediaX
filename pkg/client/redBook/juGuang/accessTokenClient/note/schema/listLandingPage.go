@@ -1,5 +1,7 @@
 package schema
 
+import "github.com/ArtisanCloud/MediaX/pkg/client/redBook/core/response"
+
 // JuGuangNoteListLandingPageReq 表示获取落地页列表的请求参数
 type JuGuangNoteListLandingPageReq struct {
 	AdvertiserID *int64  `json:"advertiser_id"`       // 广告主ID
@@ -28,10 +30,8 @@ type LandingPageVO struct {
 
 // JuGuangNoteListLandingPageRes 表示获取落地页列表的响应
 type JuGuangNoteListLandingPageRes struct {
-	Code    *int    `json:"code"`    // 返回码
-	Msg     *string `json:"msg"`     // 返回信息
-	Success *bool   `json:"success"` // 接口是否成功
-	Data    struct {
+	response.RedBookAccessTokenRes
+	Data struct {
 		Total *int            `json:"total"` // 总数
 		List  []LandingPageVO `json:"list"`  // 落地页信息
 	} `json:"data"`

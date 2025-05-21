@@ -1,19 +1,21 @@
 syntax = "proto3";
 
-package provider.google.youtube.video;
+package provider.google.youtube.accessTokenClient.video;
 
-option go_package = "provider/google/youtube/video";
+option go_package = "provider/google/youtube/accessTokenClient/video";
 
-import "video/model.proto";
+import "provider/model.proto";
+import "provider/google/youtube/model.proto";
+import "provider/google/youtube/accessTokenClient/video/model.proto";
 
 service YouTubeVideoService {
   rpc ListVideos (YouTubeVideoListReq) returns (YouTubeVideoListRes);
-  rpc InsertVideo (YouTubeVideoInsertReq) returns (YouTubeVideoInsertRes);
-  rpc UpdateVideo (YouTubeVideoUpdateReq) returns (YouTubeVideoUpdateRes);
-  rpc DeleteVideo (YouTubeVideoDeleteReq) returns (YouTubeVideoDeleteRes);
-  rpc RateVideo (YouTubeVideoRateReq) returns (YouTubeVideoRateRes);
-  rpc GetVideoRating (YouTubeVideoGetRatingReq) returns (YouTubeVideoGetRatingRes);
-  rpc ReportVideoAbuse (YouTubeVideoReportAbuseReq) returns (YouTubeVideoReportAbuseRes);
+  // rpc InsertVideo (YouTubeVideoInsertReq) returns (YouTubeVideoInsertRes);
+  // rpc UpdateVideo (YouTubeVideoUpdateReq) returns (YouTubeVideoUpdateRes);
+  // rpc DeleteVideo (YouTubeVideoDeleteReq) returns (YouTubeVideoDeleteRes);
+  // rpc RateVideo (YouTubeVideoRateReq) returns (YouTubeVideoRateRes);
+  // rpc GetVideoRating (YouTubeVideoGetRatingReq) returns (YouTubeVideoGetRatingRes);
+  // rpc ReportVideoAbuse (YouTubeVideoReportAbuseReq) returns (YouTubeVideoReportAbuseRes);
 }
 
 

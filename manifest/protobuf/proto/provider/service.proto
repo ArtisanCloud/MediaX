@@ -1,0 +1,75 @@
+syntax = "proto3";
+
+package provider;
+
+option go_package = "./provider";
+
+// 引用公共的 Provider 结构体
+import "provider/model.proto";  // 直接引用 provider.proto
+
+service ProviderService {
+  // 获取所有 Provider 列表
+  rpc ListProvider (ListProviderRequest) returns (ListProviderResponse);
+
+  // 更新或插入 Provider
+  rpc UpsertProvider (UpsertProviderRequest) returns (UpsertProviderResponse);
+
+  // 根据 ID 获取 Provider
+  rpc GetProvider (GetProviderRequest) returns (GetProviderResponse);
+
+  // 根据 ID 删除 Provider
+  rpc DeleteProvider (DeleteProviderRequest) returns (DeleteProviderResponse);
+}
+
+// ListProvider 请求参数
+message ListProviderRequest {
+  int32 page = 1;    // 页码
+  int32 pageSize = 2; // 每页大小
+  optional string name = 3;   // 名称模糊查询
+}
+
+// ListProvider 响应结果
+message ListProviderResponse {
+  repeated Provider providers = 1;  // 返回多个 Provider
+  int32 total = 2;                  // 总数
+  int32 page = 3;                   // 当前页码
+  int32 pageSize = 4;               // 每页大小
+}
+
+// UpsertProvider 请求参数
+message UpsertProviderRequest {
+  string uuid = 1;                          // Provider Account UUID
+  string name = 2;                          // Provider 名称
+  string vendorName = 3;                    // Vendor 名称
+  string clientId = 4;                      // 客户端 ID
+  string clientSecret = 5;                  // 客户端密钥
+  string providerUuid = 6;                  // provider_uuid
+  string providerAppUuid = 7;               // provider_app_uuid
+  string redirectUrl = 8;                   // 重定向 URL
+
+}
+
+// UpsertProvider 响应结果
+message UpsertProviderResponse {
+  int64 id = 1; // 返回插入或更新后的 ID
+}
+
+// GetProvider 请求参数
+message GetProviderRequest {
+  string uuid = 1;  // Provider 的 ID
+}
+
+// GetProvider 响应结果
+message GetProviderResponse {
+  Provider provider = 1;  // 返回对应的 Provider
+}
+
+// 删除 Provider 请求
+message DeleteProviderRequest {
+  string uuid = 1;  // 需要删除的 Provider ID
+}
+
+// 删除 Provider 响应
+message DeleteProviderResponse {
+  bool success = 1; // 是否删除成功
+}

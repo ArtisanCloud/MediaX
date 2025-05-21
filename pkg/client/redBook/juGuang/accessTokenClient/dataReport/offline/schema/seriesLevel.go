@@ -1,5 +1,7 @@
 package schema
 
+import "github.com/ArtisanCloud/MediaX/pkg/client/redBook/core/response"
+
 // FilterClause 表示过滤条件结构体
 type FilterClause struct {
 	Column   string   `json:"column"`
@@ -20,14 +22,14 @@ type JuGuangDataReportOfflineSeriesLevelReq struct {
 	Filters      []FilterClause `json:"filters,omitempty"`
 }
 
+type SeriesLevelData struct {
+	TotalCount      int             `json:"total_count"`
+	DataList        []DataReportDTO `json:"data_list"`
+	AggregationData DataReportDTO   `json:"aggregation_data"`
+}
+
 // JuGuangDataReportOfflineSeriesLevelRes 表示获取系列层级离线报表数据的响应结构体
 type JuGuangDataReportOfflineSeriesLevelRes struct {
-	Code    int    `json:"code"`
-	Msg     string `json:"msg"`
-	Success bool   `json:"success"`
-	Data    struct {
-		TotalCount      int             `json:"total_count"`
-		DataList        []DateReportDTO `json:"data_list"`
-		AggregationData DateReportDTO   `json:"aggregation_data"`
-	} `json:"data"`
+	response.RedBookAccessTokenRes
+	Data SeriesLevelData `json:"data"`
 }

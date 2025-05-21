@@ -1,19 +1,202 @@
 syntax = "proto3";
 
-package provider.google.youtube.video;
+package provider.google.youtube.accessTokenClient.video;
 
-option go_package = "provider/google/youtube/video";
+option go_package = "provider/google/youtube/accessTokenClient/video";
 
+
+// PageInfo 表示分页信息
 message PageInfo {
   int32 total_results = 1;
+  // 使用 oneof 来支持不同类型的 results_per_page，或你可以直接定义为 int32
+  // 如果确定是 int 类型，建议直接写 int32
   int32 results_per_page = 2;
 }
 
-message Snippet {
-  string title = 1;
+message Video {
+  string kind = 1;
+  string etag = 2;
+  string id = 3;
+  Snippet snippet = 4;
+  ContentDetails content_details = 5;
+  Status status = 6;
+  Statistics statistics = 7;
+  PaidProductPlacement paid_product_placement_details = 8;
+  Player player = 9;
+  TopicDetails topic_details = 10;
+  RecordingDetails recording_details = 11;
+  FileDetails file_details = 12;
+  ProcessingDetails processing_details = 13;
+  Suggestions suggestions = 14;
+  LiveStreamingDetails live_streaming_details = 15;
+  map<string, Localization> localizations = 16;
 }
 
-message Video {
-  string id = 1;
-  Snippet snippet = 2;
+
+message Snippet {
+  string published_at = 1;
+  string channel_id = 2;
+  string title = 3;
+  string description = 4;
+  map<string, Thumbnail> thumbnails = 5;
+  string channel_title = 6;
+  repeated string tags = 7;
+  string category_id = 8;
+  string live_broadcast_content = 9;
+  string default_language = 10;
+  Localization localized = 11;
+  string default_audio_language = 12;
 }
+
+
+message Thumbnail {
+  string url = 1;
+  uint32 width = 2;
+  uint32 height = 3;
+}
+
+message Localization {
+  string title = 1;
+  string description = 2;
+}
+
+
+message ContentDetails {
+  string duration = 1;
+  string dimension = 2;
+  string definition = 3;
+  string caption = 4;
+  bool licensed_content = 5;
+  RegionRestriction region_restriction = 6;
+  ContentRating content_rating = 7;
+  string projection = 8;
+  bool has_custom_thumbnail = 9;
+}
+
+
+message RegionRestriction {
+  repeated string allowed = 1;
+  repeated string blocked = 2;
+}
+
+
+message ContentRating {
+  string acb_rating = 1;
+  string mpaa_rating = 2;
+  string yt_rating = 3;
+}
+
+message Status {
+  string upload_status = 1;
+  string failure_reason = 2;
+  string rejection_reason = 3;
+  string privacy_status = 4;
+  string publish_at = 5;
+  string license = 6;
+  bool embeddable = 7;
+  bool public_stats_viewable = 8;
+  bool made_for_kids = 9;
+  bool self_declared_made_for_kids = 10;
+  bool contains_synthetic_media = 11;
+}
+
+
+message Statistics {
+  string view_count = 1;
+  string like_count = 2;
+  string dislike_count = 3;
+  string favorite_count = 4;
+  string comment_count = 5;
+}
+
+message PaidProductPlacement {
+  bool has_paid_product_placement = 1;
+}
+
+message Player {
+  string embed_html = 1;
+  int64 embed_height = 2;
+  int64 embed_width = 3;
+}
+
+message TopicDetails {
+  repeated string topic_ids = 1;
+  repeated string relevant_topic_ids = 2;
+  repeated string topic_categories = 3;
+}
+
+
+message RecordingDetails {
+  string recording_date = 1;
+}
+
+message FileDetails {
+  string file_name = 1;
+  uint64 file_size = 2;
+  string file_type = 3;
+  string container = 4;
+  repeated VideoStream video_streams = 5;
+  repeated AudioStream audio_streams = 6;
+  uint64 duration_ms = 7;
+  uint64 bitrate_bps = 8;
+  string creation_time = 9;
+}
+
+
+message VideoStream {
+  uint32 width_pixels = 1;
+  uint32 height_pixels = 2;
+  float frame_rate_fps = 3;
+  float aspect_ratio = 4;
+  string codec = 5;
+  uint64 bitrate_bps = 6;
+  string rotation = 7;
+  string vendor = 8;
+}
+
+message AudioStream {
+  uint32 channel_count = 1;
+  string codec = 2;
+  uint64 bitrate_bps = 3;
+  string vendor = 4;
+}
+
+message ProcessingDetails {
+  string processing_status = 1;
+  ProcessingProgress processing_progress = 2;
+  string processing_failure_reason = 3;
+  string file_details_availability = 4;
+  string processing_issues_availability = 5;
+}
+
+
+message ProcessingProgress {
+  uint64 parts_total = 1;
+  uint64 parts_processed = 2;
+  uint64 time_left_ms = 3;
+}
+
+message Suggestions {
+  repeated string processing_errors = 1;
+  repeated string processing_warnings = 2;
+  repeated string processing_hints = 3;
+  repeated TagSuggestion tag_suggestions = 4;
+  repeated string editor_suggestions = 5;
+}
+
+
+message TagSuggestion {
+  string tag = 1;
+  repeated string category_restricts = 2;
+}
+
+
+message LiveStreamingDetails {
+  string actual_start_time = 1;
+  string actual_end_time = 2;
+  string scheduled_start_time = 3;
+  string scheduled_end_time = 4;
+  uint64 concurrent_viewers = 5;
+  string active_live_chat_id = 6;
+}
+

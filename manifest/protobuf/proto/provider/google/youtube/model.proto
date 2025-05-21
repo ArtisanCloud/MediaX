@@ -1,0 +1,21 @@
+syntax = "proto3";
+
+package provider.google.youtube;
+
+option go_package = "provider/google/youtube";
+
+
+// ResponseBase 定义了基础的响应字段
+message BaseResponse {
+  string code = 1;
+  string message = 2;
+}
+
+// YoutubeResponse 继承自 ResponseBase，包含额外的字段
+message YoutubeResponse {
+  BaseResponse base_res = 1;
+  int32 err_code = 2;
+  string err_msg = 3;
+  string result_code = 4;
+  string result_msg = 5;
+}

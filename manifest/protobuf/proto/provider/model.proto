@@ -1,0 +1,28 @@
+// provider/provider.proto
+syntax = "proto3";
+
+package provider;
+
+option go_package = "./provider";
+
+import "provider/account/model.proto";  // 引入 ProviderAccount
+import "provider/app/model.proto";     // 引入 ProviderApp
+
+message Provider {
+  int32 id = 1;                     // "id"
+  string uuid = 2;                  // "uuid"
+  string createdAt = 3; // "created_at"
+  string updatedAt = 4; // "updated_at"
+  string deletedAt = 5; // "deleted_at"
+  string name = 6;                  // "name"
+  string vendorName = 7;            // "vendor_name"
+  string authUrl = 8;               // "auth_url"
+  string tokenUrl = 9;              // "token_url"
+  string tokenType = 10;             // "auth_type"
+  repeated ProviderAccount providerAccounts = 11; // "accounts"
+  repeated ProviderApp providerApps = 12;    // "apps"
+}
+
+message BaseRequest {
+  string ProviderAccountUuid = 1;
+}
