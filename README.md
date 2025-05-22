@@ -107,7 +107,7 @@ ArisanCloud 团队已经成功维护了 [PowerWechat](https://powerwechat.artisa
 | 小红书   | 聚光    | auth_code         | ✔    | ✔    | ✔        | ✘        | ✔        |
 | 字节     | 抖音    | auth_code         | ✔    | ✔    | ✔        | ✔        | ✔        |
 | 字节     | 抖音    | client_credential | ✔    | ✔    | ✔        | ✔        | ✔        |
-| Bilibili | B 站    | auth_code         | 🚧   | 🚧   | 🚧       | 🚧       | 🚧       |
+| Bilibili | B 站    | auth_code         | 🚧   | ✔    | 🚧       | 🚧       | 🚧       |
 | Google   | YouTube | auth_code         | ✔    | ✔    | ✔        | ✔        | ✔        |
 | Google   | Blogger | auth_code         | 🚧   | ✘    | 🚧       | 🚧       | 🚧       |
 | ......   |         |                   |      |      |          |          |          |
