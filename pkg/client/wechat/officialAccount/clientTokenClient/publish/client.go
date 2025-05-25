@@ -2,6 +2,7 @@ package publish
 
 import (
 	"context"
+
 	"github.com/ArtisanCloud/MediaX/internal/kernel"
 	response2 "github.com/ArtisanCloud/MediaX/pkg/client/wechat/core/response"
 	"github.com/ArtisanCloud/MediaX/pkg/client/wechat/officialAccount/clientTokenClient/publish/schema"
@@ -150,7 +151,7 @@ func (c *OfficialAccountPublishClient) DraftUpdate(ctx context.Context, data *sc
 func (c *OfficialAccountPublishClient) DraftCount(ctx context.Context) (*schema.DraftCountRes, error) {
 	result := &schema.DraftCountRes{}
 
-	_, err := c.BaseClient.HttpGet(ctx, "cgi-bin/draft/count", &object.StringMap{}, nil, result)
+	_, err := c.BaseClient.HttpGet(ctx, "cgi-bin/draft/count", &object.StringMap{}, nil, nil, result)
 
 	return result, err
 }

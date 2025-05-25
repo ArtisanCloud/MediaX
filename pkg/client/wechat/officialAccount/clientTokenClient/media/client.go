@@ -4,12 +4,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/http"
+	"os"
+
 	"github.com/ArtisanCloud/MediaX/internal/kernel"
 	"github.com/ArtisanCloud/MediaX/pkg/client/wechat/officialAccount/clientTokenClient/media/schema"
 	"github.com/ArtisanCloud/MediaX/pkg/utils"
 	"github.com/ArtisanCloud/MediaXCore/utils/object"
-	"net/http"
-	"os"
 )
 
 // OfficialAccountMediaClient 是一个用于操作微信公众号素材的客户端。
@@ -21,7 +22,6 @@ type OfficialAccountMediaClient struct {
 
 // NewClient 创建一个新的 OfficialAccountMediaClient 实例。
 func NewClient(c *kernel.BaseClient) *OfficialAccountMediaClient {
-
 	return &OfficialAccountMediaClient{
 		BaseClient: c,
 		AllowTypes: []string{"image", "voice", "video", "thumb", "news_image"},
@@ -131,7 +131,6 @@ func (client *OfficialAccountMediaClient) UploadThumb(ctx context.Context, path 
 //
 //	error 调用过程中遇到的错误（如有）
 func (client *OfficialAccountMediaClient) Upload(ctx context.Context, mediaType string, path string) (*schema.UploadMediaRes, error) {
-
 	_, err := os.Stat(path)
 	if (err != nil && os.IsExist(err)) && (err != nil && os.IsPermission(err)) {
 		return nil, errors.New(fmt.Sprintf("File does not exist, or the file is unreadable: \"%s\"", path))
@@ -153,7 +152,7 @@ func (client *OfficialAccountMediaClient) Upload(ctx context.Context, mediaType 
 
 	_, err = client.HttpUpload(ctx, "cgi-bin/media/upload", files, nil, &object.StringMap{
 		"type": mediaType,
-	}, nil, outResponse)
+	}, nil, nil, outResponse)
 
 	return outResponse, err
 }
@@ -173,7 +172,6 @@ func (client *OfficialAccountMediaClient) Upload(ctx context.Context, mediaType 
 //	*http.Response 包含素材的HTTP响应
 //	error 调用过程中遇到的错误（如有）
 func (client *OfficialAccountMediaClient) Get(ctx context.Context, mediaID string) (*http.Response, error) {
-
 	header := &schema.HeaderMediaRes{}
 	res, err := client.RequestRaw(ctx, "cgi-bin/media/get", http.MethodPost, nil, &object.HashMap{
 		"query": &object.StringMap{
@@ -182,7 +180,6 @@ func (client *OfficialAccountMediaClient) Get(ctx context.Context, mediaID strin
 	}, header, nil)
 
 	return res, err
-
 }
 
 // ## Get 获取临时素材
@@ -200,7 +197,6 @@ func (client *OfficialAccountMediaClient) Get(ctx context.Context, mediaID strin
 //	*http.Response 包含素材的HTTP响应
 //	error 调用过程中遇到的错误（如有）
 func (client *OfficialAccountMediaClient) GetJSSDK(ctx context.Context, mediaID string) (*http.Response, error) {
-
 	header := &schema.HeaderMediaRes{}
 	res, err := client.RequestRaw(ctx, "cgi-bin/media/get/jssdk", http.MethodPost, nil, &object.HashMap{
 		"query": &object.StringMap{
@@ -209,5 +205,4 @@ func (client *OfficialAccountMediaClient) GetJSSDK(ctx context.Context, mediaID 
 	}, header, nil)
 
 	return res, err
-
 }

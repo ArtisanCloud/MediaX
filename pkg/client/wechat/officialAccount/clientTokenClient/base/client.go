@@ -2,6 +2,7 @@ package base
 
 import (
 	"context"
+
 	"github.com/ArtisanCloud/MediaX/internal/kernel"
 	"github.com/ArtisanCloud/MediaX/pkg/client/wechat/officialAccount/clientTokenClient/base/schema"
 )
@@ -15,7 +16,6 @@ type OfficialAccountBaseClient struct {
 
 // NewClient 创建一个新的 OfficialAccountBaseClient 实例。
 func NewClient(c *kernel.BaseClient) *OfficialAccountBaseClient {
-
 	return &OfficialAccountBaseClient{
 		BaseClient: c,
 	}
@@ -37,10 +37,9 @@ func NewClient(c *kernel.BaseClient) *OfficialAccountBaseClient {
 //
 //	error 调用过程中遇到的错误（如有）
 func (c *OfficialAccountBaseClient) GetCallbackIp(ctx context.Context) (*schema.GetCallBackIPRes, error) {
-
 	result := &schema.GetCallBackIPRes{}
 
-	_, err := c.BaseClient.HttpGet(ctx, "cgi-bin/getcallbackip", nil, nil, result)
+	_, err := c.BaseClient.HttpGet(ctx, "cgi-bin/getcallbackip", nil, nil, nil, result)
 
 	return result, err
 }

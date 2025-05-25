@@ -32,32 +32,34 @@ func NewClient(c *kernel.BaseClient) *YoutubeMembershipsLevelsClient {
 // https://developers.google.cn/youtube/v3/docs/membershipsLevels/list?hl=zh-cn
 //
 // 注意事项：
-//   • 仅限个人创作者使用此接口
-//   • 需要频道已启用会员功能
-//   • 调用此方法的配额费用为 1 个单位
+//   - 仅限个人创作者使用此接口
+//   - 需要频道已启用会员功能
+//   - 调用此方法的配额费用为 1 个单位
 //
 // 参数：
-//   ctx  - 请求上下文
-//   data - 请求参数，包含以下字段：
-//     • part: 指定返回的资源部分（必填，如 id,snippet）
+//
+//	ctx  - 请求上下文
+//	data - 请求参数，包含以下字段：
+//	  • part: 指定返回的资源部分（必填，如 id,snippet）
 //
 // 返回值：
-//   *schema.YoutubeMembershipsLevelsListRes 包含以下字段：
-//     • Kind: 资源类型（youtube#membershipsLevelListResponse）
-//     • ETag: 资源的 ETag
-//     • PageInfo: 分页信息，包含以下字段：
-//       • TotalResults: 总结果数
-//       • ResultsPerPage: 每页结果数
-//     • Items: 会员等级列表，按显示顺序排列
-//   error 可能的错误：
-//     • channelMembershipsNotEnabled: 频道未启用会员功能
-//     • 其他 API 调用相关错误
+//
+//	*schema.YoutubeMembershipsLevelsListRes 包含以下字段：
+//	  • Kind: 资源类型（youtube#membershipsLevelListResponse）
+//	  • ETag: 资源的 ETag
+//	  • PageInfo: 分页信息，包含以下字段：
+//	    • TotalResults: 总结果数
+//	    • ResultsPerPage: 每页结果数
+//	  • Items: 会员等级列表，按显示顺序排列
+//	error 可能的错误：
+//	  • channelMembershipsNotEnabled: 频道未启用会员功能
+//	  • 其他 API 调用相关错误
 func (c *YoutubeMembershipsLevelsClient) List(ctx context.Context, data *schema.YoutubeMembershipsLevelsListReq) (*schema.YoutubeMembershipsLevelsListRes, error) {
 	result := &schema.YoutubeMembershipsLevelsListRes{}
 	params, err := object.StructToStringMap(data)
 	if err != nil {
 		return nil, err
 	}
-	_, err = c.BaseClient.HttpGet(ctx, "/youtube/v3/membershipsLevels", params, nil, result)
+	_, err = c.BaseClient.HttpGet(ctx, "/youtube/v3/membershipsLevels", params, nil, nil, result)
 	return result, err
 }

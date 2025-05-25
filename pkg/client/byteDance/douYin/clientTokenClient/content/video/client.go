@@ -3,6 +3,7 @@ package video
 
 import (
 	"context"
+
 	"github.com/ArtisanCloud/MediaX/internal/kernel"
 	"github.com/ArtisanCloud/MediaX/pkg/client/byteDance/douYin/clientTokenClient/content/video/schema"
 	"github.com/ArtisanCloud/MediaXCore/utils/object"
@@ -55,7 +56,7 @@ func (c *DouYinContentVideoClient) ShareResult(ctx context.Context, data *schema
 		return nil, err
 	}
 
-	_, err = c.BaseClient.HttpGet(ctx, "share-id/", params, nil, result)
+	_, err = c.BaseClient.HttpGet(ctx, "share-id/", params, nil, nil, result)
 	return result, err
 }
 
@@ -90,7 +91,7 @@ func (c *DouYinContentVideoClient) PoiSearch(ctx context.Context, data *schema.D
 	if err != nil {
 		return nil, err
 	}
-	_, err = c.BaseClient.HttpGet(ctx, "poi/search/keyword/", params, nil, result)
+	_, err = c.BaseClient.HttpGet(ctx, "poi/search/keyword/", params, nil, nil, result)
 	return result, err
 }
 
@@ -120,7 +121,7 @@ func (c *DouYinContentVideoClient) GetIFrameByVideo(ctx context.Context, videoId
 	params := &object.StringMap{
 		"video_id": videoId,
 	}
-	_, err := c.BaseClient.HttpGet(ctx, videoUri+"/get_iframe_by_video", params, nil, result)
+	_, err := c.BaseClient.HttpGet(ctx, videoUri+"/get_iframe_by_video", params, nil, nil, result)
 	return result, err
 }
 
@@ -150,6 +151,6 @@ func (c *DouYinContentVideoClient) GetIFrameByItem(ctx context.Context, itemId s
 	params := &object.StringMap{
 		"item_id": itemId,
 	}
-	_, err := c.BaseClient.HttpGet(ctx, videoUri+"/get_iframe_by_item", params, nil, result)
+	_, err := c.BaseClient.HttpGet(ctx, videoUri+"/get_iframe_by_item", params, nil, nil, result)
 	return result, err
 }

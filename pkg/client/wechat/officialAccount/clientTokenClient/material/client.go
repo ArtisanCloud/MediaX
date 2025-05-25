@@ -2,6 +2,10 @@ package material
 
 import (
 	"context"
+	"net/http"
+	"os"
+	"path/filepath"
+
 	"github.com/ArtisanCloud/MediaX/internal/kernel"
 	request2 "github.com/ArtisanCloud/MediaX/internal/kernel/request"
 	response2 "github.com/ArtisanCloud/MediaX/pkg/client/wechat/core/response"
@@ -9,9 +13,6 @@ import (
 	schema2 "github.com/ArtisanCloud/MediaX/pkg/client/wechat/officialAccount/clientTokenClient/media/schema"
 
 	"github.com/ArtisanCloud/MediaXCore/utils/object"
-	"net/http"
-	"os"
-	"path/filepath"
 )
 
 // OfficialAccountMaterialClient 微信公众号素材管理客户端
@@ -23,7 +24,6 @@ type OfficialAccountMaterialClient struct {
 
 // NewClient 创建新的微信公众号素材管理客户端实例
 func NewClient(c *kernel.BaseClient) *OfficialAccountMaterialClient {
-
 	return &OfficialAccountMaterialClient{
 		BaseClient: c,
 		AllowTypes: []string{"image", "voice", "video", "thumb", "news_image"},
@@ -171,7 +171,6 @@ func (client *OfficialAccountMaterialClient) UploadThumbByData(ctx context.Conte
 //
 //	error 调用过程中遇到的错误（如有）
 func (client *OfficialAccountMaterialClient) UploadVideo(ctx context.Context, path string, title string, description string) (*schema.MaterialAddMaterialRes, error) {
-
 	result := &schema.MaterialAddMaterialRes{}
 
 	jsonDescription, err := object.JsonEncode(&object.HashMap{
@@ -210,7 +209,6 @@ func (client *OfficialAccountMaterialClient) UploadVideo(ctx context.Context, pa
 //
 //	error 调用过程中遇到的错误（如有）
 func (client *OfficialAccountMaterialClient) UploadVideoByData(ctx context.Context, data []byte, title string, description string) (*schema.MaterialAddMaterialRes, error) {
-
 	result := &schema.MaterialAddMaterialRes{}
 
 	jsonDescription, err := object.JsonEncode(&object.HashMap{
@@ -255,10 +253,9 @@ func (client *OfficialAccountMaterialClient) UploadVideoByData(ctx context.Conte
 //
 //	error 调用过程中遇到的错误（如有）
 func (client *OfficialAccountMaterialClient) UploadArticle(ctx context.Context, articles schema.AddArticlesReq) (*schema.MaterialAddNewsRes, error) {
-
 	result := &schema.MaterialAddNewsRes{}
 
-	//params, err := object.StructToHashMapWithTag(articles, "json")
+	// params, err := object.StructToHashMapWithTag(articles, "json")
 	params, err := object.StructToHashMap(articles)
 	if err != nil {
 		return nil, err
@@ -346,7 +343,6 @@ func (client *OfficialAccountMaterialClient) UploadArticleImage(ctx context.Cont
 //	*http.Response 包含素材的HTTP响应
 //	error 调用过程中遇到的错误（如有）
 func (client *OfficialAccountMaterialClient) GetMaterial(ctx context.Context, mediaID string) (*http.Response, error) {
-
 	header := &schema2.HeaderMediaRes{}
 	res, err := client.RequestRaw(ctx, "cgi-bin/material/get_material", http.MethodPost, nil, &object.HashMap{
 		"form_params": &object.HashMap{
@@ -376,7 +372,6 @@ func (client *OfficialAccountMaterialClient) GetMaterial(ctx context.Context, me
 //
 //	error 调用过程中遇到的错误（如有）
 func (client *OfficialAccountMaterialClient) GetVideo(ctx context.Context, mediaID string) (*schema.MaterialGetVideoRes, error) {
-
 	result := &schema.MaterialGetVideoRes{}
 
 	options := &object.HashMap{
@@ -413,7 +408,6 @@ func (client *OfficialAccountMaterialClient) GetVideo(ctx context.Context, media
 //
 //	error 调用过程中遇到的错误（如有）
 func (client *OfficialAccountMaterialClient) GetNews(ctx context.Context, mediaID string) (*schema.MaterialGetNewsRes, error) {
-
 	result := &schema.MaterialGetNewsRes{}
 
 	options := &object.HashMap{
@@ -443,7 +437,6 @@ func (client *OfficialAccountMaterialClient) GetNews(ctx context.Context, mediaI
 //
 //	error 调用过程中遇到的错误（如有）
 func (client *OfficialAccountMaterialClient) Delete(ctx context.Context, mediaID string) (*response2.OfficialAccountRes, error) {
-
 	result := &response2.OfficialAccountRes{}
 
 	options := &object.HashMap{
@@ -481,7 +474,6 @@ func (client *OfficialAccountMaterialClient) Delete(ctx context.Context, mediaID
 //
 //	error 调用过程中遇到的错误（如有）
 func (client *OfficialAccountMaterialClient) List(ctx context.Context, options *schema.MaterialBatchGetMaterialReq) (*schema.MaterialBatchGetMaterialRes, error) {
-
 	result := &schema.MaterialBatchGetMaterialRes{}
 
 	_, err := client.HttpPost(ctx, "cgi-bin/material/batchget_material", nil, options, nil, result)
@@ -508,17 +500,14 @@ func (client *OfficialAccountMaterialClient) List(ctx context.Context, options *
 //
 //	error 调用过程中遇到的错误（如有）
 func (client *OfficialAccountMaterialClient) Stats(ctx context.Context) (*schema.MaterialGetMaterialCountRes, error) {
-
 	result := &schema.MaterialGetMaterialCountRes{}
 
 	_, err := client.HttpPost(ctx, "cgi-bin/material/get_materialcount", nil, nil, nil, result)
 
 	return result, err
-
 }
 
 func (client *OfficialAccountMaterialClient) Upload(ctx context.Context, Type string, path string, query *object.StringMap, result interface{}) (interface{}, error) {
-
 	_, err := os.Stat(path)
 	if (err != nil && os.IsExist(err)) && (err != nil && os.IsPermission(err)) {
 		return "", err
@@ -537,30 +526,27 @@ func (client *OfficialAccountMaterialClient) Upload(ctx context.Context, Type st
 		FileName: filepath.Base(path),
 	}
 
-	return client.HttpUpload(ctx, client.getApiByType(Type), files, form, query, nil, result)
+	return client.HttpUpload(ctx, client.getApiByType(Type), files, form, query, nil, nil, result)
 }
 
 func (client *OfficialAccountMaterialClient) UploadByData(ctx context.Context, Type string, name string, data []byte, query *object.StringMap, result interface{}) (interface{}, error) {
-
 	formData := &request2.UploadForm{
 		Contents: []*request2.UploadContent{
-			&request2.UploadContent{
+			{
 				Name:  name,
 				Value: data,
 			},
 		},
 	}
 
-	return client.HttpUpload(ctx, client.getApiByType(Type), nil, formData, query, nil, result)
+	return client.HttpUpload(ctx, client.getApiByType(Type), nil, formData, query, nil, nil, result)
 }
 
 func (client *OfficialAccountMaterialClient) getApiByType(Type string) string {
-
 	switch Type {
 	case "news_image":
 		return "cgi-bin/media/uploadimg"
 	default:
 		return "cgi-bin/material/add_material"
 	}
-
 }

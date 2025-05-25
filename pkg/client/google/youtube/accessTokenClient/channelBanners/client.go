@@ -40,6 +40,6 @@ func NewClient(c *kernel.BaseClient) *YoutubeChannelBannersClient {
 //	error 调用过程中遇到的错误（如有）
 func (c *YoutubeChannelBannersClient) Insert(ctx context.Context, data *schema.YoutubeChannelbannersInsertReq) (*schema.YoutubeChannelbannersInsertRes, error) {
 	result := &schema.YoutubeChannelbannersInsertRes{}
-	_, err := c.BaseClient.HttpUpload(ctx, "channelBanners", data.Files, data.Form, nil, nil, result)
+	_, err := c.BaseClient.HttpUpload(ctx, "channelBanners", data.Files, data.Form, nil, nil, nil, result)
 	return result, err
 }

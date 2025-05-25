@@ -44,7 +44,7 @@ func NewClient(c *kernel.BaseClient) *YoutubeCaptionsClient {
 func (c *YoutubeCaptionsClient) List(ctx context.Context, data *schema.YoutubeCaptionsListReq) (*schema.YoutubeCaptionsListRes, error) {
 	result := &schema.YoutubeCaptionsListRes{}
 	params, err := object.StructToStringMap(data)
-	_, err = c.BaseClient.HttpGet(ctx, "/youtube/v3/captions", params, nil, result)
+	_, err = c.BaseClient.HttpGet(ctx, "/youtube/v3/captions", params, nil, nil, result)
 	return result, err
 }
 
@@ -150,7 +150,7 @@ func (c *YoutubeCaptionsClient) Download(ctx context.Context, data *schema.Youtu
 	if err != nil {
 		return nil, err
 	}
-	resp, err := c.BaseClient.HttpGet(ctx, "/youtube/v3/captions/id", params, nil, result)
+	resp, err := c.BaseClient.HttpGet(ctx, "/youtube/v3/captions/id", params, nil, nil, result)
 	if err != nil {
 		return nil, err
 	}

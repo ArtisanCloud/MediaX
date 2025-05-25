@@ -79,6 +79,6 @@ func (c *YoutubeVideoCategoryClient) List(ctx context.Context, data *schema.YouT
 		return nil, err
 	}
 
-	_, err = c.BaseClient.HttpGet(ctx, "/youtube/v3/videoCategories", params, nil, result)
+	_, err = c.BaseClient.HttpGet(ctx, "/youtube/v3/videoCategories", params, nil, nil, result)
 	return result, err
 }

@@ -2,6 +2,7 @@ package video
 
 import (
 	"context"
+
 	"github.com/ArtisanCloud/MediaX/internal/kernel"
 	"github.com/ArtisanCloud/MediaX/pkg/client/byteDance/douYin/accessTokenClient/content/video/schema"
 	"github.com/ArtisanCloud/MediaXCore/utils/object"
@@ -52,7 +53,7 @@ func (c *DouYinContentVideoClient) List(ctx context.Context, data *schema.DouYin
 		return nil, err
 	}
 
-	_, err = c.BaseClient.HttpGet(ctx, videoUri+"video_list/", params, nil, result)
+	_, err = c.BaseClient.HttpGet(ctx, videoUri+"video_list/", params, nil, nil, result)
 	return result, err
 }
 

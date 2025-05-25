@@ -54,6 +54,6 @@ func (c *YoutubeI18nRegionsClient) List(ctx context.Context, data *schema.Youtub
 	if err != nil {
 		return nil, err
 	}
-	_, err = c.BaseClient.HttpGet(ctx, "/youtube/v3/i18nRegions", params, nil, result)
+	_, err = c.BaseClient.HttpGet(ctx, "/youtube/v3/i18nRegions", params, nil, nil, result)
 	return result, err
 }

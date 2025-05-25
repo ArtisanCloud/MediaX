@@ -58,7 +58,7 @@ func (c *YoutubeCommentThreadsClient) List(ctx context.Context, data *schema.You
 	if err != nil {
 		return nil, err
 	}
-	_, err = c.BaseClient.HttpGet(ctx, "/youtube/v3/commentThreads", params, nil, result)
+	_, err = c.BaseClient.HttpGet(ctx, "/youtube/v3/commentThreads", params, nil, nil, result)
 	return result, err
 }
 
