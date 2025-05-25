@@ -88,7 +88,6 @@ func (c *BiliBiliArticleCollectionClient) Delete(ctx context.Context, data *sche
 	return result, err
 }
 
-// 查询文集列表
 // ## List 查询文集列表
 //
 // 接口文档参考：
@@ -111,7 +110,6 @@ func (c *BiliBiliArticleCollectionClient) List(ctx context.Context) (*schema.Bil
 	return result, err
 }
 
-// 查询文集详情
 // ## Detail 查询文集详情
 //
 // 接口文档参考：
