@@ -52,7 +52,7 @@ func (c *YoutubeChannelSectionsClient) List(ctx context.Context, data *schema.Yo
 	if err != nil {
 		return nil, err
 	}
-	_, err = c.BaseClient.HttpGet(ctx, "/youtube/v3/channelSections", params, nil, result)
+	_, err = c.BaseClient.HttpGet(ctx, "/youtube/v3/channelSections", params, nil, nil, result)
 	return result, err
 }
 

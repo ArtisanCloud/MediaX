@@ -59,7 +59,7 @@ func (c *YoutubeCommentsClient) List(ctx context.Context, data *schema.YoutubeCo
 	if err != nil {
 		return nil, err
 	}
-	_, err = c.BaseClient.HttpGet(ctx, "/youtube/v3/comments", params, nil, result)
+	_, err = c.BaseClient.HttpGet(ctx, "/youtube/v3/comments", params, nil, nil, result)
 	return result, err
 }
 

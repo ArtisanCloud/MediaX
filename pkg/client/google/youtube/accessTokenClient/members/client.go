@@ -67,6 +67,6 @@ func (c *YoutubeMembersClient) List(ctx context.Context, data *schema.YoutubeMem
 	if err != nil {
 		return nil, err
 	}
-	_, err = c.BaseClient.HttpGet(ctx, "/youtube/v3/members", params, nil, result)
+	_, err = c.BaseClient.HttpGet(ctx, "/youtube/v3/members", params, nil, nil, result)
 	return result, err
 }

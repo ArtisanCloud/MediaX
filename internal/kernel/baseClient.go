@@ -3,6 +3,10 @@ package kernel
 import (
 	"context"
 	"fmt"
+	"io"
+	"net/http"
+	"time"
+
 	request2 "github.com/ArtisanCloud/MediaX/internal/kernel/request"
 	response2 "github.com/ArtisanCloud/MediaX/internal/kernel/response"
 	"github.com/ArtisanCloud/MediaX/pkg/client/config"
@@ -12,9 +16,6 @@ import (
 	"github.com/ArtisanCloud/MediaXCore/pkg/http/helper"
 	"github.com/ArtisanCloud/MediaXCore/pkg/logger"
 	"github.com/ArtisanCloud/MediaXCore/utils/object"
-	"io"
-	"net/http"
-	"time"
 )
 
 type BaseClient struct {
@@ -37,7 +38,6 @@ func NewBaseClient(
 	cfg *config.ClientConfig,
 	logger *logger.Logger, cache cache.ICache,
 ) (*BaseClient, error) {
-
 	h, err := helper.NewRequestHelper(&helper.Config{
 		BaseUrl: cfg.ApiUrl,
 		ClientConfig: &contract.ClientConfig{
@@ -93,7 +93,6 @@ func (client *BaseClient) RegisterMiddlewares() {
 func (client *BaseClient) OverrideGetMiddlewareOfAccessToken() {
 	client.GetMiddlewareOfAccessToken = func(handle contract.RequestHandle) contract.RequestHandle {
 		return func(request *http.Request) (response *http.Response, err error) {
-
 			if client.TokenHandler != nil {
 				request, err = client.TokenHandler.ApplyToRequest(request)
 			}
@@ -163,8 +162,8 @@ func (client *BaseClient) OverrideCheckTokenNeedRefresh() {
 	}
 }
 
-func (client *BaseClient) HttpGet(ctx context.Context, url string, query *object.StringMap, outHeader interface{}, outBody interface{}) (interface{}, error) {
-	return client.makeRequest(ctx, url, http.MethodGet, query, nil, outHeader, outBody)
+func (client *BaseClient) HttpGet(ctx context.Context, url string, query *object.StringMap, body interface{}, outHeader interface{}, outBody interface{}) (interface{}, error) {
+	return client.makeRequest(ctx, url, http.MethodGet, query, body, outHeader, outBody)
 }
 
 func (client *BaseClient) HttpPost(ctx context.Context, url string, query *object.StringMap, body interface{}, outHeader interface{}, outBody interface{}) (interface{}, error) {
@@ -183,7 +182,11 @@ func (client *BaseClient) RequestRaw(ctx context.Context, url string, method str
 	return client.makeRequest(ctx, url, method, query, options, outHeader, outBody)
 }
 
-func (client *BaseClient) HttpUpload(ctx context.Context, url string, files *object.HashMap, form *request2.UploadForm, query *object.StringMap, outHeader interface{}, outBody interface{}) (interface{}, error) {
+func (client *BaseClient) HttpUpload(ctx context.Context,
+	url string, files *object.HashMap, form *request2.UploadForm,
+	query *object.StringMap, body interface{},
+	outHeader interface{}, outBody interface{},
+) (interface{}, error) {
 	// 请求配置
 	df := client.HttpHelper.Df().WithContext(ctx).Uri(url).Method(http.MethodPost)
 
@@ -255,7 +258,6 @@ func (client *BaseClient) HttpUpload(ctx context.Context, url string, files *obj
 }
 
 func (client *BaseClient) UploadMedia(ctx context.Context, url string, path string, form *object.HashMap, outHeader interface{}, outBody interface{}) (interface{}, error) {
-
 	var files *object.HashMap
 	if path != "" {
 		files = &object.HashMap{
@@ -267,7 +269,7 @@ func (client *BaseClient) UploadMedia(ctx context.Context, url string, path stri
 	if form != nil {
 		formData = &request2.UploadForm{
 			Contents: []*request2.UploadContent{
-				&request2.UploadContent{
+				{
 					Name:  (*form)["name"].(string),
 					Value: (*form)["value"],
 				},
@@ -275,7 +277,7 @@ func (client *BaseClient) UploadMedia(ctx context.Context, url string, path stri
 		}
 	}
 
-	return client.HttpUpload(ctx, url, files, formData, nil, outHeader, outBody)
+	return client.HttpUpload(ctx, url, files, formData, nil, nil, outHeader, outBody)
 }
 
 // Simplified request handler

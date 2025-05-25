@@ -36,7 +36,7 @@ func NewClient(c *kernel.BaseClient) *BiliBiliUserClient {
 //	error 调用过程中遇到的错误（如有）
 func (c *BiliBiliUserClient) AccountScopes(ctx context.Context) (*schema.BiliBiliUserRes, error) {
 	result := &schema.BiliBiliUserRes{}
-	_, err := c.BaseClient.HttpGet(ctx, "/arcopen/fn/user/account/scopes", nil, nil, result)
+	_, err := c.BaseClient.HttpGet(ctx, "/arcopen/fn/user/account/scopes", nil, nil, nil, result)
 	return result, err
 }
 
@@ -58,7 +58,7 @@ func (c *BiliBiliUserClient) AccountScopes(ctx context.Context) (*schema.BiliBil
 //	error 调用过程中遇到的错误（如有）
 func (c *BiliBiliUserClient) GetUserInfo(ctx context.Context) (*schema.BiliBiliUserGetUserInfoRes, error) {
 	result := &schema.BiliBiliUserGetUserInfoRes{}
-	_, err := c.BaseClient.HttpGet(ctx, "/arcopen/fn/user/account/info", nil, nil, result)
+	_, err := c.BaseClient.HttpGet(ctx, "/arcopen/fn/user/account/info", nil, nil, nil, result)
 	return result, err
 }
 
@@ -78,6 +78,6 @@ func (c *BiliBiliUserClient) GetUserInfo(ctx context.Context) (*schema.BiliBiliU
 //	error 调用过程中遇到的错误（如有）
 func (c *BiliBiliUserClient) GetUserUnionId(ctx context.Context) (*schema.BiliBiliUserGetUserUnionIdRes, error) {
 	result := &schema.BiliBiliUserGetUserUnionIdRes{}
-	_, err := c.BaseClient.HttpGet(ctx, "/arcopen/fn/user/account/union_id", nil, nil, result)
+	_, err := c.BaseClient.HttpGet(ctx, "/arcopen/fn/user/account/union_id", nil, nil, nil, result)
 	return result, err
 }

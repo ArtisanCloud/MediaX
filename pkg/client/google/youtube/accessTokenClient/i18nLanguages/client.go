@@ -51,6 +51,6 @@ func (c *YoutubeI18nLanguagesClient) List(ctx context.Context, data *schema.Yout
 	if err != nil {
 		return nil, err
 	}
-	_, err = c.BaseClient.HttpGet(ctx, "/youtube/v3/i18nLanguages", params, nil, result)
+	_, err = c.BaseClient.HttpGet(ctx, "/youtube/v3/i18nLanguages", params, nil, nil, result)
 	return result, err
 }

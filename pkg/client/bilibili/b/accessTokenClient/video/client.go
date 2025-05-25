@@ -168,7 +168,7 @@ func (c *BiliBiliVideoClient) UploadPart(ctx context.Context, data *schema.BiliB
 // 3. 合片成功后即可进行稿件投递
 func (c *BiliBiliVideoClient) UploadComplete(ctx context.Context, data *schema.BiliBiliVideoUploadCompleteReq) (*schema.BiliBiliVideoUploadCompleteRes, error) {
 	result := &schema.BiliBiliVideoUploadCompleteRes{}
-	_, err := c.BaseClient.HttpUpload(ctx, "/arcopen/fn/archive/video/complete", data.Files, data.Form, nil, nil, result)
+	_, err := c.BaseClient.HttpUpload(ctx, "/arcopen/fn/archive/video/complete", data.Files, data.Form, nil, nil, nil, result)
 	return result, err
 }
 
@@ -197,7 +197,7 @@ func (c *BiliBiliVideoClient) UploadComplete(ctx context.Context, data *schema.B
 // 4. 该接口使用multipart/form-data格式上传文件
 func (c *BiliBiliVideoClient) CoverUpload(ctx context.Context, data *schema.BiliBiliVideoCoverUploadReq) (*schema.BiliBiliVideoCoverUploadRes, error) {
 	result := &schema.BiliBiliVideoCoverUploadRes{}
-	_, err := c.BaseClient.HttpUpload(ctx, "/arcopen/fn/archive/cover/upload", data.Files, data.Form, nil, nil, result)
+	_, err := c.BaseClient.HttpUpload(ctx, "/arcopen/fn/archive/cover/upload", data.Files, data.Form, nil, nil, nil, result)
 	return result, err
 }
 
@@ -267,7 +267,7 @@ func (c *BiliBiliVideoClient) UploadSmallVideo(ctx context.Context, data *schema
 	params := &object.StringMap{
 		"upload_token": data.UploadToken,
 	}
-	_, err := c.BaseClient.HttpUpload(ctx, "https://openupos.bilivideo.com/video/v2/part/upload", data.Files, data.Form, params, nil, result)
+	_, err := c.BaseClient.HttpUpload(ctx, "https://openupos.bilivideo.com/video/v2/part/upload", data.Files, data.Form, params, nil, nil, result)
 	return result, err
 }
 
@@ -328,7 +328,7 @@ func (c *BiliBiliVideoClient) GetVideoInfo(ctx context.Context, data *schema.Bil
 	params := &object.StringMap{
 		"resource_id": data.ResourceID,
 	}
-	_, err := c.BaseClient.HttpGet(ctx, "/arcopen/fn/archive/view", params, nil, result)
+	_, err := c.BaseClient.HttpGet(ctx, "/arcopen/fn/archive/view", params, nil, nil, result)
 	return result, err
 }
 
@@ -365,6 +365,6 @@ func (c *BiliBiliVideoClient) GetVideoList(ctx context.Context, data *schema.Bil
 		"pn": fmt.Sprintf("%d", data.Pn),
 		"ps": fmt.Sprintf("%d", data.Ps),
 	}
-	_, err := c.BaseClient.HttpGet(ctx, "/arcopen/fn/archive/viewlist", params, nil, result)
+	_, err := c.BaseClient.HttpGet(ctx, "/arcopen/fn/archive/viewlist", params, nil, nil, result)
 	return result, err
 }

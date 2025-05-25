@@ -89,6 +89,6 @@ func (c *YoutubeVideoAbuseReportReasonsClient) List(ctx context.Context, data *s
 	if err != nil {
 		return nil, err
 	}
-	_, err = c.BaseClient.HttpGet(ctx, "/youtube/v3/videoAbuseReportReasons", params, nil, result)
+	_, err = c.BaseClient.HttpGet(ctx, "/youtube/v3/videoAbuseReportReasons", params, nil, nil, result)
 	return result, err
 }
