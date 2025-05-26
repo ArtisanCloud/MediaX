@@ -61,3 +61,59 @@ func NewBiliBiliACClient(cfg *config.BiliBiliConfig, logger *logger.Logger, cach
 		AccessTokenHandler: handler,
 	}, nil
 }
+
+// GetVideoClient 获取视频客户端
+func (client *BiliBiliACClient) GetVideoClient() *video.BiliBiliVideoClient {
+	if client.video == nil {
+		client.video = video.NewClient(client.BiliBiliClient.BaseClient)
+	}
+	return client.video
+}
+
+// GetUserClient 获取用户客户端
+func (client *BiliBiliACClient) GetUserClient() *user.BiliBiliUserClient {
+	if client.user == nil {
+		client.user = user.NewClient(client.BiliBiliClient.BaseClient)
+	}
+	return client.user
+}
+
+// GetArticleClient 获取文章客户端
+func (client *BiliBiliACClient) GetArticleClient() *article.BiliBiliArticleClient {
+	if client.article == nil {
+		client.article = article.NewClient(client.BiliBiliClient.BaseClient)
+	}
+	return client.article
+}
+
+// GetDataClient 获取数据文章客户端
+func (client *BiliBiliACClient) GetDataClient() *data.BiliBiliDataClient {
+	if client.data == nil {
+		client.data = data.NewClient(client.BiliBiliClient.BaseClient)
+	}
+	return client.data
+}
+
+// GetLiveClient 获取直播客户端
+func (client *BiliBiliACClient) GetLiveClient() *live.BiliBiliLiveClient {
+	if client.live == nil {
+		client.live = live.NewClient(client.BiliBiliClient.BaseClient)
+	}
+	return client.live
+}
+
+// GetLiveWSClient 获取直播WS客户端
+func (client *BiliBiliACClient) GetLiveWSClient() *ws.BiliBiliLiveWSClient {
+	if client.liveWS == nil {
+		client.liveWS = ws.NewClient(client.BiliBiliClient.BaseClient)
+	}
+	return client.liveWS
+}
+
+// GetLiveThirdPartyClient 获取直播第三方客户端
+func (client *BiliBiliACClient) GetLiveThirdPartyClient() *thirdParty.BiliBiliLiveThirdPartyClient {
+	if client.liveThirdParty == nil {
+		client.liveThirdParty = thirdParty.NewClient(client.BiliBiliClient.BaseClient)
+	}
+	return client.liveThirdParty
+}

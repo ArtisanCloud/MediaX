@@ -2,22 +2,22 @@ package blogger
 
 import (
 	"github.com/ArtisanCloud/MediaX/pkg/client/config"
-	"github.com/ArtisanCloud/MediaX/pkg/client/google/blogger/blogUserInfos"
-	"github.com/ArtisanCloud/MediaX/pkg/client/google/blogger/blogs"
-	"github.com/ArtisanCloud/MediaX/pkg/client/google/blogger/comments"
-	"github.com/ArtisanCloud/MediaX/pkg/client/google/blogger/pageViews"
-	"github.com/ArtisanCloud/MediaX/pkg/client/google/blogger/pages"
-	"github.com/ArtisanCloud/MediaX/pkg/client/google/blogger/postUserInfos"
-	"github.com/ArtisanCloud/MediaX/pkg/client/google/blogger/posts"
-	"github.com/ArtisanCloud/MediaX/pkg/client/google/blogger/users"
+	"github.com/ArtisanCloud/MediaX/pkg/client/google/blogger/accessTokenClient/blogUserInfos"
+	"github.com/ArtisanCloud/MediaX/pkg/client/google/blogger/accessTokenClient/blogs"
+	"github.com/ArtisanCloud/MediaX/pkg/client/google/blogger/accessTokenClient/comments"
+	"github.com/ArtisanCloud/MediaX/pkg/client/google/blogger/accessTokenClient/pageViews"
+	"github.com/ArtisanCloud/MediaX/pkg/client/google/blogger/accessTokenClient/pages"
+	"github.com/ArtisanCloud/MediaX/pkg/client/google/blogger/accessTokenClient/postUserInfos"
+	"github.com/ArtisanCloud/MediaX/pkg/client/google/blogger/accessTokenClient/posts"
+	"github.com/ArtisanCloud/MediaX/pkg/client/google/blogger/accessTokenClient/users"
 	"github.com/ArtisanCloud/MediaX/pkg/client/google/core"
 	"github.com/ArtisanCloud/MediaXCore/pkg/cache"
 	"github.com/ArtisanCloud/MediaXCore/pkg/logger"
 )
 
 type GoogleBloggerClient struct {
-	//Logger             *logger.Logger
-	//Cache              cache.ICache
+	// Logger             *logger.Logger
+	// Cache              cache.ICache
 	GoogleClient       *core.GoogleClient
 	BloggerConfig      *config.GoogleBloggerConfig
 	AccessTokenHandler *core.GoogleAccessTokenHandler
@@ -54,8 +54,8 @@ func NewGoogleBloggerClient(cfg *config.GoogleBloggerConfig, logger *logger.Logg
 	c.TokenHandler.GetCustomToken = cfg.GetOAuthToken
 
 	return &GoogleBloggerClient{
-		//Logger:             logger,
-		//Cache:              cache,
+		// Logger:             logger,
+		// Cache:              cache,
 		GoogleClient:       c,
 		BloggerConfig:      cfg,
 		AccessTokenHandler: handler,
