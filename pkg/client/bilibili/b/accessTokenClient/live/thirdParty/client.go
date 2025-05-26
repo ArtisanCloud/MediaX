@@ -1,4 +1,4 @@
-package video
+package thirdParty
 
 import "github.com/ArtisanCloud/MediaX/internal/kernel"
 

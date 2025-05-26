@@ -1,4 +1,4 @@
-package video
+package ws
 
 import "github.com/ArtisanCloud/MediaX/internal/kernel"
 
