@@ -3,6 +3,7 @@ package accessTokenClient
 import (
 	"github.com/ArtisanCloud/MediaX/pkg/client/bilibili/b/accessTokenClient/article"
 	"github.com/ArtisanCloud/MediaX/pkg/client/bilibili/b/accessTokenClient/data"
+	"github.com/ArtisanCloud/MediaX/pkg/client/bilibili/b/accessTokenClient/live"
 	"github.com/ArtisanCloud/MediaX/pkg/client/bilibili/b/accessTokenClient/live/thirdParty"
 	"github.com/ArtisanCloud/MediaX/pkg/client/bilibili/b/accessTokenClient/live/ws"
 	"github.com/ArtisanCloud/MediaX/pkg/client/bilibili/b/accessTokenClient/user"
@@ -34,7 +35,8 @@ type BiliBiliACClient struct {
 	user           *user.BiliBiliUserClient                 // 用户客户端
 	article        *article.BiliBiliArticleClient           // 文章客户端
 	data           *data.BiliBiliDataClient                 // 数据文章客户端
-	liveWS         *ws.BiliBiliLiveWSClient                 // 直播客户端
+	live           *live.BiliBiliLiveClient                 // 直播客户端
+	liveWS         *ws.BiliBiliLiveWSClient                 // 直播WS客户端
 	liveThirdParty *thirdParty.BiliBiliLiveThirdPartyClient // 直播第三方客户端
 }
 

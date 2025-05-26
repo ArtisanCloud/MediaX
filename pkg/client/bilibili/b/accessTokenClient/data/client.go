@@ -8,10 +8,12 @@ import (
 	"github.com/ArtisanCloud/MediaXCore/utils/object"
 )
 
+// BiliBiliDataClient 数据中心客户端
 type BiliBiliDataClient struct {
 	*kernel.BaseClient
 }
 
+// NewClient 创建一个新的 BiliBiliDataClient 实例。
 func NewClient(c *kernel.BaseClient) *BiliBiliDataClient {
 	return &BiliBiliDataClient{
 		BaseClient: c,
