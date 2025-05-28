@@ -8,17 +8,18 @@ import (
 	"github.com/ArtisanCloud/MediaX/pkg/client/google/blogger/accessTokenClient/blogUserInfos/schema"
 )
 
+// BloggerBlogUserInfosClient 博客用户信息客户端
 type BloggerBlogUserInfosClient struct {
 	*kernel.BaseClient
 }
 
+// NewClient 初始化博客用户信息客户端
 func NewClient(c *kernel.BaseClient) *BloggerBlogUserInfosClient {
 	return &BloggerBlogUserInfosClient{
 		BaseClient: c,
 	}
 }
 
-// BlogUserInfos：get
 // ## Get 通过blogId和userId获取博客和用户信息对
 //
 // 接口文档参考：

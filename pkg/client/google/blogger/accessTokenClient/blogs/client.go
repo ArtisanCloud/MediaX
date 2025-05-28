@@ -8,17 +8,18 @@ import (
 	"github.com/ArtisanCloud/MediaXCore/utils/object"
 )
 
+// BloggerBlogsClient 博客客户端
 type BloggerBlogsClient struct {
 	*kernel.BaseClient
 }
 
+// NewClient 初始化博客客户端
 func NewClient(c *kernel.BaseClient) *BloggerBlogsClient {
 	return &BloggerBlogsClient{
 		BaseClient: c,
 	}
 }
 
-// 博客：get
 // ## Get 获取博客信息
 //
 // 接口文档参考：
@@ -59,7 +60,6 @@ func (c *BloggerBlogsClient) Get(ctx context.Context, data *schema.BloggerBlogsG
 	return result, err
 }
 
-// 博客：getByUrl
 // ## GetByUrl 根据网址获取博客信息
 //
 // 接口文档参考：
@@ -104,7 +104,6 @@ func (c *BloggerBlogsClient) GetByUrl(ctx context.Context, data *schema.BloggerB
 	return result, err
 }
 
-// 博客：listByUser
 // ## ListByUser 检索博客列表
 //
 // 接口文档参考：
