@@ -62,6 +62,7 @@ func NewGoogleBloggerClient(cfg *config.GoogleBloggerConfig, logger *logger.Logg
 	}, nil
 }
 
+// GetBlogsClient 获取博客客户端
 func (client *GoogleBloggerClient) GetBlogsClient() *blogs.BloggerBlogsClient {
 	if client.blogs == nil {
 		client.blogs = blogs.NewClient(client.GoogleClient.BaseClient)
@@ -69,6 +70,7 @@ func (client *GoogleBloggerClient) GetBlogsClient() *blogs.BloggerBlogsClient {
 	return client.blogs
 }
 
+// GetBlogUserInfosClient 获取博客用户信息客户端
 func (client *GoogleBloggerClient) GetBlogUserInfosClient() *blogUserInfos.BloggerBlogUserInfosClient {
 	if client.blogUserInfos == nil {
 		client.blogUserInfos = blogUserInfos.NewClient(client.GoogleClient.BaseClient)
@@ -76,6 +78,7 @@ func (client *GoogleBloggerClient) GetBlogUserInfosClient() *blogUserInfos.Blogg
 	return client.blogUserInfos
 }
 
+// GetCommentsClient 获取评论客户端
 func (client *GoogleBloggerClient) GetCommentsClient() *comments.BloggerCommentsClient {
 	if client.comments == nil {
 		client.comments = comments.NewClient(client.GoogleClient.BaseClient)
@@ -83,6 +86,7 @@ func (client *GoogleBloggerClient) GetCommentsClient() *comments.BloggerComments
 	return client.comments
 }
 
+// GetPageViewsClient 获取页面视图客户端
 func (client *GoogleBloggerClient) GetPageViewsClient() *pageViews.BloggerPageViewsClient {
 	if client.pageViews == nil {
 		client.pageViews = pageViews.NewClient(client.GoogleClient.BaseClient)
@@ -90,6 +94,7 @@ func (client *GoogleBloggerClient) GetPageViewsClient() *pageViews.BloggerPageVi
 	return client.pageViews
 }
 
+// GetPagesClient 获取页面客户端
 func (client *GoogleBloggerClient) GetPagesClient() *pages.BloggerPagesClient {
 	if client.pages == nil {
 		client.pages = pages.NewClient(client.GoogleClient.BaseClient)
@@ -97,6 +102,7 @@ func (client *GoogleBloggerClient) GetPagesClient() *pages.BloggerPagesClient {
 	return client.pages
 }
 
+// GetPostUserInfosClient 获取文章用户信息客户端
 func (client *GoogleBloggerClient) GetPostUserInfosClient() *postUserInfos.BloggerPostUserInfosClient {
 	if client.postUserInfos == nil {
 		client.postUserInfos = postUserInfos.NewClient(client.GoogleClient.BaseClient)
@@ -104,6 +110,7 @@ func (client *GoogleBloggerClient) GetPostUserInfosClient() *postUserInfos.Blogg
 	return client.postUserInfos
 }
 
+// GetPostsClient 获取文章客户端
 func (client *GoogleBloggerClient) GetPostsClient() *posts.BloggerPostsClient {
 	if client.posts == nil {
 		client.posts = posts.NewClient(client.GoogleClient.BaseClient)
@@ -111,6 +118,7 @@ func (client *GoogleBloggerClient) GetPostsClient() *posts.BloggerPostsClient {
 	return client.posts
 }
 
+// GetUsersClient 获取用户客户端
 func (client *GoogleBloggerClient) GetUsersClient() *users.BloggerUsersClient {
 	if client.users == nil {
 		client.users = users.NewClient(client.GoogleClient.BaseClient)
