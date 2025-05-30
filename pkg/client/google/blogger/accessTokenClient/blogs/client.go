@@ -20,7 +20,7 @@ func NewClient(c *kernel.BaseClient) *BloggerBlogsClient {
 	}
 }
 
-// ## Get 获取博客信息
+// ## Get - 获取博客信息
 //
 // 接口文档参考：
 // https://developers.google.com/blogger/docs/3.0/reference/blogs/get?hl=zh-cn
@@ -60,7 +60,7 @@ func (c *BloggerBlogsClient) Get(ctx context.Context, data *schema.BloggerBlogsG
 	return result, err
 }
 
-// ## GetByUrl 根据网址获取博客信息
+// ## GetByUrl - 根据网址获取博客信息
 //
 // 接口文档参考：
 // https://developers.google.com/blogger/docs/3.0/reference/blogs/getByUrl?hl=zh-cn
@@ -104,7 +104,7 @@ func (c *BloggerBlogsClient) GetByUrl(ctx context.Context, data *schema.BloggerB
 	return result, err
 }
 
-// ## ListByUser 检索博客列表
+// ## ListByUser - 检索博客列表
 //
 // 接口文档参考：
 // https://developers.google.com/blogger/docs/3.0/reference/blogs/listByUser?hl=zh-cn
