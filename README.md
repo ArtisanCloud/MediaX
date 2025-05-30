@@ -118,6 +118,15 @@ ArisanCloud 团队已经成功维护了 [PowerWechat](https://powerwechat.artisa
 
 \*\*\* [项目功能的开发安排](https://github.com/orgs/ArtisanCloud/projects/5/views/2) -->
 
+## 产品主要维护者
+
+Michael Hu
+
+申请添加好友时，请备注产品名称，比如：“关注MediaX”
+
+<img src="https://mediax.artisan-cloud.com/assets/contact-qr-matrix-x.CMxSV8Gs.jpg" alt="请扫我" style="display:inline; width: 150px;"/>
+
+
 ## 许可证
 
 MediaX SDK 项目 采用 [MIT License](./LICENSE) 开源。

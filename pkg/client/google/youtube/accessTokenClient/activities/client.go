@@ -1,6 +1,8 @@
 package activities
 
-import "github.com/ArtisanCloud/MediaX/internal/kernel"
+import (
+	"github.com/ArtisanCloud/MediaX/internal/kernel"
+)
 
 type YoutubeActivitiesClient struct {
 	*kernel.BaseClient
