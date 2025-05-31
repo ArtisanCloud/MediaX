@@ -9,10 +9,12 @@ import (
 	"github.com/ArtisanCloud/MediaX/internal/kernel"
 )
 
+// BloggerCommentsClient 评论客户端
 type BloggerCommentsClient struct {
 	*kernel.BaseClient
 }
 
+// NewClient 创建一个新的 BloggerCommentsClient 实例
 func NewClient(c *kernel.BaseClient) *BloggerCommentsClient {
 	return &BloggerCommentsClient{
 		BaseClient: c,

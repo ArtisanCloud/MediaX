@@ -174,6 +174,10 @@ func (client *BaseClient) HttpPut(ctx context.Context, url string, query *object
 	return client.makeRequest(ctx, url, http.MethodPut, query, body, outHeader, outBody)
 }
 
+func (client *BaseClient) HttpPatch(ctx context.Context, url string, query *object.StringMap, body interface{}, outHeader interface{}, outBody interface{}) (interface{}, error) {
+	return client.makeRequest(ctx, url, http.MethodPatch, query, body, outHeader, outBody)
+}
+
 func (client *BaseClient) HttpDelete(ctx context.Context, url string, query *object.StringMap, body interface{}, outHeader interface{}, outBody interface{}) (interface{}, error) {
 	return client.makeRequest(ctx, url, http.MethodDelete, query, body, outHeader, outBody)
 }
