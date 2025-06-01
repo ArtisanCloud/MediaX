@@ -37,58 +37,101 @@ ArisanCloud 团队已经成功维护了 [PowerWechat](https://powerwechat.artisa
    go get github.com/ArtisanCloud/MediaX
    ```
 
-   2. 创建一个简单的示例，本项目作者正在自己系统中使用，陆续会迭代版本：
+2. 创建一个简单 客户端凭证模式（Client Credentials Grant）（非用户授权）的示例，本项目作者正在自己系统中使用，陆续会迭代版本：
 
-      ```go
+   ```go
 
-      import (
-         "github.com/ArtisanCloud/MediaX/pkg/client"
-         config2 "github.com/ArtisanCloud/MediaX/pkg/client/config"
-         "github.com/ArtisanCloud/MediaX/pkg/utils"
-         "github.com/ArtisanCloud/MediaXCore/pkg/cache"
-         "github.com/ArtisanCloud/MediaXCore/pkg/logger/config"
-         "github.com/ArtisanCloud/MediaXCore/utils/fmt"
-         "github.com/ArtisanCloud/MediaX/pkg/client/wechat/officialAccount/clientTokenClient/publish/schema"
-         "github.com/redis/go-redis/v9"
-      )
+   import (
+      "github.com/ArtisanCloud/MediaX/pkg/client"
+      config2 "github.com/ArtisanCloud/MediaX/pkg/client/config"
+      "github.com/ArtisanCloud/MediaX/pkg/utils"
+      "github.com/ArtisanCloud/MediaXCore/pkg/cache"
+      "github.com/ArtisanCloud/MediaXCore/pkg/logger/config"
+      "github.com/ArtisanCloud/MediaXCore/utils/fmt"
+      "github.com/ArtisanCloud/MediaX/pkg/client/wechat/officialAccount/clientTokenClient/publish/schema"
+      "github.com/redis/go-redis/v9"
+   )
 
-      // 配置Media Client实例的信息
-      mediaXClient := client.NewMediaX(&config2.MediaXConfig{
-        &config.LogConfig{
-            Level:   "debug",
-            Console: true,
-            File: config.FileConfig{
-                Enable: true,
-            },
-        },
-      }, c)
+   // 配置Media Client实例的信息
+   mediaXClient := client.NewMediaX(&config2.MediaXConfig{
+     &config.LogConfig{
+         Level:   "debug",
+         Console: true,
+         File: config.FileConfig{
+             Enable: true,
+         },
+     },
+   }, c)
 
-      // 从MediaXClient实例中获取到微信平台中公众号的实例，该实例是Client Token模式，不需要用户授权
-      wechatOAClient, err := mediaXClient.MediaXClient.NewWeChatOfficialAccountCTClient(&config2.WeChatOfficialAccountConfig{
-        ClientConfig: &ClientConfig{
-            BaseConfig: &BaseConfig{
-               Timeout: 30,
-               HttpDebug: true,
-            },
-            OAuthConfig: &OAuthConfig{
-               ClientID: "your client/app id"
-               ClientSecret: "your client/app secret"
-            },
-        },
-      })
-      if err != nil {
-        panic(err)
-      }
+   // 从MediaXClient实例中获取到微信平台中公众号的实例，该实例是Client Token模式，不需要用户授权
+   wechatOAClient, err := mediaXClient.MediaXClient.NewWeChatOfficialAccountCTClient(&config2.WeChatOfficialAccountConfig{
+     ClientConfig: &ClientConfig{
+         BaseConfig: &BaseConfig{
+            Timeout: 30,
+            HttpDebug: true,
+         },
+         OAuthConfig: &OAuthConfig{
+            ClientID: "your client/app id"
+            ClientSecret: "your client/app secret"
+         },
+     },
+   })
+   if err != nil {
+     panic(err)
+   }
 
-      // 调用 wechatOAClient 的方法
-      ctx := context.Background()
-      var reqData = &schema.DraftAddReq{}
-      resData, err := oaClient.GetPublishClient().DraftAdd(ctx, reqData)
-      if err != nil {
-         return nil, err
-      }
+   // 调用 wechatOAClient 的方法
+   ctx := context.Background()
+   var reqData = &schema.DraftAddReq{}
+   resData, err := oaClient.GetPublishClient().DraftAdd(ctx, reqData)
+   if err != nil {
+      return nil, err
+   }
 
-      ```
+   ```
+
+3. OAuth 2.0 授权码模式（Authorization Code Grant）（用户授权）的示例，本项目作者正在自己系统中使用，陆续会迭代版本：
+
+   ```go
+   import (
+      "github.com/ArtisanCloud/MediaX/pkg/client"
+      config2 "github.com/ArtisanCloud/MediaX/pkg/client/config"
+      "github.com/ArtisanCloud/MediaX/pkg/utils"
+      "github.com/ArtisanCloud/MediaXCore/pkg/cache"
+      "github.com/ArtisanCloud/MediaXCore/pkg/logger/config"
+      "github.com/redis/go-redis/v9"
+      "github.com/ArtisanCloud/MediaX/pkg/client/config"
+      "github.com/ArtisanCloud/MediaX/pkg/client/google/youtube/accessTokenClient/video/schema"
+      "github.com/ArtisanCloud/MediaXCore/utils/fmt"
+      "github.com/ArtisanCloud/MediaXCore/utils/object"
+   )
+
+   googleYouTubeClient, err := mediaXClient.CreateGoogleYouTubeACClient(localConfig.GoogleYouTubeConfig)
+   if err != nil {
+   	panic(err)
+   }
+
+   // 设置AccessToken
+   googleYouTubeClient.GoogleClient.TokenHandler.GetCustomToken = func(key string, refresh bool) object.HashMap {
+   	fmt.Dump("GetCustomToken", key, refresh)
+   	return object.HashMap{
+   		// 这个acess token需要开发这来维护，或者可以通过MediaX Studio的UI界面来维护
+   		"access_token": "72_ggzUdSgH99StJ2EhmuaIbHHUP9_3rDvdnQVQ9eoX5gwmNfuLpJgBUb5uPgdoh4aoVv9jYz3EKglRT73ppWqgRwzirNQM-bHaToDQ83ux1sFdCr5GK7jxYQfAESoCOEaAHAKWM",
+   		"expires_in":   float64(7200),
+   	}
+   }
+
+
+   // 调用 Youtube的VideoClient 的方法
+   ctx := context.Background()
+   video := googleYouTubeClient.GetVideoClient()
+   res, err := video.List(ctx, &schema.YouTubeVideoListReq{})
+   if err != nil {
+   	panic(err)
+   }
+   fmt.Dump(res)
+
+   ```
 
 ## 文档与接口说明
 
