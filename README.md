@@ -109,7 +109,7 @@ ArisanCloud 团队已经成功维护了 [PowerWechat](https://powerwechat.artisa
 | 字节     | 抖音    | client_credential | ✔    | ✔    | ✔        | ✔        | ✔        |
 | Bilibili | B 站    | auth_code         | ✔    | ✔    | ✔        | ✘        | ✔        |
 | Google   | YouTube | auth_code         | ✔    | ✔    | ✔        | ✔        | ✔        |
-| Google   | Blogger | auth_code         | 🚧   | ✘    | 🚧       | 🚧       | 🚧       |
+| Google   | Blogger | auth_code         | ✔    | ✘    | 🚧       | 🚧       | 🚧       |
 | ......   |         |                   |      |      |          |          |          |
 
 > 注：✔ 表示支持该功能，✘ 表示暂不支持该功能，🚧 表示功能开发中。
@@ -122,10 +122,9 @@ ArisanCloud 团队已经成功维护了 [PowerWechat](https://powerwechat.artisa
 
 Michael Hu
 
-申请添加好友时，请备注产品名称，比如：“关注MediaX”
+申请添加好友时，请备注产品名称，比如：“关注 MediaX”
 
 <img src="https://mediax.artisan-cloud.com/assets/contact-qr-matrix-x.CMxSV8Gs.jpg" alt="请扫我" style="display:inline; width: 150px;"/>
-
 
 ## 许可证
 

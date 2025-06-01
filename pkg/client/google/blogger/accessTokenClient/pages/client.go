@@ -46,7 +46,7 @@ func NewClient(c *kernel.BaseClient) *BloggerPagesClient {
 // 对于私有博客需要 https://www.googleapis.com/auth/blogger 权限
 func (c *BloggerPagesClient) List(ctx context.Context, data *schema.BloggerPagesListReq) (*schema.BloggerPagesListRes, error) {
 	result := &schema.BloggerPagesListRes{}
-	endpoint := fmt.Sprintf("blogger/v3/blogs/%s/pages", data.BlogId)
+	endpoint := fmt.Sprintf("/blogger/v3/blogs/%s/pages", data.BlogId)
 	_, err := c.BaseClient.HttpGet(ctx, endpoint, nil, nil, nil, result)
 	return result, err
 }
@@ -79,7 +79,7 @@ func (c *BloggerPagesClient) List(ctx context.Context, data *schema.BloggerPages
 // 对于私有博客需要 https://www.googleapis.com/auth/blogger 权限
 func (c *BloggerPagesClient) Get(ctx context.Context, data *schema.BloggerPagesGetReq) (*schema.BloggerPagesGetRes, error) {
 	result := &schema.BloggerPagesGetRes{}
-	endpoint := fmt.Sprintf("blogger/v3/blogs/%s/pages/%s", data.BlogId, data.PageId)
+	endpoint := fmt.Sprintf("/blogger/v3/blogs/%s/pages/%s", data.BlogId, data.PageId)
 	_, err := c.BaseClient.HttpGet(ctx, endpoint, nil, nil, nil, result)
 	return result, err
 }
@@ -109,7 +109,7 @@ func (c *BloggerPagesClient) Get(ctx context.Context, data *schema.BloggerPagesG
 // 需要 https://www.googleapis.com/auth/blogger 权限
 func (c *BloggerPagesClient) Delete(ctx context.Context, data *schema.BloggerPagesDeleteReq) (*schema.BloggerPagesDeleteRes, error) {
 	result := &schema.BloggerPagesDeleteRes{}
-	endpoint := fmt.Sprintf("blogger/v3/blogs/%s/pages/%s", data.BlogId, data.PageId)
+	endpoint := fmt.Sprintf("/blogger/v3/blogs/%s/pages/%s", data.BlogId, data.PageId)
 	_, err := c.BaseClient.HttpDelete(ctx, endpoint, nil, nil, nil, result)
 	return result, err
 }
@@ -138,7 +138,7 @@ func (c *BloggerPagesClient) Delete(ctx context.Context, data *schema.BloggerPag
 // 需要 https://www.googleapis.com/auth/blogger 权限
 func (c *BloggerPagesClient) Insert(ctx context.Context, data *schema.BloggerPagesInsertReq) (*schema.BloggerPagesInsertRes, error) {
 	result := &schema.BloggerPagesInsertRes{}
-	endpoint := fmt.Sprintf("blogger/v3/blogs/%s/pages", data.BlogId)
+	endpoint := fmt.Sprintf("/blogger/v3/blogs/%s/pages", data.BlogId)
 	_, err := c.BaseClient.HttpPost(ctx, endpoint, nil, data, nil, result)
 	return result, err
 }
@@ -168,7 +168,7 @@ func (c *BloggerPagesClient) Insert(ctx context.Context, data *schema.BloggerPag
 // 需要 https://www.googleapis.com/auth/blogger 权限
 func (c *BloggerPagesClient) Patch(ctx context.Context, data *schema.BloggerPagesPatchReq) (*schema.BloggerPagesPatchRes, error) {
 	result := &schema.BloggerPagesPatchRes{}
-	endpoint := fmt.Sprintf("blogger/v3/blogs/%s/pages/%s", data.BlogId, data.PageId)
+	endpoint := fmt.Sprintf("/blogger/v3/blogs/%s/pages/%s", data.BlogId, data.PageId)
 	_, err := c.BaseClient.HttpPatch(ctx, endpoint, nil, data, nil, result)
 	return result, err
 }
@@ -198,7 +198,7 @@ func (c *BloggerPagesClient) Patch(ctx context.Context, data *schema.BloggerPage
 // 需要 https://www.googleapis.com/auth/blogger 权限
 func (c *BloggerPagesClient) Update(ctx context.Context, data *schema.BloggerPagesUpdateReq) (*schema.BloggerPagesUpdateRes, error) {
 	result := &schema.BloggerPagesUpdateRes{}
-	endpoint := fmt.Sprintf("blogger/v3/blogs/%s/pages/%s", data.BlogId, data.PageId)
+	endpoint := fmt.Sprintf("/blogger/v3/blogs/%s/pages/%s", data.BlogId, data.PageId)
 	_, err := c.BaseClient.HttpPut(ctx, endpoint, nil, data, nil, result)
 	return result, err
 }

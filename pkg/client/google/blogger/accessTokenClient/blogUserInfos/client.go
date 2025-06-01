@@ -46,7 +46,7 @@ func NewClient(c *kernel.BaseClient) *BloggerBlogUserInfosClient {
 //	- https://www.googleapis.com/auth/blogger.readonly
 func (c *BloggerBlogUserInfosClient) Get(ctx context.Context, blogId string, userId string) (*schema.BloggerBlogUserInfosGetRes, error) {
 	result := &schema.BloggerBlogUserInfosGetRes{}
-	endpoint := fmt.Sprintf("blogger/v3/users/%s/blogs/%s", userId, blogId)
+	endpoint := fmt.Sprintf("/blogger/v3/users/%s/blogs/%s", userId, blogId)
 	_, err := c.BaseClient.HttpGet(ctx, endpoint, nil, nil, nil, result)
 	return result, err
 }

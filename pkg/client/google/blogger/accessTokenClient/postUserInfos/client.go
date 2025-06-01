@@ -1,4 +1,4 @@
-package postuserinfos
+package postUserInfos
 
 import "github.com/ArtisanCloud/MediaX/internal/kernel"
 

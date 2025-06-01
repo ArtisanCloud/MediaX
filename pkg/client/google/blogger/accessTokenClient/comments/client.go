@@ -49,7 +49,7 @@ func NewClient(c *kernel.BaseClient) *BloggerCommentsClient {
 //	error 调用过程中遇到的错误（如有）
 func (c *BloggerCommentsClient) List(ctx context.Context, data *schema.BloggerCommentsListReq) (*schema.BloggerCommentsListRes, error) {
 	result := &schema.BloggerCommentsListRes{}
-	endpoint := fmt.Sprintf("blogger/v3/blogs/%s/posts/%s/comments", data.BlogId, data.PostId)
+	endpoint := fmt.Sprintf("/blogger/v3/blogs/%s/posts/%s/comments", data.BlogId, data.PostId)
 	_, err := c.BaseClient.HttpGet(ctx, endpoint, nil, nil, nil, result)
 	return result, err
 }
@@ -82,7 +82,7 @@ func (c *BloggerCommentsClient) List(ctx context.Context, data *schema.BloggerCo
 //	error 调用过程中遇到的错误（如有）
 func (c *BloggerCommentsClient) Get(ctx context.Context, data *schema.BloggerCommentsGetReq) (*schema.BloggerCommentsGetRes, error) {
 	result := &schema.BloggerCommentsGetRes{}
-	endpoint := fmt.Sprintf("blogger/v3/blogs/%s/posts/%s/comments/%s", data.BlogId, data.PostId, data.CommentId)
+	endpoint := fmt.Sprintf("/blogger/v3/blogs/%s/posts/%s/comments/%s", data.BlogId, data.PostId, data.CommentId)
 	_, err := c.BaseClient.HttpGet(ctx, endpoint, nil, nil, nil, result)
 	return result, err
 }
@@ -117,7 +117,7 @@ func (c *BloggerCommentsClient) Get(ctx context.Context, data *schema.BloggerCom
 // 授权范围要求：https://www.googleapis.com/auth/blogger
 func (c *BloggerCommentsClient) Approve(ctx context.Context, data *schema.BloggerCommentsApproveReq) (*schema.BloggerCommentsApproveRes, error) {
 	result := &schema.BloggerCommentsApproveRes{}
-	endpoint := fmt.Sprintf("blogger/v3/blogs/%s/posts/%s/comments/%s/approve", data.BlogId, data.PostId, data.CommentId)
+	endpoint := fmt.Sprintf("/blogger/v3/blogs/%s/posts/%s/comments/%s/approve", data.BlogId, data.PostId, data.CommentId)
 	_, err := c.BaseClient.HttpPost(ctx, endpoint, nil, nil, nil, result)
 	return result, err
 }
@@ -144,7 +144,7 @@ func (c *BloggerCommentsClient) Approve(ctx context.Context, data *schema.Blogge
 // 授权范围要求：https://www.googleapis.com/auth/blogger
 func (c *BloggerCommentsClient) Delete(ctx context.Context, data *schema.BloggerCommentsDeleteReq) (*schema.BloggerCommentsDeleteReq, error) {
 	result := &schema.BloggerCommentsDeleteRes{}
-	endpoint := fmt.Sprintf("blogger/v3/blogs/%s/posts/%s/comments/%s", data.BlogId, data.PostId, data.CommentId)
+	endpoint := fmt.Sprintf("/blogger/v3/blogs/%s/posts/%s/comments/%s", data.BlogId, data.PostId, data.CommentId)
 	_, err := c.BaseClient.HttpDelete(ctx, endpoint, nil, nil, nil, result)
 	return nil, err
 }
@@ -177,7 +177,7 @@ func (c *BloggerCommentsClient) Delete(ctx context.Context, data *schema.Blogger
 // 授权范围：https://www.googleapis.com/auth/blogger
 func (c *BloggerCommentsClient) ListByBlog(ctx context.Context, data *schema.BloggerCommentsListByBlogReq) (*schema.BloggerCommentsListByBlogRes, error) {
 	result := &schema.BloggerCommentsListByBlogRes{}
-	endpoint := fmt.Sprintf("blogger/v3/blogs/%s/comments", data.BlogId)
+	endpoint := fmt.Sprintf("/blogger/v3/blogs/%s/comments", data.BlogId)
 	_, err := c.BaseClient.HttpGet(ctx, endpoint, nil, nil, nil, result)
 	return result, err
 }
@@ -205,7 +205,7 @@ func (c *BloggerCommentsClient) ListByBlog(ctx context.Context, data *schema.Blo
 // 授权范围：https://www.googleapis.com/auth/blogger
 func (c *BloggerCommentsClient) MarkAsSpam(ctx context.Context, data *schema.BloggerCommentsMarkAsSpamReq) (*schema.BloggerCommentsMarkAsSpamRes, error) {
 	result := &schema.BloggerCommentsMarkAsSpamRes{}
-	endpoint := fmt.Sprintf("blogger/v3/blogs/%s/posts/%s/comments/%s/spam", data.BlogId, data.PostId, data.CommentId)
+	endpoint := fmt.Sprintf("/blogger/v3/blogs/%s/posts/%s/comments/%s/spam", data.BlogId, data.PostId, data.CommentId)
 	_, err := c.BaseClient.HttpPost(ctx, endpoint, nil, nil, nil, result)
 	return result, err
 }
@@ -232,7 +232,7 @@ func (c *BloggerCommentsClient) MarkAsSpam(ctx context.Context, data *schema.Blo
 // 授权范围：https://www.googleapis.com/auth/blogger
 func (c *BloggerCommentsClient) RemoveContent(ctx context.Context, data *schema.BloggerCommentsRemoveContentReq) (*schema.BloggerCommentsRemoveContentRes, error) {
 	result := &schema.BloggerCommentsRemoveContentRes{}
-	endpoint := fmt.Sprintf("blogger/v3/blogs/%s/posts/%s/comments/%s/removeContent", data.BlogId, data.PostId, data.CommentId)
+	endpoint := fmt.Sprintf("/blogger/v3/blogs/%s/posts/%s/comments/%s/removeContent", data.BlogId, data.PostId, data.CommentId)
 	_, err := c.BaseClient.HttpPost(ctx, endpoint, nil, nil, nil, result)
 	return result, err
 }
