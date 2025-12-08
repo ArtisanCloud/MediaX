@@ -123,10 +123,10 @@ type ChannelRelatedPlaylists struct {
 // HiddenSubscriberCount 表示是否隐藏订阅者数量
 // VideoCount 表示频道的视频数量
 type ChannelStatistics struct {
-	ViewCount             uint64 `json:"viewCount"`
-	SubscriberCount       uint64 `json:"subscriberCount"`
+	ViewCount             string `json:"viewCount"`
+	SubscriberCount       string `json:"subscriberCount"`
 	HiddenSubscriberCount bool   `json:"hiddenSubscriberCount"`
-	VideoCount            uint64 `json:"videoCount"`
+	VideoCount            string `json:"videoCount"`
 }
 
 // ChannelTopicDetails 包含YouTube频道的主题信息
