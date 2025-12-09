@@ -1,0 +1,140 @@
+openapi: 3.0.3
+info:
+  title: MediaX SessionToken Flows API
+  version: 0.1.0
+paths:
+  /session-token/flows:
+    post:
+      summary: Create SessionToken Flow
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateFlowRequest'
+      responses:
+        '201':
+          description: Flow created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreateFlowResponse'
+        '400':
+          description: Invalid payload/provider unsupported
+        '401':
+          description: Missing or invalid API token
+  /session-token/flows/{flow_id}:
+    get:
+      summary: Get Flow status/result
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: flow_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Flow state
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetFlowResponse'
+        '404':
+          description: Flow not found or expired
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    CreateFlowRequest:
+      type: object
+      required: [provider_code, provider_app_code, tenant_uuid, state, callback_url]
+      properties:
+        provider_code:
+          type: string
+          example: zhihu
+        provider_app_code:
+          type: string
+          example: zhihu_article
+        account_id:
+          type: string
+        tenant_uuid:
+          type: string
+        state:
+          type: string
+        callback_url:
+          type: string
+          format: uri
+        metadata:
+          type: object
+          additionalProperties:
+            type: string
+    CreateFlowResponse:
+      type: object
+      properties:
+        flow:
+          $ref: '#/components/schemas/Flow'
+    GetFlowResponse:
+      type: object
+      properties:
+        flow:
+          allOf:
+            - $ref: '#/components/schemas/Flow'
+            - type: object
+              properties:
+                last_error:
+                  type: string
+                result:
+                  $ref: '#/components/schemas/CredentialPayload'
+    Flow:
+      type: object
+      properties:
+        flow_id:
+          type: string
+        status:
+          type: string
+          enum: [pending, authorizing, succeeded, failed]
+        authorize_url:
+          type: string
+          format: uri
+        expires_at:
+          type: string
+          format: date-time
+        metadata:
+          type: object
+          additionalProperties:
+            type: string
+    CredentialPayload:
+      type: object
+      properties:
+        session_token:
+          type: string
+        cookies_json:
+          type: array
+          items:
+            type: object
+            properties:
+              name:
+                type: string
+              value:
+                type: string
+              domain:
+                type: string
+        headers_json:
+          type: object
+          additionalProperties:
+            type: string
+        expires_at:
+          type: string
+          format: date-time
+        captured_at:
+          type: string
+          format: date-time
+        note:
+          type: string
