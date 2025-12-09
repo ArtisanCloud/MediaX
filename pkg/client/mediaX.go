@@ -25,6 +25,7 @@ import (
 	"github.com/ArtisanCloud/MediaX/pkg/client/config"
 	accessTokenClient3 "github.com/ArtisanCloud/MediaX/pkg/client/google/youtube/accessTokenClient"
 	accessTokenClient2 "github.com/ArtisanCloud/MediaX/pkg/client/redBook/juGuang/accessTokenClient"
+	"github.com/ArtisanCloud/MediaX/pkg/client/sessiontoken"
 	officialAccount "github.com/ArtisanCloud/MediaX/pkg/client/wechat/officialAccount/clientTokenClient"
 	"github.com/ArtisanCloud/MediaXCore/pkg/cache"
 	"github.com/ArtisanCloud/MediaXCore/pkg/logger"
@@ -129,4 +130,9 @@ func (m *MediaX) CreateByteDanceDouYinCTClient(cfg *config.ByteDanceDouYinConfig
 //   - error: 创建过程中的错误信息
 func (m *MediaX) CreateRedBookJuGuangACClient(cfg *config.RedBookJuGuangConfig) (*accessTokenClient2.RedBookJuGuangACClient, error) {
 	return accessTokenClient2.NewRedBookJuGuangACClient(cfg, m.Logger, m.Cache)
+}
+
+// CreateSessionTokenClient 创建 SessionTokenClient，用于触发模拟登录流程。
+func (m *MediaX) CreateSessionTokenClient(cfg *config.SessionTokenClientConfig) (*sessiontoken.Client, error) {
+	return sessiontoken.NewClient(cfg)
 }
