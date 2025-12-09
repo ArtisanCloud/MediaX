@@ -25,7 +25,7 @@ import (
 	"github.com/ArtisanCloud/MediaX/pkg/client/config"
 	accessTokenClient3 "github.com/ArtisanCloud/MediaX/pkg/client/google/youtube/accessTokenClient"
 	accessTokenClient2 "github.com/ArtisanCloud/MediaX/pkg/client/redBook/juGuang/accessTokenClient"
-	"github.com/ArtisanCloud/MediaX/pkg/client/sessiontoken"
+	sessiontoken "github.com/ArtisanCloud/MediaX/pkg/client/sessionToken"
 	officialAccount "github.com/ArtisanCloud/MediaX/pkg/client/wechat/officialAccount/clientTokenClient"
 	"github.com/ArtisanCloud/MediaXCore/pkg/cache"
 	"github.com/ArtisanCloud/MediaXCore/pkg/logger"

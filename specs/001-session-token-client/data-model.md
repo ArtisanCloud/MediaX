@@ -3,7 +3,7 @@
 ## Flow
 | Field | Type | Description | Rules |
 |-------|------|-------------|-------|
-| flow_id | string (`stf_<uuid>`) | 全局唯一 Flow 标识 | 由 SDK 生成；Redis key = `sessiontoken:flow:<flow_id>` |
+| flow_id | string (`stf_<uuid>`) | 全局唯一 Flow 标识 | 由 SDK 生成；Redis key = `sessionToken:flow:<flow_id>` |
 | provider_code | string | 平台代码（如 `zhihu`） | 与 MediaX provider registry 对齐 |
 | tenant_uuid | string | 调用方租户 | 参与日志与缓存 key |
 | account_id | string/int | 业务账号 | 可选；同租户内用于定位 Flow |

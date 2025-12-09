@@ -81,7 +81,7 @@ Authenticator/Harvester 完成登录后，SDK 需要脱敏存储结果、触发�
 
 - **FR-001**: SDK MUST 暴露 `POST /session-token/flows` 与 `GET /session-token/flows/{flow_id}` API，使插件可创建/查询 Flow，响应结构与 docs/plan/session_token_client.md 中示例保持一致。
 - **FR-002**: 系统 MUST 定义 `Flow` 状态机（pending → authorizing → succeeded/failed），并把 Flow 记录持久化到共享 Redis 存储（默认 go-redis，实现 TTL/索引/幂等），字段包含 `flow_id`、provider、租户、状态、authorize_url、expires_at、last_error、result；如需长期审计再由业务侧异步导出。
-- **FR-003**: 系统 MUST 在 `pkg/client/sessiontoken` 中定义 `SessionTokenClient`、`Authenticator`、`CredentialHarvester`、`CallbackDispatcher` 接口，并在 `sessiontoken.Manager` 内编排状态迁移与流程回调。
+- **FR-003**: 系统 MUST 在 `pkg/client/sessionToken` 中定义 `SessionTokenClient`、`Authenticator`、`CredentialHarvester`、`CallbackDispatcher` 接口，并在 `sessionToken.Manager` 内编排状态迁移与流程回调。
 - **FR-004**: MediaX 工厂 MUST 暴露 `Create<Provider>SessionTokenClient`，自动注入 Logger、Cache、HTTP Helper 与 provider 配置，拒绝缺失配置的实例化。
 - **FR-005**: 每个 provider 的配置文件 MUST 新增 `SessionTokenConfig`，包含 `Service`、`Authenticator`、`Harvester`、`Callback`、`Network` 五大块，并可通过 `yaml/json` tag 映射至 `config.yaml`。
 - **FR-006**: 系统 MUST 实现 Zhihu 适配器（Authenticator/Harvester/CallbackDispatcher），支持账号密码、扫码、手机号多入口，允许配置代理池与脚本 ID/URL。
@@ -101,7 +101,7 @@ Authenticator/Harvester 完成登录后，SDK 需要脱敏存储结果、触发�
 - **Config-Layered Security**: 在 `pkg/client/config/zhihu.go`（及其他 provider 配置文件）加入带 `yaml/json` tag 与文档注释的 `SessionTokenConfig`，所有 secret（api_token、callback secret、脚本凭证）必须通过环境变量或秘密管理注入并声明 TTL/逐出策略。
 - **Token Lifecycle Discipline**: SessionTokenClient 内部仍复用 `kernel.BaseClient` 的 HttpHelper、重试与刷新钩子；Flow 创建/回调涉及的 HTTP 请求禁止绕过 BaseClient，并在需要覆写行为（如请求重放或代理）时给出明确注释。
 - **Observability & Error Traceability**: 日志/事件必须携带 `provider`, `api`, `tenant_uuid`, `account_id`, `flow_id`，敏感凭证脱敏；回调 payload 强制 HMAC-SHA256 + timestamp/nonce 签名，并为 retry/replay 记录序号与触发条件。
-- **Testable Modularity & SessionToken Readiness**: `sessiontoken.Manager`、状态机与签名/脱敏工具需提供 `*_test.go`，覆盖 pending→authorizing→succeeded/failed 分支以及回调签名验证，同时提供 Zhihu 配置解析与入口选择的单测。
+- **Testable Modularity & SessionToken Readiness**: `sessionToken.Manager`、状态机与签名/脱敏工具需提供 `*_test.go`，覆盖 pending→authorizing→succeeded/failed 分支以及回调签名验证，同时提供 Zhihu 配置解析与入口选择的单测。
 
 ## Success Criteria *(mandatory)*
 

@@ -12,7 +12,7 @@
    ```
 2. **配置示例** (`config.yaml`)
    ```yaml
-   zhihu:
+   zhihu_config:
      sessionToken:
        service:
          base_url: ${ZH_ST_BASE_URL}
@@ -32,7 +32,7 @@
    ```
 3. **运行单元测试**
    ```bash
-   go test ./pkg/client/sessiontoken/... ./pkg/client/zhihu/sessionToken/...
+   go test ./pkg/client/sessionToken/... ./pkg/client/zhihu/sessionToken/...
    ```
 4. **示例：创建 Flow**
    ```bash
@@ -61,4 +61,4 @@
 ## Troubleshooting
 - **回调签名失败**：确认 callback secret 与插件端配置一致，并检查 payload 中 timestamp/nonce 是否在允许窗口内。
 - **Flow 永远 pending**：确认浏览器容器可访问 authorize_url，或检查 Authenticator 脚本日志。
-- **Redis 连接失败**：检查 `MediaXConfig.Redis` 是否指向正确实例，并确保 Flow key `sessiontoken:flow:*` 能被创建。
+- **Redis 连接失败**：检查 `MediaXConfig.Redis` 是否指向正确实例，并确保 Flow key `sessionToken:flow:*` 能被创建。

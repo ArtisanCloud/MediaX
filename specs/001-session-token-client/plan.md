@@ -9,7 +9,7 @@
 
 MediaX 需要把 SessionToken 流程升级为 provider 级适配器。此次迭代将：
 
-- 拆解 `pkg/client/sessiontoken`，提供 `SessionTokenClient`、`sessiontoken.Manager` 与 Flow 状态机，统一接入 `kernel.BaseClient`。
+- 拆解 `pkg/client/sessionToken`，提供 `SessionTokenClient`、`sessionToken.Manager` 与 Flow 状态机，统一接入 `kernel.BaseClient`。
 - 为知乎实现首个 SessionToken 适配器（Authenticator/Harvester/CallbackDispatcher），并在 `pkg/client/mediaX.go` 中注册创建函数。
 - 重构配置体系：每个 provider (`pkg/client/config/<provider>.go`) 新增 `SessionTokenConfig`，并在 `config.yaml` 里示例如何注入。
 - 构建 Redis 持久化 Flow、回调签名与重试、日志脱敏以及 CLI/Quickstart 样例，满足插件侧 Flow 创建、轮询和凭证回传的 SLA。
@@ -39,15 +39,15 @@ MediaX 需要把 SessionToken 流程升级为 provider 级适配器。此次迭�
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
 - **Provider Adapter Parity**: Plan MUST document provider/product directory layout, required `core/client.go` location, and factory injection so no team invents a new topology.
-- 满足方式：`pkg/client/sessiontoken` 承载共享 manager/Flow 模型；`pkg/client/zhihu/sessionToken/core/client.go` + `authenticator/`、`harvester/`、`callback/` 负责产品细节。在 `pkg/client/mediaX.go` 增加 `CreateZhihuSessionTokenClient`，并在 README/quickstart 里注明如何注入。新增 provider 时沿用同一层级结构。
+- 满足方式：`pkg/client/sessionToken` 承载共享 manager/Flow 模型；`pkg/client/zhihu/sessionToken/core/client.go` + `authenticator/`、`harvester/`、`callback/` 负责产品细节。在 `pkg/client/mediaX.go` 增加 `CreateZhihuSessionTokenClient`，并在 README/quickstart 里注明如何注入。新增 provider 时沿用同一层级结构。
 - **Config-Layered Security**: Plan MUST enumerate configs added or modified under `pkg/client/config` plus how secrets/TTL are sourced without hardcoding.
 - 满足方式：在 `pkg/client/config/zhihu.go` 定义 `ZhihuSessionTokenConfig`（含 `Service/Auth/Harvester/Callback/Network` 五块），并在 `config.yaml`/README 中展示 env var 引用。Flow TTL、callback secret、代理池参数全部声明在配置体内，避免散落常量。
 - **Token Lifecycle Discipline**: Plan MUST explain how BaseClient helpers, refresh hooks, and cache interfaces are reused (or explicitly extended) for Access/Client/Session tokens.
-- 满足方式：`sessiontoken.Manager` 使用 `kernel.BaseClient` 提供的 HttpHelper & Logger；Zhihu adapter 仅封装特定 payload，HTTP 调用仍走 BaseClient；Redis 缓存通过现有 cache interface 注入，无自建 client。
+- 满足方式：`sessionToken.Manager` 使用 `kernel.BaseClient` 提供的 HttpHelper & Logger；Zhihu adapter 仅封装特定 payload，HTTP 调用仍走 BaseClient；Redis 缓存通过现有 cache interface 注入，无自建 client。
 - **Observability & Error Traceability**: Plan MUST specify structured logging fields, retry instrumentation, and desensitization strategy for the feature scope.
-- 满足方式：所有 Flow/回调日志均由 `client.Logger.WithContext` 输出，字段含 `provider/api/tenant_uuid/account_id/flow_id/retry`。凭证脱敏由 `sessiontoken/sanitizer` 辅助函数统一执行，回调请求记录签名校验结果与重试次数；API 层强制 Bearer Token 校验并输出授权失败日志，同时记录 Flow 创建/查询 latency 指标以验证 SLA。
+- 满足方式：所有 Flow/回调日志均由 `client.Logger.WithContext` 输出，字段含 `provider/api/tenant_uuid/account_id/flow_id/retry`。凭证脱敏由 `sessionToken/sanitizer` 辅助函数统一执行，回调请求记录签名校验结果与重试次数；API 层强制 Bearer Token 校验并输出授权失败日志，同时记录 Flow 创建/查询 latency 指标以验证 SLA。
 - **Testable Modularity & SessionToken Readiness**: Plan MUST call out the pure-logic components that will ship with unit tests and any SessionToken flow/state-machine coverage.
-- 满足方式：新增 `sessiontoken/manager_test.go` 覆盖 pending→authorizing→succeeded/failed；`sessiontoken/callback/signature_test.go` 覆盖 HMAC；`config/zhihu_sessiontoken_test.go` 确保配置解析；Zhihu adapter 内部逻辑通过 fake Authenticator/Harvester 单测。文档在 quickstart 中列出如何运行 `go test ./pkg/client/sessiontoken/...`。
+- 满足方式：新增 `sessionToken/manager_test.go` 覆盖 pending→authorizing→succeeded/failed；`sessionToken/callback/signature_test.go` 覆盖 HMAC；`config/zhihu_sessionToken_test.go` 确保配置解析；Zhihu adapter 内部逻辑通过 fake Authenticator/Harvester 单测。文档在 quickstart 中列出如何运行 `go test ./pkg/client/sessionToken/...`。
 
 ## Project Structure
 
@@ -78,8 +78,8 @@ pkg/
 │   ├── mediaX.go                    # 工厂：新增 CreateZhihuSessionTokenClient
 │   ├── config/
 │   │   ├── zhihu.go                 # 添加 ZhihuSessionTokenConfig + yaml/json tag
-│   │   └── sessiontoken.go          # （若需要）公共 SessionToken 配置片段
-│   ├── sessiontoken/
+│   │   └── sessionToken.go          # （若需要）公共 SessionToken 配置片段
+│   ├── sessionToken/
 │   │   ├── manager.go               # Flow 状态机 & API 编排
 │   │   ├── flow.go / storage/redis/ # Flow 模型与 Redis 持久化
 │   │   ├── callback/dispatcher.go   # HMAC 签名 & 重试
@@ -96,7 +96,7 @@ docs/
 └── plan/session_token_client.md     # 现有背景文档
 ```
 
-**Structure Decision**: 使用现有 Go monorepo；SessionToken 共享逻辑集中在 `pkg/client/sessiontoken`，provider 实现放在 `pkg/client/<provider>/sessionToken/`，与宪章要求的 `core/` + adapter 子目录保持一致；配置仍位于 `pkg/client/config` 并通过工厂注入。
+**Structure Decision**: 使用现有 Go monorepo；SessionToken 共享逻辑集中在 `pkg/client/sessionToken`，provider 实现放在 `pkg/client/<provider>/sessionToken/`，与宪章要求的 `core/` + adapter 子目录保持一致；配置仍位于 `pkg/client/config` 并通过工厂注入。
 
 ## Complexity Tracking
 

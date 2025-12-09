@@ -2,7 +2,7 @@
 
 ## 1. 背景
 - MediaX SDK 需要统一管理多平台（知乎、小红书、抖音等）的模拟登录流程，以便插件端能够拉起登录、抓取凭证、回调写库。
-- 现有 `pkg/client/sessiontoken` 仅提供一个通用 HTTP 客户端，且唯一的配置 `SessionTokenClientConfig` 与各 provider 无关，无法覆盖多入口登录 URL、代理策略、凭证解析等差异化需求。
+- 现有 `pkg/client/sessionToken` 仅提供一个通用 HTTP 客户端，且唯一的配置 `SessionTokenClientConfig` 与各 provider 无关，无法覆盖多入口登录 URL、代理策略、凭证解析等差异化需求。
 - 插件端已经定义了 `/session-token/flows` 接口契约，需要 SDK 侧适配器实现 Flow 生命周期管理、凭证采集和回调投递。
 
 ## 2. 目标
@@ -88,7 +88,7 @@
   type CredentialHarvester interface { Watch(*FlowContext) (*Credentials, error) }
   type CallbackDispatcher interface { Dispatch(ctx context.Context, payload CallbackPayload) error }
   ```
-- `sessiontoken.Manager`：负责 Flow 状态机、持久化、调用 provider adapter。
+- `sessionToken.Manager`：负责 Flow 状态机、持久化、调用 provider adapter。
 
 ### 6.3 Flow 状态机
 - `pending`：Flow 创建，生成 `authorize_url`。
