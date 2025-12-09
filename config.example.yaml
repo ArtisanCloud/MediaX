@@ -27,3 +27,32 @@ redbook_juguang_config:
     app_id: "your_redbook_app_id"
     app_secret: "your_redbook_app_secret"
 
+
+zhihu_config:
+  sessionToken:
+    service:
+      base_url: "${ZH_SESSIONTOKEN_BASE_URL}"
+      api_token: "${ZH_SESSIONTOKEN_API_TOKEN}"
+      timeout: 30
+    authenticator:
+      entries:
+        - type: pc
+          url: "${ZH_SESSIONTOKEN_PC_ENTRY_URL}"
+      default_user_agent: "${ZH_SESSIONTOKEN_DEFAULT_UA}"
+      script_ids:
+        - "${ZH_SESSIONTOKEN_SCRIPT_ID}"
+      captcha_strategy: "${ZH_SESSIONTOKEN_CAPTCHA_STRATEGY}"
+    harvester:
+      watch_cookies:
+        - z_c0
+      watch_headers:
+        - X-XSRF-TOKEN
+      harvest_script_id: "${ZH_SESSIONTOKEN_HARVEST_SCRIPT_ID}"
+    callback:
+      callback_secret: "${ZH_SESSIONTOKEN_CALLBACK_SECRET}"
+      max_retry: 3
+      retry_backoff: [2, 4, 8]
+    network:
+      proxy_pool: "${ZH_SESSIONTOKEN_PROXY_POOL}"
+      ip_strategy: "${ZH_SESSIONTOKEN_IP_STRATEGY}"
+      request_timeout: 60

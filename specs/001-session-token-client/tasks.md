@@ -34,9 +34,9 @@ description: "Task list template for feature implementation"
 
 ## Phase 1: Setup (Shared Infrastructure)
 
-- [ ] T001 确认 `config.yaml` 示例中新增 Zhihu `sessionToken` 段并引用环境变量 (`config.yaml`)
-- [ ] T002 拉取依赖并验证 go modules 版本（`go mod tidy`）
-- [ ] T003 [P] 创建 `pkg/client/sessiontoken/` 目录框架（manager、flow、callback、storage 子目录）
+- [X] T001 确认 `config.yaml` 示例中新增 Zhihu `sessionToken` 段并引用环境变量 (`config.yaml`)
+- [X] T002 拉取依赖并验证 go modules 版本（`go mod tidy`）
+- [X] T003 [P] 创建 `pkg/client/sessiontoken/` 目录框架（manager、flow、callback、storage 子目录）
 
 ## Phase 2: Foundational (Blocking Prerequisites)
 
