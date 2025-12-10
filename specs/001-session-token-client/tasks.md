@@ -60,12 +60,12 @@ description: "Task list template for feature implementation"
 
 ### Implementation
 
-- [ ] T015 [US1] 实现 Flow 创建请求 DTO + 校验逻辑（`pkg/client/sessionToken/api/create_flow_request.go`）
-- [ ] T016 [US1] 在 `sessionToken.Manager` 实现 CreateFlow 方法（含 authorize_url 构建钩子）（`pkg/client/sessionToken/manager.go`）
-- [ ] T017 [US1] 集成 Redis 存储写入、重复 state 幂等处理（`pkg/client/sessionToken/manager.go`）
-- [ ] T018 [US1] 在 HTTP 层注册 `POST /session-token/flows` handler 并接入 Bearer 中间件（`pkg/server/handlers/sessionToken_flow_create.go`）
-- [ ] T019 [US1] 输出结构化日志（provider/api/tenant_uuid/flow_id）与错误包装（`pkg/server/handlers/sessionToken_flow_create.go`）
-- [ ] T020 [P] [US1] 编写 handler + manager 的单元测试（`pkg/server/handlers/sessionToken_flow_create_test.go`、`pkg/client/sessionToken/manager_create_test.go`）
+- [X] T015 [US1] 实现 Flow 创建请求 DTO + 校验逻辑（`pkg/client/sessionToken/api/create_flow_request.go`）
+- [X] T016 [US1] 在 `sessionToken.Manager` 实现 CreateFlow 方法（含 authorize_url 构建钩子）（`pkg/client/sessionToken/manager.go`）
+- [X] T017 [US1] 集成 Redis 存储写入、重复 state 幂等处理（`pkg/client/sessionToken/manager.go`）
+- [X] T018 [US1] 在 HTTP 层注册 `POST /session-token/flows` handler 并接入 Bearer 中间件（`pkg/server/handlers/sessionToken_flow_create.go`）
+- [X] T019 [US1] 输出结构化日志（provider/api/tenant_uuid/flow_id）与错误包装（`pkg/server/handlers/sessionToken_flow_create.go`）
+- [X] T020 [P] [US1] 编写 handler + manager 的单元测试（`pkg/server/handlers/sessionToken_flow_create_test.go`、`pkg/client/sessionToken/manager_create_test.go`）
 
 ## Phase 4: User Story 2 - 插件轮询 Flow 状态 (Priority: P1)
 
