@@ -38,13 +38,16 @@ type Cookie struct {
 
 // Payload 是发送到业务侧的回调信息。
 type Payload struct {
-	FlowID      string             `json:"flow_id"`
-	State       string             `json:"state"`
-	Status      string             `json:"status"`
-	Credentials *CredentialPayload `json:"credentials,omitempty"`
-	Metadata    map[string]string  `json:"metadata,omitempty"`
-	Timestamp   int64              `json:"timestamp"`
-	Nonce       string             `json:"nonce"`
+	FlowID          string             `json:"flow_id"`
+	State           string             `json:"state"`
+	Status          string             `json:"status"`
+	ProviderCode    string             `json:"provider_code,omitempty"`
+	ProviderAppCode string             `json:"provider_app_code,omitempty"`
+	TenantUUID      string             `json:"tenant_uuid,omitempty"`
+	Credentials     *CredentialPayload `json:"credentials,omitempty"`
+	Metadata        map[string]string  `json:"metadata,omitempty"`
+	Timestamp       int64              `json:"timestamp"`
+	Nonce           string             `json:"nonce"`
 }
 
 // Body 返回 JSON 编码后的 payload。
@@ -165,6 +168,7 @@ func (d *HTTPDispatcher) Dispatch(ctx context.Context, req *Request) (int, error
 	headers["X-MediaX-Nonce"] = req.Payload.Nonce
 	headers["X-MediaX-Signature"] = sig
 
+	start := time.Now()
 	attempts := 0
 	maxAttempts := len(d.retryDelays) + 1
 	var lastErr error
@@ -197,12 +201,12 @@ func (d *HTTPDispatcher) Dispatch(ctx context.Context, req *Request) (int, error
 		io.Copy(io.Discard, resp.Body)
 		resp.Body.Close()
 		if resp.StatusCode >= 200 && resp.StatusCode < 300 {
-			d.logSuccess(ctx, req.Payload, attempts-1, resp.StatusCode)
+			d.logSuccess(ctx, req.Payload, attempts-1, resp.StatusCode, time.Since(start))
 			return attempts - 1, nil
 		}
 		lastErr = fmt.Errorf("callback: unexpected status code %d", resp.StatusCode)
 		if resp.StatusCode >= 400 && resp.StatusCode < 500 {
-			d.logFailure(ctx, req.Payload, attempts-1, lastErr)
+			d.logFailure(ctx, req.Payload, attempts-1, lastErr, time.Since(start))
 			return attempts - 1, lastErr
 		}
 		d.logRetry(ctx, req.Payload, attempts-1, lastErr)
@@ -210,7 +214,7 @@ func (d *HTTPDispatcher) Dispatch(ctx context.Context, req *Request) (int, error
 	if lastErr == nil {
 		lastErr = errors.New("callback: dispatcher exhausted retries")
 	}
-	d.logFailure(ctx, req.Payload, attempts-1, lastErr)
+	d.logFailure(ctx, req.Payload, attempts-1, lastErr, time.Since(start))
 	return attempts - 1, lastErr
 }
 
@@ -225,13 +229,14 @@ func cloneHeaders(in map[string]string) map[string]string {
 	return out
 }
 
-func (d *HTTPDispatcher) logSuccess(ctx context.Context, payload *Payload, retry int, status int) {
+func (d *HTTPDispatcher) logSuccess(ctx context.Context, payload *Payload, retry int, status int, latency time.Duration) {
 	if d.logger == nil {
 		return
 	}
 	d.logger.WithContext(ctx).InfoF(
-		"sessiontoken_callback: success flow_id=%s state=%s retry=%d status=%d",
-		payload.FlowID, payload.State, retry, status,
+		"sessiontoken_callback: success provider=%s tenant_uuid=%s flow_id=%s state=%s retry=%d status=%d latency_ms=%d",
+		valueOrDash(payload.ProviderCode), valueOrDash(payload.TenantUUID),
+		payload.FlowID, payload.State, retry, status, latency.Milliseconds(),
 	)
 }
 
@@ -240,17 +245,27 @@ func (d *HTTPDispatcher) logRetry(ctx context.Context, payload *Payload, retry i
 		return
 	}
 	d.logger.WithContext(ctx).WarnF(
-		"sessiontoken_callback: retry flow_id=%s state=%s retry=%d error=%v",
+		"sessiontoken_callback: retry provider=%s tenant_uuid=%s flow_id=%s state=%s retry=%d error=%v",
+		valueOrDash(payload.ProviderCode), valueOrDash(payload.TenantUUID),
 		payload.FlowID, payload.State, retry, err,
 	)
 }
 
-func (d *HTTPDispatcher) logFailure(ctx context.Context, payload *Payload, retry int, err error) {
+func (d *HTTPDispatcher) logFailure(ctx context.Context, payload *Payload, retry int, err error, latency time.Duration) {
 	if d.logger == nil {
 		return
 	}
 	d.logger.WithContext(ctx).ErrorF(
-		"sessiontoken_callback: failed flow_id=%s state=%s retry=%d error=%v",
-		payload.FlowID, payload.State, retry, err,
+		"sessiontoken_callback: failed provider=%s tenant_uuid=%s flow_id=%s state=%s retry=%d latency_ms=%d error=%v",
+		valueOrDash(payload.ProviderCode), valueOrDash(payload.TenantUUID),
+		payload.FlowID, payload.State, retry, latency.Milliseconds(), err,
 	)
+}
+
+func valueOrDash(value string) string {
+	value = strings.TrimSpace(value)
+	if value == "" {
+		return "-"
+	}
+	return value
 }

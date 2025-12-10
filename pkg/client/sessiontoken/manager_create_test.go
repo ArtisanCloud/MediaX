@@ -224,14 +224,15 @@ func TestManagerCompleteFlowSuccess(t *testing.T) {
 	store := &fakeFlowStore{}
 	now := time.Unix(1900000000, 0)
 	flow := &Flow{
-		FlowID:       "stf_success",
-		State:        "state",
-		Status:       FlowStatusAuthorizing,
-		TenantUUID:   "tenant",
-		CallbackURL:  "https://callback",
-		Metadata:     map[string]string{"mode": "password"},
-		ExpiresAt:    now.Add(15 * time.Minute),
-		ProviderCode: "zhihu",
+		FlowID:          "stf_success",
+		State:           "state",
+		Status:          FlowStatusAuthorizing,
+		ProviderAppCode: "app",
+		TenantUUID:      "tenant",
+		CallbackURL:     "https://callback",
+		Metadata:        map[string]string{"mode": "password"},
+		ExpiresAt:       now.Add(15 * time.Minute),
+		ProviderCode:    "zhihu",
 	}
 	store.getFlow = flow
 	dispatcher := &fakeDispatcher{}
@@ -256,6 +257,12 @@ func TestManagerCompleteFlowSuccess(t *testing.T) {
 	if dispatcher.lastReq == nil || dispatcher.lastReq.Payload.Credentials.SessionToken != "abcdef1234567890" {
 		t.Fatalf("expected dispatcher to receive raw credentials")
 	}
+	if dispatcher.lastReq.Payload.ProviderCode != "zhihu" || dispatcher.lastReq.Payload.ProviderAppCode != "app" {
+		t.Fatalf("expected callback payload to carry provider metadata")
+	}
+	if dispatcher.lastReq.Payload.TenantUUID != "tenant" {
+		t.Fatalf("expected callback payload to carry tenant uuid")
+	}
 	if store.updateCount != 2 {
 		t.Fatalf("expected 2 updates (before and after callback), got %d", store.updateCount)
 	}
@@ -265,11 +272,14 @@ func TestManagerCompleteFlowSuccessCallbackFailure(t *testing.T) {
 	store := &fakeFlowStore{}
 	now := time.Unix(1900000500, 0)
 	flow := &Flow{
-		FlowID:      "stf_callback_fail",
-		State:       "state",
-		Status:      FlowStatusAuthorizing,
-		CallbackURL: "https://callback",
-		ExpiresAt:   now.Add(10 * time.Minute),
+		FlowID:          "stf_callback_fail",
+		State:           "state",
+		Status:          FlowStatusAuthorizing,
+		ProviderCode:    "zhihu",
+		ProviderAppCode: "app",
+		TenantUUID:      "tenant",
+		CallbackURL:     "https://callback",
+		ExpiresAt:       now.Add(10 * time.Minute),
 	}
 	store.getFlow = flow
 	dispatcher := &fakeDispatcher{attempts: 2, err: errors.New("http 500")}
@@ -293,11 +303,14 @@ func TestManagerCompleteFlowFailed(t *testing.T) {
 	store := &fakeFlowStore{}
 	now := time.Unix(1900000600, 0)
 	flow := &Flow{
-		FlowID:      "stf_failed",
-		State:       "state",
-		Status:      FlowStatusAuthorizing,
-		CallbackURL: "https://callback",
-		ExpiresAt:   now.Add(5 * time.Minute),
+		FlowID:          "stf_failed",
+		State:           "state",
+		Status:          FlowStatusAuthorizing,
+		ProviderCode:    "zhihu",
+		ProviderAppCode: "app",
+		TenantUUID:      "tenant",
+		CallbackURL:     "https://callback",
+		ExpiresAt:       now.Add(5 * time.Minute),
 	}
 	store.getFlow = flow
 	dispatcher := &fakeDispatcher{}
@@ -316,5 +329,8 @@ func TestManagerCompleteFlowFailed(t *testing.T) {
 	}
 	if dispatcher.lastReq == nil || dispatcher.lastReq.Payload.Credentials != nil {
 		t.Fatalf("expected failure callback without credentials")
+	}
+	if dispatcher.lastReq.Payload.ProviderCode != "zhihu" || dispatcher.lastReq.Payload.TenantUUID != "tenant" {
+		t.Fatalf("expected provider/tenant metadata in failure callback")
 	}
 }

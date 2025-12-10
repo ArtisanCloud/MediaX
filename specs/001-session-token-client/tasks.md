@@ -115,12 +115,12 @@ description: "Task list template for feature implementation"
 
 ## Phase 7: Polish & Cross-Cutting Concerns
 
-- [ ] T040 更新文档：`docs/plan/session_token_client.md` 与 `quickstart.md`，说明新的 API、授权与配置（`docs/plan/session_token_client.md`, `specs/001-session-token-client/quickstart.md`）
-- [ ] T041 校验 `contracts/session-token-flows.yaml` 与实现一致并生成示例（`specs/001-session-token-client/contracts/session-token-flows.yaml`）
-- [ ] T042 `go test ./...` + `golangci-lint`（若配置）全量回归，确保无敏感日志（项目根）
-- [ ] T043 运行示例 curl/quickstart，验证 Flow 创建→查询→回调闭环（`specs/001-session-token-client/quickstart.md` 指引）
-- [ ] T044 为 Flow 创建/查询与回调添加 latency/成功率指标上报或日志量化（`pkg/client/sessionToken/manager.go`, `pkg/client/sessionToken/callback/dispatcher.go`）
-- [ ] T045 根据指标结果更新 README 或运维指引，记录 SLA 检查/调优方法（`README.md`, `docs/plan/session_token_client.md`）
+- [X] T040 更新文档：`docs/plan/session_token_client.md` 与 `quickstart.md`，说明新的 API、授权与配置（`docs/plan/session_token_client.md`, `specs/001-session-token-client/quickstart.md`）
+- [X] T041 校验 `contracts/session-token-flows.yaml` 与实现一致并生成示例（`specs/001-session-token-client/contracts/session-token-flows.yaml`）
+- [X] T042 `go test ./...` + `golangci-lint`（若配置）全量回归，确保无敏感日志（项目根）
+- [X] T043 运行示例 curl/quickstart，验证 Flow 创建→查询→回调闭环（`specs/001-session-token-client/quickstart.md` 指引）
+- [X] T044 为 Flow 创建/查询与回调添加 latency/成功率指标上报或日志量化（`pkg/client/sessionToken/manager.go`, `pkg/client/sessionToken/callback/dispatcher.go`）
+- [X] T045 根据指标结果更新 README 或运维指引，记录 SLA 检查/调优方法（`README.md`, `docs/plan/session_token_client.md`）
 
 ## Dependencies & Execution Order
 

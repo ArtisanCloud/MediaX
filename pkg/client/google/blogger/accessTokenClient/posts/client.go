@@ -3,9 +3,11 @@ package posts
 import (
 	"context"
 	"fmt"
+	"strconv"
 
 	"github.com/ArtisanCloud/MediaX/internal/kernel"
 	"github.com/ArtisanCloud/MediaX/pkg/client/google/blogger/accessTokenClient/posts/schema"
+	"github.com/ArtisanCloud/MediaXCore/utils/object"
 )
 
 // BloggerPostsClient 博客文章客户端
@@ -195,8 +197,19 @@ func (c *BloggerPostsClient) Delete(ctx context.Context, data *schema.BloggerPos
 //	如果博文位于私享博客上，则需要授权。博文路径是博文网址中位于主机之后的部分
 func (c *BloggerPostsClient) GetByPath(ctx context.Context, data *schema.BloggerPostsGetByPathReq) (*schema.BloggerPostsGetByPathRes, error) {
 	result := &schema.BloggerPostsGetByPathRes{}
-	endpoint := fmt.Sprintf("/blogger/v3/blogs/%s/posts/bypath", data.BlogId, data.Path)
-	_, err := c.BaseClient.HttpGet(ctx, endpoint, nil, nil, nil, result)
+	endpoint := fmt.Sprintf("/blogger/v3/blogs/%s/posts/bypath", data.BlogId)
+
+	query := object.StringMap{
+		"path": data.Path,
+	}
+	if data.MaxComments != nil {
+		query["maxComments"] = strconv.FormatUint(uint64(*data.MaxComments), 10)
+	}
+	if data.View != nil && *data.View != "" {
+		query["view"] = *data.View
+	}
+
+	_, err := c.BaseClient.HttpGet(ctx, endpoint, &query, nil, nil, result)
 	return result, err
 }
 

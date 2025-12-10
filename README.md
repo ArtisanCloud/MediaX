@@ -151,6 +151,20 @@ zhihu_config:
       ip_strategy: ${ZH_SESSIONTOKEN_IP_STRATEGY}
       request_timeout: 60
 ```
+
+### SessionToken 监控与排查
+
+- 关注 `sessiontoken_metric`（Flow 创建/查询/完成）与 `sessiontoken_callback`（回调重试/成功）日志，字段中包含 `provider/provider_app/tenant_uuid/flow_id/retry/latency_ms`，便于将其采集到日志或指标系统实现 SLA 追踪。
+- 快速排查可以直接 tail + ripgrep：
+  ```bash
+  tail -f logs/mediax.log | rg 'sessiontoken_(metric|callback)'
+  ```
+  典型日志：
+  ```
+  sessiontoken_metric: action=create_flow provider=zhihu provider_app=zhihu_article tenant_uuid=tenant_x ... latency_ms=12
+  sessiontoken_callback: success provider=zhihu tenant_uuid=tenant_x flow_id=stf_xxx retry=0 latency_ms=5
+  ```
+- 若 `latency_ms` 长期高于目标值，优先检查 Redis/第三方登录入口；若 `retry` >= 3，可结合 `last_error` 与插件回调响应定位网络问题。
    }
 
 

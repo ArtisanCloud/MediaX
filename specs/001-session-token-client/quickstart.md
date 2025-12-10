@@ -6,6 +6,10 @@
 - `config.yaml` 里为知乎添加 `SessionTokenConfig`，包含 Service/Auth/Harvester/Callback/Network 字段，secret 使用环境变量引用
 
 ## Setup Steps
+0. **准备环境变量**
+   ```bash
+   export SESSIONTOKEN_API_TOKEN=x-session-token-demo
+   ```
 1. **拉取依赖**
    ```bash
    go mod tidy
@@ -30,13 +34,24 @@
        network:
          proxy_pool: zhihu-default
    ```
-3. **运行单元测试**
+3. **挂载 HTTP Handler**
+   ```go
+   mux := http.NewServeMux()
+   store := redisstore.NewFlowStore(redisClient, mediaX.Logger)
+   mgr := sessiontoken.NewManager(baseClient, mediaX.Logger, cache, store,
+     sessiontoken.WithAuthenticator(auth),
+     sessiontoken.WithCallbackDispatcher(dispatcher),
+   )
+   sessiontokenhandler.RegisterSessionTokenFlowCreateRoute(mux, mgr, os.Getenv("SESSIONTOKEN_API_TOKEN"), mediaX.Logger)
+   sessiontokenhandler.RegisterSessionTokenFlowGetRoute(mux, mgr, os.Getenv("SESSIONTOKEN_API_TOKEN"), mediaX.Logger)
+   ```
+4. **运行单元测试**
    ```bash
    go test ./pkg/client/sessionToken/... ./pkg/client/zhihu/sessionToken/...
    ```
-4. **示例：创建 Flow**
+5. **示例：创建 Flow**
    ```bash
-   curl -X POST http://localhost:8080/session-token/flows \
+   FLOW_RESPONSE=$(curl --noproxy "*" -s -X POST http://localhost:8080/session-token/flows \
      -H "Authorization: Bearer $SESSIONTOKEN_API_TOKEN" \
      -H "Content-Type: application/json" \
      -d '{
@@ -47,18 +62,21 @@
            "state": "ui-flow-123",
            "callback_url": "https://plugin/api/callback",
            "metadata": {"login_mode": "password"}
-         }'
+         }')
+   echo "$FLOW_RESPONSE"
+   export FLOW_ID=$(echo "$FLOW_RESPONSE" | jq -r '.flow.flow_id')
    ```
-5. **轮询 Flow**
+6. **轮询 Flow + 查看凭证**
    ```bash
-   curl -H "Authorization: Bearer $SESSIONTOKEN_API_TOKEN" \
-     http://localhost:8080/session-token/flows/stf_abc123
+   curl --noproxy "*" -H "Authorization: Bearer $SESSIONTOKEN_API_TOKEN" \
+     http://localhost:8080/session-token/flows/$FLOW_ID | jq '.flow.status,.flow.result'
    ```
-6. **查看回调日志**
-   - 日志中应包含 `provider=zhihu api=session_token.callback flow_id=... retry=0`。
-   - 若回调失败，可在日志内看到 retry=1/2/3 与 `last_error`。
+7. **查看日志指标**
+   - Flow 创建/查询会输出 `sessiontoken_metric: action=create_flow provider=zhihu ... latency_ms=12`，可据此评估延迟。
+   - 回调成功时会看到 `sessiontoken_callback: success provider=zhihu tenant_uuid=tenant_x flow_id=... retry=0 latency_ms=5`；若失败则会有 `sessiontoken_callback: failed ... retry=2 latency_ms=900 error=...`，便于排查。
 
 ## Troubleshooting
 - **回调签名失败**：确认 callback secret 与插件端配置一致，并检查 payload 中 timestamp/nonce 是否在允许窗口内。
 - **Flow 永远 pending**：确认浏览器容器可访问 authorize_url，或检查 Authenticator 脚本日志。
+- **本地代理拦截**：如果本机装有 Surge/Charles，记得在 curl 中添加 `--noproxy "*"`.
 - **Redis 连接失败**：检查 `MediaXConfig.Redis` 是否指向正确实例，并确保 Flow key `sessionToken:flow:*` 能被创建。

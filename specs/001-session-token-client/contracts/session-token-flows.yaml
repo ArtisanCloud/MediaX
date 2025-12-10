@@ -21,6 +21,23 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/CreateFlowResponse'
+              example:
+                flow:
+                  flow_id: stf_1234567890abcdef
+                  provider_code: zhihu
+                  provider_app_code: zhihu_article
+                  tenant_uuid: tenant_demo
+                  account_id: acct_demo
+                  state: ui-flow-123
+                  status: pending
+                  authorize_url: https://www.zhihu.com/signin?flow_id=stf_1234567890abcdef&state=ui-flow-123
+                  callback_url: https://plugin/api/callback
+                  expires_at: 2025-12-10T06:34:12Z
+                  metadata:
+                    login_mode: password
+                  retry_attempts: 0
+                  created_at: 2025-12-10T06:04:12Z
+                  updated_at: 2025-12-10T06:04:12Z
         '400':
           description: Invalid payload/provider unsupported
         '401':
@@ -43,6 +60,30 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/GetFlowResponse'
+              example:
+                flow:
+                  flow_id: stf_1234567890abcdef
+                  provider_code: zhihu
+                  provider_app_code: zhihu_article
+                  tenant_uuid: tenant_demo
+                  account_id: acct_demo
+                  state: ui-flow-123
+                  status: succeeded
+                  authorize_url: https://www.zhihu.com/signin?flow_id=stf_1234567890abcdef&state=ui-flow-123
+                  callback_url: https://plugin/api/callback
+                  expires_at: 2025-12-10T06:34:12Z
+                  expires_in: 1710
+                  metadata:
+                    login_mode: password
+                  result:
+                    session_token: qui*****************************************b26f
+                    headers_json:
+                      X-Demo: ses******oken
+                    captured_at: 2025-12-10T06:09:45Z
+                  retry_attempts: 0
+                  last_error: ""
+                  created_at: 2025-12-10T06:04:12Z
+                  updated_at: 2025-12-10T06:09:45Z
         '404':
           description: Flow not found or expired
 components:
@@ -88,6 +129,10 @@ components:
             - $ref: '#/components/schemas/Flow'
             - type: object
               properties:
+                expires_in:
+                  type: integer
+                  format: int64
+                  description: 从当前时间到过期的秒数
                 last_error:
                   type: string
                 result:
@@ -97,10 +142,23 @@ components:
       properties:
         flow_id:
           type: string
+        provider_code:
+          type: string
+        provider_app_code:
+          type: string
+        tenant_uuid:
+          type: string
+        account_id:
+          type: string
+        state:
+          type: string
         status:
           type: string
           enum: [pending, authorizing, succeeded, failed]
         authorize_url:
+          type: string
+          format: uri
+        callback_url:
           type: string
           format: uri
         expires_at:
@@ -110,6 +168,15 @@ components:
           type: object
           additionalProperties:
             type: string
+        retry_attempts:
+          type: integer
+          format: int32
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
     CredentialPayload:
       type: object
       properties:

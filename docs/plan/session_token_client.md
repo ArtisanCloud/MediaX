@@ -107,6 +107,7 @@
 - callback payload：`{state, flowId, status, credentials, metadata}`，附签名（HMAC-SHA256）。
 - 日志脱敏：`session_token`、`cookies_json` 仅展示前后若干字符。
 - 支持可选代理池配置，避免同 IP 被识别。
+- 观测性：`sessiontoken_metric` 日志记录 `action/provider/tenant/flow_id/status/latency_ms`，覆盖 Flow 创建、查询与完成；`sessiontoken_callback` 日志在每次回调成功/失败时输出 `retry/latency_ms`，便于统计成功率与重试次数。
 
 ## 7. 里程碑
 1. **配置与抽象**（Day 1-2）
@@ -131,3 +132,37 @@
 - 插件端能够通过 `provider_code=zhihu` 发起 Flow，成功拉起登录并在 95% 情况下获取凭证。
 - Flow 状态 api 支持轮询，能准确反映 pending/authorizing/failed/succeeded。
 - 回调 payload 满足插件校验（state & signature）。
+
+## 10. 运维指标与 SLA
+- 通过日志聚合分析 `sessiontoken_metric`（Flow 创建/查询/完成）与 `sessiontoken_callback`（成功/失败/重试）字段，统计 95/99 分位 latency 与成功率。
+- 若 `latency_ms` 或 `retry` 异常上升，可结合 `Flow.last_error` 与回调状态排查网络与第三方登录入口。
+- 在 Quickstart 中的 curl 示例基础上，可使用 `jq` 或 Prometheus tailing rules 将上述日志转换为仪表盘，作为插件 SLA 的主监控项。
+
+## 11. 验证与日志采集
+1. **单元测试/接口联合测试**
+   ```bash
+   go test ./pkg/client/sessionToken/... \
+     ./pkg/client/zhihu/sessionToken/... \
+     ./pkg/server/handlers/session_token \
+     ./pkg/server/middleware/session_token
+   ```
+2. **挂载 HTTP Handler**
+   ```go
+   mux := http.NewServeMux()
+   store := sessiontokenredis.NewFlowStore(redisClient, logger)
+   manager := sessiontoken.NewManager(baseClient, logger, cache, store,
+     sessiontoken.WithAuthenticator(auth),
+     sessiontoken.WithCallbackDispatcher(dispatcher),
+   )
+   _ = sessiontokenhandler.RegisterSessionTokenFlowCreateRoute(mux, manager, os.Getenv("SESSIONTOKEN_API_TOKEN"), logger)
+   _ = sessiontokenhandler.RegisterSessionTokenFlowGetRoute(mux, manager, os.Getenv("SESSIONTOKEN_API_TOKEN"), logger)
+   ```
+3. **手动验证**
+   - 创建 Flow：`curl --noproxy "*" -X POST http://localhost:8080/session-token/flows -H "Authorization: Bearer $SESSIONTOKEN_API_TOKEN" -d '{...}'`
+   - 轮询 Flow：`curl --noproxy "*" -H "Authorization: Bearer $SESSIONTOKEN_API_TOKEN" http://localhost:8080/session-token/flows/$FLOW_ID | jq '.flow.status,.flow.result'`
+   - 读取日志：`tail -f logs/sessiontoken.log | rg 'sessiontoken_metric|sessiontoken_callback'`
+   - 预期日志：
+     ```
+     sessiontoken_metric: action=create_flow provider=zhihu ... latency_ms=14
+     sessiontoken_callback: success provider=zhihu tenant_uuid=tenant_x flow_id=stf_xxx retry=0 latency_ms=6
+     ```
