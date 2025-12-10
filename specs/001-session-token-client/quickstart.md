@@ -88,8 +88,9 @@
      http://localhost:8080/session-token/flows/$FLOW_ID | jq '.flow.status,.flow.result'
    ```
 8. **查看日志指标**
-   - Flow 创建/查询会输出 `sessiontoken_metric: action=create_flow provider=zhihu ... latency_ms=12`，可据此评估延迟。
-   - 回调成功时会看到 `sessiontoken_callback: success provider=zhihu tenant_uuid=tenant_x flow_id=... retry=0 latency_ms=5`；若失败则会有 `sessiontoken_callback: failed ... retry=2 latency_ms=900 error=...`，便于排查。
+   - Flow 创建/查询会输出 `sessiontoken_metric: action=create_flow provider=zhihu provider_app=zhihu_article tenant_uuid=tenant_x account_id=acct_demo state=ui-flow flow_id=stf_xxx status=pending latency_ms=12 retry=0`。
+   - 回调成功时会看到 `sessiontoken_callback: success provider=zhihu provider_app=zhihu_article tenant_uuid=tenant_x flow_id=stf_xxx state=ui-flow flow_status=succeeded retry=0 http_status=200 latency_ms=5`；若失败则会有 `sessiontoken_callback: failed ... retry=2 latency_ms=900 error=...`。
+   - 使用 `tail -f logs/sessiontoken-info.log | rg 'sessiontoken_(metric|callback)'` 可实时观察上述指标，或在生产中接入日志/指标系统。
 
 ## Troubleshooting
 - **回调签名失败**：确认 callback secret 与插件端配置一致，并检查 payload 中 timestamp/nonce 是否在允许窗口内。

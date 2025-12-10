@@ -127,7 +127,7 @@ description: "Task list template for feature implementation"
 - [X] T043 运行示例 curl/quickstart，验证 Flow 创建→查询→回调闭环（`specs/001-session-token-client/quickstart.md` 指引）
 - [X] T044 为 Flow 创建/查询与回调添加 latency/成功率指标上报或日志量化（`pkg/client/sessionToken/manager.go`, `pkg/client/sessionToken/callback/dispatcher.go`）
 - [X] T045 根据指标结果更新 README 或运维指引，记录 SLA 检查/调优方法（`README.md`, `docs/plan/session_token_client.md`）
-- [ ] T049 [P] 输出 `sessiontoken_metric` 与 `sessiontoken_callback` 日志/指标字段（`action/provider/tenant_uuid/flow_id/status/latency_ms/retry`），并在 README/Quickstart 中说明如何 tail 该日志（`pkg/client/sessionToken/manager.go`, `pkg/client/sessionToken/callback/dispatcher.go`, `README.md`）。
+- [X] T049 [P] 输出 `sessiontoken_metric` 与 `sessiontoken_callback` 日志/指标字段（`action/provider/tenant_uuid/flow_id/status/latency_ms/retry`），并在 README/Quickstart 中说明如何 tail 该日志（`pkg/client/sessionToken/manager.go`, `pkg/client/sessionToken/callback/dispatcher.go`, `README.md`）。
 
 ## Dependencies & Execution Order
 

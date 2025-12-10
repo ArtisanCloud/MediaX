@@ -173,8 +173,8 @@ zhihu_config:
   ```
   典型日志：
   ```
-  sessiontoken_metric: action=create_flow provider=zhihu provider_app=zhihu_article tenant_uuid=tenant_x ... latency_ms=12
-  sessiontoken_callback: success provider=zhihu tenant_uuid=tenant_x flow_id=stf_xxx retry=0 latency_ms=5
+  sessiontoken_metric: action=create_flow provider=zhihu provider_app=zhihu_article tenant_uuid=tenant_x account_id=acct_demo state=ui-flow flow_id=stf_xxx status=pending latency_ms=12 retry=0
+  sessiontoken_callback: success provider=zhihu provider_app=zhihu_article tenant_uuid=tenant_x flow_id=stf_xxx state=ui-flow flow_status=succeeded retry=0 http_status=200 latency_ms=5
   ```
 - 若 `latency_ms` 长期高于目标值，优先检查 Redis/第三方登录入口；若 `retry` >= 3，可结合 `last_error` 与插件回调响应定位网络问题。
    }
