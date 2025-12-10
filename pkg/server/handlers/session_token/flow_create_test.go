@@ -1,4 +1,4 @@
-package handlers
+package session_token
 
 import (
 	"bytes"

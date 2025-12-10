@@ -49,8 +49,8 @@ description: "Task list template for feature implementation"
 - [X] T010 定义 HMAC 签名工具与回调 dispatcher 接口（`pkg/client/sessionToken/callback/dispatcher.go`）
 - [X] T011 [P] 编写签名与重试逻辑的单元测试（`pkg/client/sessionToken/callback/dispatcher_test.go`）
 - [X] T012 完成日志脱敏/敏感字段工具（`pkg/client/sessionToken/sanitizer/sanitizer.go` + tests）
-- [X] T013 实现 SessionToken API Bearer Token 验证中间件/拦截器，并复用配置中的 `api_token`（`pkg/server/middleware/sessionToken_auth.go`）
-- [X] T014 [P] 为授权中间件添加单测，覆盖缺失/错误 token → 401（`pkg/server/middleware/sessionToken_auth_test.go`）
+- [X] T013 实现 SessionToken API Bearer Token 验证中间件/拦截器，并复用配置中的 `api_token`（`pkg/server/middleware/session_token/auth.go`）
+- [X] T014 [P] 为授权中间件添加单测，覆盖缺失/错误 token → 401（`pkg/server/middleware/session_token/auth_test.go`）
 
 ## Phase 3: User Story 1 - 插件创建 SessionToken Flow 并拉起登录 (Priority: P1) 🎯 MVP
 
@@ -63,9 +63,9 @@ description: "Task list template for feature implementation"
 - [X] T015 [US1] 实现 Flow 创建请求 DTO + 校验逻辑（`pkg/client/sessionToken/api/create_flow_request.go`）
 - [X] T016 [US1] 在 `sessionToken.Manager` 实现 CreateFlow 方法（含 authorize_url 构建钩子）（`pkg/client/sessionToken/manager.go`）
 - [X] T017 [US1] 集成 Redis 存储写入、重复 state 幂等处理（`pkg/client/sessionToken/manager.go`）
-- [X] T018 [US1] 在 HTTP 层注册 `POST /session-token/flows` handler 并接入 Bearer 中间件（`pkg/server/handlers/sessionToken_flow_create.go`）
-- [X] T019 [US1] 输出结构化日志（provider/api/tenant_uuid/flow_id）与错误包装（`pkg/server/handlers/sessionToken_flow_create.go`）
-- [X] T020 [P] [US1] 编写 handler + manager 的单元测试（`pkg/server/handlers/sessionToken_flow_create_test.go`、`pkg/client/sessionToken/manager_create_test.go`）
+- [X] T018 [US1] 在 HTTP 层注册 `POST /session-token/flows` handler 并接入 Bearer 中间件（`pkg/server/handlers/session_token/flow_create.go`）
+- [X] T019 [US1] 输出结构化日志（provider/api/tenant_uuid/flow_id）与错误包装（`pkg/server/handlers/session_token/flow_create.go`）
+- [X] T020 [P] [US1] 编写 handler + manager 的单元测试（`pkg/server/handlers/session_token/flow_create_test.go`、`pkg/client/sessionToken/manager_create_test.go`）
 
 ## Phase 4: User Story 2 - 插件轮询 Flow 状态 (Priority: P1)
 
@@ -75,11 +75,11 @@ description: "Task list template for feature implementation"
 
 ### Implementation
 
-- [ ] T021 [US2] 实现查询请求解析/响应 DTO（`pkg/client/sessionToken/api/get_flow_response.go`）
-- [ ] T022 [US2] 在 `sessionToken.Manager` 添加 `GetFlow`，支持 expired/not_found 分支（`pkg/client/sessionToken/manager.go`）
-- [ ] T023 [US2] wiring HTTP handler `GET /session-token/flows/{flow_id}` 并挂载 Bearer 中间件（`pkg/server/handlers/sessionToken_flow_get.go`）
-- [ ] T024 [US2] 追加 last_error/result 序列化与脱敏逻辑（`pkg/server/handlers/sessionToken_flow_get.go`）
-- [ ] T025 [P] [US2] 编写查询接口单元测试，覆盖 pending/succeeded/failed/expired/401 未授权（`pkg/server/handlers/sessionToken_flow_get_test.go`）
+- [X] T021 [US2] 实现查询请求解析/响应 DTO（`pkg/client/sessionToken/api/get_flow_response.go`）
+- [X] T022 [US2] 在 `sessionToken.Manager` 添加 `GetFlow`，支持 expired/not_found 分支（`pkg/client/sessionToken/manager.go`）
+- [X] T023 [US2] wiring HTTP handler `GET /session-token/flows/{flow_id}` 并挂载 Bearer 中间件（`pkg/server/handlers/session_token/flow_get.go`）
+- [X] T024 [US2] 追加 last_error/result 序列化与脱敏逻辑（`pkg/server/handlers/session_token/flow_get.go`）
+- [X] T025 [P] [US2] 编写查询接口单元测试，覆盖 pending/succeeded/failed/expired/401 未授权（`pkg/server/handlers/session_token/flow_get_test.go`）
 
 ## Phase 5: User Story 3 - 凭证采集与回调 (Priority: P2)
 

@@ -12,6 +12,8 @@ type fakeFlowStore struct {
 	saveCount      int
 	getByStateFlow *Flow
 	getByStateErr  error
+	getFlow        *Flow
+	getErr         error
 }
 
 func (s *fakeFlowStore) Save(ctx context.Context, flow *Flow, ttl time.Duration) error {
@@ -24,6 +26,12 @@ func (s *fakeFlowStore) Save(ctx context.Context, flow *Flow, ttl time.Duration)
 func (s *fakeFlowStore) Update(ctx context.Context, flow *Flow, ttl time.Duration) error { return nil }
 
 func (s *fakeFlowStore) Get(ctx context.Context, flowID string) (*Flow, error) {
+	if s.getErr != nil {
+		return nil, s.getErr
+	}
+	if s.getFlow != nil {
+		return s.getFlow, nil
+	}
 	return nil, ErrFlowNotFound
 }
 
@@ -145,5 +153,39 @@ func TestManagerCreateFlowExpiredStateCreatesNew(t *testing.T) {
 	}
 	if flow.ExpiresAt.Before(fixedNow) {
 		t.Fatalf("expected expires_at to be after current time")
+	}
+}
+
+func TestManagerGetFlowSuccess(t *testing.T) {
+	store := &fakeFlowStore{}
+	now := time.Unix(1800000000, 0)
+	expected := &Flow{
+		FlowID:       "stf_1",
+		ExpiresAt:    now.Add(5 * time.Minute),
+		ProviderCode: "zhihu",
+		TenantUUID:   "tenant",
+	}
+	store.getFlow = expected
+	mgr := NewManager(nil, nil, nil, store, WithClock(func() time.Time { return now }))
+
+	flow, err := mgr.GetFlow(context.Background(), "stf_1")
+	if err != nil {
+		t.Fatalf("expected success, got err=%v", err)
+	}
+	if flow != expected {
+		t.Fatalf("expected returned flow to match store")
+	}
+}
+
+func TestManagerGetFlowExpired(t *testing.T) {
+	store := &fakeFlowStore{}
+	now := time.Unix(1800001000, 0)
+	store.getFlow = &Flow{
+		FlowID:    "stf_expired",
+		ExpiresAt: now.Add(-time.Minute),
+	}
+	mgr := NewManager(nil, nil, nil, store, WithClock(func() time.Time { return now }))
+	if _, err := mgr.GetFlow(context.Background(), "stf_expired"); err == nil {
+		t.Fatalf("expected error for expired flow")
 	}
 }

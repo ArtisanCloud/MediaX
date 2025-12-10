@@ -1,4 +1,4 @@
-package middleware
+package session_token
 
 import (
 	"errors"

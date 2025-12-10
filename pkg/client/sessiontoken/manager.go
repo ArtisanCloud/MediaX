@@ -138,7 +138,18 @@ func (m *Manager) GetFlow(ctx context.Context, flowID string) (*Flow, error) {
 	if strings.TrimSpace(flowID) == "" {
 		return nil, errors.New("sessiontoken: flow_id is empty")
 	}
-	return m.store.Get(ctx, flowID)
+	flow, err := m.store.Get(ctx, flowID)
+	if err != nil {
+		return nil, err
+	}
+	if flow == nil {
+		return nil, ErrFlowNotFound
+	}
+	now := m.clock().UTC()
+	if flow.ExpiresAt.Before(now) {
+		return nil, ErrFlowNotFound
+	}
+	return flow, nil
 }
 
 func (m *Manager) validateCreateOptions(opts *CreateFlowOptions) error {

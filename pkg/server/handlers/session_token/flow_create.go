@@ -1,4 +1,4 @@
-package handlers
+package session_token
 
 import (
 	"encoding/json"
@@ -10,7 +10,7 @@ import (
 	sessiontoken "github.com/ArtisanCloud/MediaX/pkg/client/sessionToken"
 	sessionapi "github.com/ArtisanCloud/MediaX/pkg/client/sessionToken/api"
 	"github.com/ArtisanCloud/MediaX/pkg/client/sessionToken/sanitizer"
-	"github.com/ArtisanCloud/MediaX/pkg/server/middleware"
+	sessionmiddleware "github.com/ArtisanCloud/MediaX/pkg/server/middleware/session_token"
 	"github.com/ArtisanCloud/MediaXCore/pkg/logger"
 )
 
@@ -44,7 +44,7 @@ func RegisterSessionTokenFlowCreateRoute(mux *http.ServeMux, manager sessiontoke
 		return errMissingAPIToken
 	}
 	handler := NewSessionTokenFlowCreateHandler(manager, log)
-	mux.Handle(SessionTokenFlowCreatePath, middleware.SessionTokenAuthMiddleware(apiToken, log)(handler))
+	mux.Handle(SessionTokenFlowCreatePath, sessionmiddleware.SessionTokenAuthMiddleware(apiToken, log)(handler))
 	return nil
 }
 
