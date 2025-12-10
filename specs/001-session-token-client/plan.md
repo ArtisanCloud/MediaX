@@ -39,7 +39,7 @@ MediaX 需要把 SessionToken 流程升级为 provider 级适配器。此次迭�
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
 - **Provider Adapter Parity**: Plan MUST document provider/product directory layout, required `core/client.go` location, and factory injection so no team invents a new topology.
-- 满足方式：`pkg/client/sessionToken` 承载共享 manager/Flow 模型；`pkg/client/zhihu/sessionToken/core/client.go` + `authenticator/`、`harvester/`、`callback/` 负责产品细节。在 `pkg/client/mediaX.go` 增加 `CreateZhihuSessionTokenClient`，并在 README/quickstart 里注明如何注入。新增 provider 时沿用同一层级结构。
+- 满足方式：`pkg/client/sessionToken` 承载共享 manager/Flow 模型；`pkg/client/zhihu/core/client.go` + `sessionToken/authenticator`、`harvester`、`callback` 负责产品细节。在 `pkg/client/mediaX.go` 增加 `CreateZhihuSessionTokenClient`，并在 README/quickstart 里注明如何注入。新增 provider 时沿用同一层级结构。
 - **Config-Layered Security**: Plan MUST enumerate configs added or modified under `pkg/client/config` plus how secrets/TTL are sourced without hardcoding.
 - 满足方式：在 `pkg/client/config/zhihu.go` 定义 `ZhihuSessionTokenConfig`（含 `Service/Auth/Harvester/Callback/Network` 五块），并在 `config.yaml`/README 中展示 env var 引用。Flow TTL、callback secret、代理池参数全部声明在配置体内，避免散落常量。
 - **Token Lifecycle Discipline**: Plan MUST explain how BaseClient helpers, refresh hooks, and cache interfaces are reused (or explicitly extended) for Access/Client/Session tokens.

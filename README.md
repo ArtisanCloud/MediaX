@@ -114,11 +114,43 @@ ArisanCloud 团队已经成功维护了 [PowerWechat](https://powerwechat.artisa
    // 设置AccessToken
    googleYouTubeClient.GoogleClient.TokenHandler.GetCustomToken = func(key string, refresh bool) object.HashMap {
    	fmt.Dump("GetCustomToken", key, refresh)
-   	return object.HashMap{
+  	return object.HashMap{
    		// 这个acess token需要开发这来维护，或者可以通过MediaX Studio的UI界面来维护
    		"access_token": "72_ggzUdSgH99StJ2EhmuaIbHHUP9_3rDvdnQVQ9eoX5gwmNfuLpJgBUb5uPgdoh4aoVv9jYz3EKglRT73ppWqgRwzirNQM-bHaToDQ83ux1sFdCr5GK7jxYQfAESoCOEaAHAKWM",
    		"expires_in":   float64(7200),
-   	}
+  	}
+
+### Zhihu SessionToken 配置片段
+
+在 `config.yaml` 中启用 `zhihu_config.sessionToken`，为服务端、Authenticator、Harvester、回调与网络策略提供必要的字段：
+
+```yaml
+zhihu_config:
+  sessionToken:
+    service:
+      base_url: ${ZH_SESSIONTOKEN_BASE_URL}
+      api_token: ${ZH_SESSIONTOKEN_API_TOKEN}
+      timeout: 30
+    authenticator:
+      entries:
+        - type: pc
+          url: ${ZH_SESSIONTOKEN_PC_ENTRY_URL}
+      default_user_agent: ${ZH_SESSIONTOKEN_DEFAULT_UA}
+      script_ids: [${ZH_SESSIONTOKEN_SCRIPT_ID}]
+      captcha_strategy: ${ZH_SESSIONTOKEN_CAPTCHA_STRATEGY}
+    harvester:
+      watch_cookies: [z_c0]
+      watch_headers: [X-XSRF-TOKEN]
+      harvest_script_id: ${ZH_SESSIONTOKEN_HARVEST_SCRIPT_ID}
+    callback:
+      callback_secret: ${ZH_SESSIONTOKEN_CALLBACK_SECRET}
+      max_retry: 3
+      retry_backoff: [2, 4, 8]
+    network:
+      proxy_pool: ${ZH_SESSIONTOKEN_PROXY_POOL}
+      ip_strategy: ${ZH_SESSIONTOKEN_IP_STRATEGY}
+      request_timeout: 60
+```
    }
 
 

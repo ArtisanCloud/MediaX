@@ -56,6 +56,7 @@ type LocalConfig struct {
 	*ByteDanceDouYinConfig       `yaml:"byte_dance_douyin_config" json:"douyin_config"`                        // 抖音开放平台配置
 	*RedBookJuGuangConfig        `yaml:"redbook_juguang_config" json:"redbook_juguang_config"`                 // 小红书聚光平台配置
 	*BiliBiliConfig              `yaml:"bilbili_config" json:"bilbili_config"`                                 // B站开放平台配置
+	*ZhihuConfig                 `yaml:"zhihu_config" json:"zhihu_config"`                                     // 知乎 SessionToken 配置
 }
 
 // BaseConfig 基础配置结构体

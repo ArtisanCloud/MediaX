@@ -104,14 +104,14 @@ description: "Task list template for feature implementation"
 **Independent Test**: 通过 fake 脚本验证 adapter 生效；运行 `go test ./pkg/client/zhihu/sessionToken/...`。
 
 ### Implementation
-- [ ] T032 [US4] 在 `pkg/client/config/zhihu.go` 添加 `ZhihuSessionTokenConfig` 结构、yaml/json tags、默认值（`pkg/client/config/zhihu.go`）
-- [ ] T033 [US4] 在 `config.yaml`/README 添加 Zhihu sessionToken 配置示例（`config.yaml`, `README.md`）
-- [ ] T034 [US4] 新建 `pkg/client/zhihu/sessionToken/core/client.go`，复用 BaseClient 并注入配置/logger/cache（`pkg/client/zhihu/sessionToken/core/client.go`）
-- [ ] T035 [US4] 实现 Zhihu Authenticator（入口 URL、UA、脚本选择）（`pkg/client/zhihu/sessionToken/authenticator/authenticator.go`）
-- [ ] T036 [US4] 实现 Zhihu Harvester（抓取 cookies/headers）（`pkg/client/zhihu/sessionToken/harvester/harvester.go`）
-- [ ] T037 [US4] 实现 Zhihu CallbackDispatcher wrapper，复用共享 dispatcher 并添加 provider metadata（`pkg/client/zhihu/sessionToken/callback/dispatcher.go`）
-- [ ] T038 [US4] 在 `pkg/client/mediaX.go` 注册 `CreateZhihuSessionTokenClient`，并确保工厂注入日志/缓存（`pkg/client/mediaX.go`）
-- [ ] T039 [P] [US4] 编写 Zhihu adapter 单元测试（配置解析 + Authenticator/Harvester 行为）（`pkg/client/zhihu/sessionToken/..._test.go`）
+- [X] T032 [US4] 在 `pkg/client/config/zhihu.go` 添加 `ZhihuSessionTokenConfig` 结构、yaml/json tags、默认值（`pkg/client/config/zhihu.go`）
+- [X] T033 [US4] 在 `config.yaml`/README 添加 Zhihu sessionToken 配置示例（`config.yaml`, `README.md`）
+- [X] T034 [US4] 新建 `pkg/client/zhihu/core/client.go`，复用 BaseClient 并注入配置/logger/cache（`pkg/client/zhihu/core/client.go`）
+- [X] T035 [US4] 实现 Zhihu Authenticator（入口 URL、UA、脚本选择）（`pkg/client/zhihu/sessionToken/authenticator/authenticator.go`）
+- [X] T036 [US4] 实现 Zhihu Harvester（抓取 cookies/headers）（`pkg/client/zhihu/sessionToken/harvester/harvester.go`）
+- [X] T037 [US4] 实现 Zhihu CallbackDispatcher wrapper，复用共享 dispatcher 并添加 provider metadata（`pkg/client/zhihu/sessionToken/callback/dispatcher.go`）
+- [X] T038 [US4] 在 `pkg/client/mediaX.go` 注册 `CreateZhihuSessionTokenClient`，并确保工厂注入日志/缓存（`pkg/client/mediaX.go`）
+- [X] T039 [P] [US4] 编写 Zhihu adapter 单元测试（配置解析 + Authenticator/Harvester 行为）（`pkg/client/zhihu/sessionToken/..._test.go`）
 
 ## Phase 7: Polish & Cross-Cutting Concerns
 
