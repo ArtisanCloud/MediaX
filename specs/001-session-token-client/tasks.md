@@ -88,14 +88,14 @@ description: "Task list template for feature implementation"
 **Independent Test**: 使用 fake Harvester + mock callback server 验证成功/失败路径与重试次数。
 
 ### Tests (必要)
-- [ ] T026 [P] [US3] 构建 callback dispatcher 集成测试，模拟签名通过/失败（`pkg/client/sessionToken/callback/dispatcher_integration_test.go`）
+- [X] T026 [P] [US3] 构建 callback dispatcher 集成测试，模拟签名通过/失败（`pkg/client/sessionToken/callback/dispatcher_integration_test.go`）
 
 ### Implementation
-- [ ] T027 [US3] 在 `sessionToken.Manager` 增加 `CompleteFlowSuccess`/`CompleteFlowFailed` API（`pkg/client/sessionToken/manager.go`）
-- [ ] T028 [US3] 实现凭证脱敏存储与 Redis 更新 result（`pkg/client/sessionToken/manager.go`）
-- [ ] T029 [US3] 在 dispatcher 中实现 2s→4s→8s 指数退避逻辑并记录 retry（`pkg/client/sessionToken/callback/dispatcher.go`）
-- [ ] T030 [US3] 添加回调 HMAC 签名与 payload 结构（`pkg/client/sessionToken/callback/payload.go`）
-- [ ] T031 [US3] 在日志中记录 callback 成功/失败、flow_id、retry 次数（`pkg/client/sessionToken/callback/dispatcher.go`）
+- [X] T027 [US3] 在 `sessionToken.Manager` 增加 `CompleteFlowSuccess`/`CompleteFlowFailed` API（`pkg/client/sessionToken/manager.go`）
+- [X] T028 [US3] 实现凭证脱敏存储与 Redis 更新 result（`pkg/client/sessionToken/manager.go`）
+- [X] T029 [US3] 在 dispatcher 中实现 2s→4s→8s 指数退避逻辑并记录 retry（`pkg/client/sessionToken/callback/dispatcher.go`）
+- [X] T030 [US3] 添加回调 HMAC 签名与 payload 结构（`pkg/client/sessionToken/callback/payload.go`）
+- [X] T031 [US3] 在日志中记录 callback 成功/失败、flow_id、retry 次数（`pkg/client/sessionToken/callback/dispatcher.go`）
 
 ## Phase 6: User Story 4 - 知乎适配器与配置注入 (Priority: P2)
 

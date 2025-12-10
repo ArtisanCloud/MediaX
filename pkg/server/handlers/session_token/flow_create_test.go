@@ -11,6 +11,7 @@ import (
 
 	sessiontoken "github.com/ArtisanCloud/MediaX/pkg/client/sessionToken"
 	sessionapi "github.com/ArtisanCloud/MediaX/pkg/client/sessionToken/api"
+	callback "github.com/ArtisanCloud/MediaX/pkg/client/sessionToken/callback"
 )
 
 type fakeManager struct {
@@ -24,6 +25,14 @@ func (f *fakeManager) CreateFlow(ctx context.Context, opts *sessiontoken.CreateF
 
 func (f *fakeManager) GetFlow(ctx context.Context, flowID string) (*sessiontoken.Flow, error) {
 	return nil, sessiontoken.ErrFlowNotFound
+}
+
+func (f *fakeManager) CompleteFlowSuccess(ctx context.Context, flowID string, credentials *callback.CredentialPayload) (*sessiontoken.Flow, error) {
+	return nil, nil
+}
+
+func (f *fakeManager) CompleteFlowFailed(ctx context.Context, flowID string, reason string) (*sessiontoken.Flow, error) {
+	return nil, nil
 }
 
 func TestSessionTokenFlowCreateHandlerSuccess(t *testing.T) {

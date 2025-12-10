@@ -10,20 +10,23 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/ArtisanCloud/MediaX/internal/kernel"
+	"github.com/ArtisanCloud/MediaX/pkg/client/sessionToken/callback"
+	"github.com/ArtisanCloud/MediaX/pkg/client/sessionToken/sanitizer"
 	"github.com/ArtisanCloud/MediaXCore/pkg/cache"
 	"github.com/ArtisanCloud/MediaXCore/pkg/logger"
 )
 
 // Manager 负责协调 Flow 状态机、存储与 adapter。
 type Manager struct {
-	baseClient    *kernel.BaseClient
-	logger        *logger.Logger
-	cache         cache.ICache
-	store         FlowStore
-	stateMachine  *StateMachine
-	flowTTL       time.Duration
-	clock         func() time.Time
-	authenticator Authenticator
+	baseClient         *kernel.BaseClient
+	logger             *logger.Logger
+	cache              cache.ICache
+	store              FlowStore
+	stateMachine       *StateMachine
+	flowTTL            time.Duration
+	clock              func() time.Time
+	authenticator      Authenticator
+	callbackDispatcher CallbackDispatcher
 }
 
 // ManagerOption 用于配置 Manager。
@@ -60,6 +63,13 @@ func WithClock(clock func() time.Time) ManagerOption {
 func WithAuthenticator(auth Authenticator) ManagerOption {
 	return func(m *Manager) {
 		m.authenticator = auth
+	}
+}
+
+// WithCallbackDispatcher 指定回调派发器。
+func WithCallbackDispatcher(dispatcher CallbackDispatcher) ManagerOption {
+	return func(m *Manager) {
+		m.callbackDispatcher = dispatcher
 	}
 }
 
@@ -152,6 +162,48 @@ func (m *Manager) GetFlow(ctx context.Context, flowID string) (*Flow, error) {
 	return flow, nil
 }
 
+// CompleteFlowSuccess 在凭证采集成功后更新 Flow 状态并触发回调。
+func (m *Manager) CompleteFlowSuccess(ctx context.Context, flowID string, credentials *callback.CredentialPayload) (*Flow, error) {
+	if credentials == nil {
+		return nil, errors.New("sessiontoken: credential payload is nil")
+	}
+	flow, err := m.GetFlow(ctx, flowID)
+	if err != nil {
+		return nil, err
+	}
+	if err := m.stateMachine.Transition(flow, FlowStatusSucceeded); err != nil {
+		return nil, err
+	}
+	flow.Result = sanitizer.MaskCredentialPayload(credentials)
+	flow.LastError = ""
+
+	if err := m.dispatchAndRecordCallback(ctx, flow, credentials); err != nil {
+		return flow, err
+	}
+	return flow, nil
+}
+
+// CompleteFlowFailed 在凭证采集失败时更新 Flow 并触发失败回调。
+func (m *Manager) CompleteFlowFailed(ctx context.Context, flowID string, reason string) (*Flow, error) {
+	if strings.TrimSpace(reason) == "" {
+		return nil, errors.New("sessiontoken: failure reason is empty")
+	}
+	flow, err := m.GetFlow(ctx, flowID)
+	if err != nil {
+		return nil, err
+	}
+	if err := m.stateMachine.Transition(flow, FlowStatusFailed); err != nil {
+		return nil, err
+	}
+	flow.LastError = reason
+	flow.Result = nil
+
+	if err := m.dispatchAndRecordCallback(ctx, flow, nil); err != nil {
+		return flow, err
+	}
+	return flow, nil
+}
+
 func (m *Manager) validateCreateOptions(opts *CreateFlowOptions) error {
 	if strings.TrimSpace(opts.ProviderCode) == "" {
 		return errors.New("sessiontoken: provider_code is required")
@@ -199,4 +251,80 @@ func (m *Manager) newFlowFromOptions(opts *CreateFlowOptions, now time.Time) (*F
 
 func (m *Manager) generateFlowID() string {
 	return fmt.Sprintf("stf_%s", strings.ReplaceAll(uuid.New().String(), "-", ""))
+}
+
+func (m *Manager) dispatchAndRecordCallback(ctx context.Context, flow *Flow, credentials *callback.CredentialPayload) error {
+	if flow == nil {
+		return errors.New("sessiontoken: flow is nil")
+	}
+	if err := m.persistFlow(ctx, flow); err != nil {
+		return err
+	}
+	attempts, dispatchErr := m.dispatchCallback(ctx, flow, credentials)
+	flow.RetryAttempts = attempts
+	if dispatchErr == nil {
+		if flow.Status == FlowStatusSucceeded {
+			flow.LastError = ""
+		}
+	} else {
+		if flow.Status == FlowStatusFailed && strings.TrimSpace(flow.LastError) != "" {
+			flow.LastError = fmt.Sprintf("%s; callback: %v", flow.LastError, dispatchErr)
+		} else {
+			flow.LastError = dispatchErr.Error()
+		}
+	}
+	if err := m.persistFlow(ctx, flow); err != nil {
+		return err
+	}
+	return dispatchErr
+}
+
+func (m *Manager) persistFlow(ctx context.Context, flow *Flow) error {
+	if flow == nil {
+		return errors.New("sessiontoken: flow is nil")
+	}
+	if m.store == nil {
+		return errors.New("sessiontoken: flow store is not configured")
+	}
+	now := m.clock().UTC()
+	ttl := flow.ExpiresAt.Sub(now)
+	if ttl <= 0 {
+		ttl = time.Second
+	}
+	return m.store.Update(ctx, flow, ttl)
+}
+
+func (m *Manager) dispatchCallback(ctx context.Context, flow *Flow, credentials *callback.CredentialPayload) (int, error) {
+	if m.callbackDispatcher == nil {
+		return 0, errors.New("sessiontoken: callback dispatcher is not configured")
+	}
+	if flow == nil {
+		return 0, errors.New("sessiontoken: flow is nil")
+	}
+	if strings.TrimSpace(flow.CallbackURL) == "" {
+		return 0, errors.New("sessiontoken: callback url is empty")
+	}
+	payload := &callback.Payload{
+		FlowID:      flow.FlowID,
+		State:       flow.State,
+		Status:      string(flow.Status),
+		Credentials: credentials,
+		Metadata:    cloneMetadata(flow.Metadata),
+	}
+	req := &callback.Request{
+		URL:     flow.CallbackURL,
+		Payload: payload,
+	}
+	return m.callbackDispatcher.Dispatch(ctx, req)
+}
+
+func cloneMetadata(meta map[string]string) map[string]string {
+	if len(meta) == 0 {
+		return nil
+	}
+	cloned := make(map[string]string, len(meta))
+	for k, v := range meta {
+		cloned[k] = v
+	}
+	return cloned
 }

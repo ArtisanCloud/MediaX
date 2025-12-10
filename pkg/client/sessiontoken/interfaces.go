@@ -11,6 +11,8 @@ import (
 type SessionTokenClient interface {
 	CreateFlow(ctx context.Context, opts *CreateFlowOptions) (*Flow, error)
 	GetFlow(ctx context.Context, flowID string) (*Flow, error)
+	CompleteFlowSuccess(ctx context.Context, flowID string, credentials *callback.CredentialPayload) (*Flow, error)
+	CompleteFlowFailed(ctx context.Context, flowID string, reason string) (*Flow, error)
 }
 
 // Authenticator 负责生成 authorize URL 或指令。
@@ -25,7 +27,7 @@ type CredentialHarvester interface {
 
 // CallbackDispatcher 负责向业务侧回调凭证结果。
 type CallbackDispatcher interface {
-	Dispatch(ctx context.Context, req *callback.Request) error
+	Dispatch(ctx context.Context, req *callback.Request) (int, error)
 }
 
 // CreateFlowOptions 用于描述 Flow 创建参数。

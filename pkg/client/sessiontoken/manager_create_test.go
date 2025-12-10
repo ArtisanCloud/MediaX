@@ -2,8 +2,12 @@ package sessiontoken
 
 import (
 	"context"
+	"errors"
+	"strings"
 	"testing"
 	"time"
+
+	"github.com/ArtisanCloud/MediaX/pkg/client/sessionToken/callback"
 )
 
 type fakeFlowStore struct {
@@ -14,6 +18,10 @@ type fakeFlowStore struct {
 	getByStateErr  error
 	getFlow        *Flow
 	getErr         error
+	updateFlow     *Flow
+	updateTTL      time.Duration
+	updateCount    int
+	updateErr      error
 }
 
 func (s *fakeFlowStore) Save(ctx context.Context, flow *Flow, ttl time.Duration) error {
@@ -23,7 +31,12 @@ func (s *fakeFlowStore) Save(ctx context.Context, flow *Flow, ttl time.Duration)
 	return nil
 }
 
-func (s *fakeFlowStore) Update(ctx context.Context, flow *Flow, ttl time.Duration) error { return nil }
+func (s *fakeFlowStore) Update(ctx context.Context, flow *Flow, ttl time.Duration) error {
+	s.updateFlow = flow
+	s.updateTTL = ttl
+	s.updateCount++
+	return s.updateErr
+}
 
 func (s *fakeFlowStore) Get(ctx context.Context, flowID string) (*Flow, error) {
 	if s.getErr != nil {
@@ -48,6 +61,23 @@ type fakeAuthenticator struct {
 
 func (f *fakeAuthenticator) BuildAuthorizeURL(ctx context.Context, flow *Flow) (string, error) {
 	return f.url, f.err
+}
+
+type fakeDispatcher struct {
+	attempts   int
+	err        error
+	lastReq    *callback.Request
+	callCount  int
+	sleepDelay time.Duration
+}
+
+func (d *fakeDispatcher) Dispatch(ctx context.Context, req *callback.Request) (int, error) {
+	d.callCount++
+	d.lastReq = req
+	if d.sleepDelay > 0 {
+		<-time.After(d.sleepDelay)
+	}
+	return d.attempts, d.err
 }
 
 func TestManagerCreateFlowSuccess(t *testing.T) {
@@ -187,5 +217,104 @@ func TestManagerGetFlowExpired(t *testing.T) {
 	mgr := NewManager(nil, nil, nil, store, WithClock(func() time.Time { return now }))
 	if _, err := mgr.GetFlow(context.Background(), "stf_expired"); err == nil {
 		t.Fatalf("expected error for expired flow")
+	}
+}
+
+func TestManagerCompleteFlowSuccess(t *testing.T) {
+	store := &fakeFlowStore{}
+	now := time.Unix(1900000000, 0)
+	flow := &Flow{
+		FlowID:       "stf_success",
+		State:        "state",
+		Status:       FlowStatusAuthorizing,
+		TenantUUID:   "tenant",
+		CallbackURL:  "https://callback",
+		Metadata:     map[string]string{"mode": "password"},
+		ExpiresAt:    now.Add(15 * time.Minute),
+		ProviderCode: "zhihu",
+	}
+	store.getFlow = flow
+	dispatcher := &fakeDispatcher{}
+	mgr := NewManager(nil, nil, nil, store,
+		WithClock(func() time.Time { return now }),
+		WithCallbackDispatcher(dispatcher),
+	)
+	creds := &callback.CredentialPayload{
+		SessionToken: "abcdef1234567890",
+		Cookies:      []callback.Cookie{{Name: "z_c0", Value: "cookie-value"}},
+	}
+
+	if _, err := mgr.CompleteFlowSuccess(context.Background(), "stf_success", creds); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if flow.Status != FlowStatusSucceeded {
+		t.Fatalf("expected status succeeded, got %s", flow.Status)
+	}
+	if flow.Result == nil || flow.Result.SessionToken == creds.SessionToken {
+		t.Fatalf("expected stored result to be masked")
+	}
+	if dispatcher.lastReq == nil || dispatcher.lastReq.Payload.Credentials.SessionToken != "abcdef1234567890" {
+		t.Fatalf("expected dispatcher to receive raw credentials")
+	}
+	if store.updateCount != 2 {
+		t.Fatalf("expected 2 updates (before and after callback), got %d", store.updateCount)
+	}
+}
+
+func TestManagerCompleteFlowSuccessCallbackFailure(t *testing.T) {
+	store := &fakeFlowStore{}
+	now := time.Unix(1900000500, 0)
+	flow := &Flow{
+		FlowID:      "stf_callback_fail",
+		State:       "state",
+		Status:      FlowStatusAuthorizing,
+		CallbackURL: "https://callback",
+		ExpiresAt:   now.Add(10 * time.Minute),
+	}
+	store.getFlow = flow
+	dispatcher := &fakeDispatcher{attempts: 2, err: errors.New("http 500")}
+	mgr := NewManager(nil, nil, nil, store,
+		WithClock(func() time.Time { return now }),
+		WithCallbackDispatcher(dispatcher),
+	)
+	creds := &callback.CredentialPayload{SessionToken: "token"}
+	if _, err := mgr.CompleteFlowSuccess(context.Background(), "stf_callback_fail", creds); err == nil {
+		t.Fatalf("expected error when dispatcher fails")
+	}
+	if flow.LastError == "" || !strings.Contains(flow.LastError, "http 500") {
+		t.Fatalf("expected flow last error to include dispatcher error, got %s", flow.LastError)
+	}
+	if flow.RetryAttempts != 2 {
+		t.Fatalf("expected retry attempts to be recorded, got %d", flow.RetryAttempts)
+	}
+}
+
+func TestManagerCompleteFlowFailed(t *testing.T) {
+	store := &fakeFlowStore{}
+	now := time.Unix(1900000600, 0)
+	flow := &Flow{
+		FlowID:      "stf_failed",
+		State:       "state",
+		Status:      FlowStatusAuthorizing,
+		CallbackURL: "https://callback",
+		ExpiresAt:   now.Add(5 * time.Minute),
+	}
+	store.getFlow = flow
+	dispatcher := &fakeDispatcher{}
+	mgr := NewManager(nil, nil, nil, store,
+		WithClock(func() time.Time { return now }),
+		WithCallbackDispatcher(dispatcher),
+	)
+	if _, err := mgr.CompleteFlowFailed(context.Background(), "stf_failed", "timeout"); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if flow.Status != FlowStatusFailed {
+		t.Fatalf("expected flow status failed")
+	}
+	if flow.LastError != "timeout" {
+		t.Fatalf("expected last_error=timeout, got %s", flow.LastError)
+	}
+	if dispatcher.lastReq == nil || dispatcher.lastReq.Payload.Credentials != nil {
+		t.Fatalf("expected failure callback without credentials")
 	}
 }
