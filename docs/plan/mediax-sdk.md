@@ -9,7 +9,7 @@
 - **Flow 管理器**：构建 `sessiontoken.Manager`，注入 Redis FlowStore、provider Authenticator/Harvester/CallbackDispatcher、回调派发器、日志脱敏与指标（`sessiontoken_metric`）。
 - **Provider 适配器**：按 `docs/plan/session_token_client.md` 实现各平台的 Authenticator/Harvester（入口 URL、脚本、代理策略、凭证标准化）。
 - **回调**：服务在 Flow 成功后向插件传入的 `callback_url`（`/admin/platforms/session-token/callback`）POST 标准化凭证；支持签名校验、重试与日志。
-- **配置共享**：插件端通过 `POWERX_SESSION_TOKEN_*` 指向该服务；MediaX 端需保证 BaseURL/API Token/CallbackURL 一致，详见 `docs/plan/creative/channels.md#2.1`。
+- **配置共享**：插件端通过 `POWERX_SESSION_TOKEN_*` 指向该服务；MediaX 端需保证 BaseURL/API Token/CallbackURL 一致，详见 `docs/plan/creative/channels.md#21-环境变量映射`。
 
 ## 2. OAuth 授权（AuthManager/SessionManager）
 

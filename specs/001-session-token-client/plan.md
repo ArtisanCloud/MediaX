@@ -10,11 +10,12 @@
 MediaX 需要把 SessionToken 流程升级为 provider 级适配器。此次迭代将：
 
 - 拆解 `pkg/client/sessionToken`，提供 `SessionTokenClient`、`sessionToken.Manager` 与 Flow 状态机，统一接入 `kernel.BaseClient`。
+- 构建 `cmd/sessiontoken` HTTP 服务与 `make sessiontoken` 命令，默认监听 `:7070` 并注册 `/session-token/flows`，使插件可通过 `POWERX_SESSION_TOKEN_*` 指向统一 BaseURL/API Token。
 - 为知乎实现首个 SessionToken 适配器（Authenticator/Harvester/CallbackDispatcher），并在 `pkg/client/mediaX.go` 中注册创建函数。
 - 重构配置体系：每个 provider (`pkg/client/config/<provider>.go`) 新增 `SessionTokenConfig`，并在 `config.yaml` 里示例如何注入。
 - 构建 Redis 持久化 Flow、回调签名与重试、日志脱敏以及 CLI/Quickstart 样例，满足插件侧 Flow 创建、轮询和凭证回传的 SLA。
-- 构建 Redis 持久化 Flow、回调签名与重试、日志脱敏以及 CLI/Quickstart 样例，满足插件侧 Flow 创建、轮询和凭证回传的 SLA。
 - 在 API 层提供 Bearer Token 验证中间件与性能/成功率指标采集，确保 FR-008 及性能目标可被验证。
+- 按 `docs/plan/mediax-sdk.md` 同步 README/Quickstart/`docs/plan/creative/channels.md`，说明插件如何共享 SessionToken 服务、如何联动 OAuth/AuthManager 与频道任务接口。
 
 ## Technical Context
 
@@ -94,9 +95,23 @@ pkg/
 
 docs/
 └── plan/session_token_client.md     # 现有背景文档
+
+cmd/
+└── sessiontoken/
+    └── main.go                      # 独立 HTTP 服务入口，注册 SessionToken 路由
+
+Makefile
+└── sessiontoken                     # 启动命令：`make sessiontoken`/`go run ./cmd/sessiontoken`
 ```
 
 **Structure Decision**: 使用现有 Go monorepo；SessionToken 共享逻辑集中在 `pkg/client/sessionToken`，provider 实现放在 `pkg/client/<provider>/sessionToken/`，与宪章要求的 `core/` + adapter 子目录保持一致；配置仍位于 `pkg/client/config` 并通过工厂注入。
+
+## MediaX SDK 对齐事项
+
+- **SessionToken 服务**：遵循 `docs/plan/mediax-sdk.md#1` 要求，`cmd/sessiontoken/main.go` 需在启动时加载配置、注册 `/session-token/flows`，并输出 `sessiontoken_metric/sessiontoken_callback` 日志。
+- **OAuth/AuthManager 触点**：在 plan 与 README 中指向 MediaX AuthManager/SessionManager 的复用方式，说明插件如需 OAuth 账号仍可通过 SDK 共享 state/session 存储。
+- **频道任务依赖**：文档需补充 SessionToken Flow 完成后如何向 MediaX worker/scheduler 提交刷新任务，保持与 “频道同步 & 任务执行” 章节一致。
+- **配置/部署**：`config.yaml`、`config.example.yaml`、Quickstart与 `make sessiontoken` 需要展示 `POWERX_SESSION_TOKEN_*` 的默认值和启动顺序（先 MediaX SessionToken 服务再启动插件）。
 
 ## Complexity Tracking
 

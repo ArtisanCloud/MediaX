@@ -152,6 +152,18 @@ zhihu_config:
       request_timeout: 60
 ```
 
+### 启动 SessionToken HTTP 服务
+
+1. **统一环境变量**：确保 MediaX 与插件共用以下值（可写入 `.env`）：
+   ```bash
+   export POWERX_SESSION_TOKEN_BASE_URL="http://127.0.0.1:7070"
+   export POWERX_SESSION_TOKEN_API_TOKEN="dev-session-token"
+   export POWERX_SESSION_TOKEN_CALLBACK_URL="https://plugin.local/api/v1/admin/platforms/session-token/callback"
+   ```
+2. **启动服务**：在 MediaX 仓库根目录运行 `make sessiontoken`（内部执行 `go run ./cmd/sessiontoken -config config.yaml`，默认监听 `:7070`）。
+3. **启动插件**：在插件或 MediaX Studio 侧，将 `POWERX_SESSION_TOKEN_*` 指向上一步的 BaseURL/API Token/Callback URL，再启动 `/publish/platforms` 等入口触发模拟登录。
+4. **顺序要求**：必须先启动 SessionToken 服务，待日志出现 `sessiontoken: server listening...` 后再启动插件/浏览器容器，否则插件会因无法访问 `/session-token/flows` 返回 5xx。
+
 ### SessionToken 监控与排查
 
 - 关注 `sessiontoken_metric`（Flow 创建/查询/完成）与 `sessiontoken_callback`（回调重试/成功）日志，字段中包含 `provider/provider_app/tenant_uuid/flow_id/retry/latency_ms`，便于将其采集到日志或指标系统实现 SLA 追踪。

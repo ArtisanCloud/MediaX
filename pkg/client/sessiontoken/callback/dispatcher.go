@@ -234,9 +234,9 @@ func (d *HTTPDispatcher) logSuccess(ctx context.Context, payload *Payload, retry
 		return
 	}
 	d.logger.WithContext(ctx).InfoF(
-		"sessiontoken_callback: success provider=%s tenant_uuid=%s flow_id=%s state=%s retry=%d status=%d latency_ms=%d",
-		valueOrDash(payload.ProviderCode), valueOrDash(payload.TenantUUID),
-		payload.FlowID, payload.State, retry, status, latency.Milliseconds(),
+		"sessiontoken_callback: success provider=%s provider_app=%s tenant_uuid=%s flow_id=%s state=%s flow_status=%s retry=%d http_status=%d latency_ms=%d",
+		valueOrDash(payload.ProviderCode), valueOrDash(payload.ProviderAppCode), valueOrDash(payload.TenantUUID),
+		payload.FlowID, payload.State, valueOrDash(payload.Status), retry, status, latency.Milliseconds(),
 	)
 }
 
@@ -245,9 +245,9 @@ func (d *HTTPDispatcher) logRetry(ctx context.Context, payload *Payload, retry i
 		return
 	}
 	d.logger.WithContext(ctx).WarnF(
-		"sessiontoken_callback: retry provider=%s tenant_uuid=%s flow_id=%s state=%s retry=%d error=%v",
-		valueOrDash(payload.ProviderCode), valueOrDash(payload.TenantUUID),
-		payload.FlowID, payload.State, retry, err,
+		"sessiontoken_callback: retry provider=%s provider_app=%s tenant_uuid=%s flow_id=%s state=%s flow_status=%s retry=%d error=%v",
+		valueOrDash(payload.ProviderCode), valueOrDash(payload.ProviderAppCode), valueOrDash(payload.TenantUUID),
+		payload.FlowID, payload.State, valueOrDash(payload.Status), retry, err,
 	)
 }
 
@@ -256,9 +256,9 @@ func (d *HTTPDispatcher) logFailure(ctx context.Context, payload *Payload, retry
 		return
 	}
 	d.logger.WithContext(ctx).ErrorF(
-		"sessiontoken_callback: failed provider=%s tenant_uuid=%s flow_id=%s state=%s retry=%d latency_ms=%d error=%v",
-		valueOrDash(payload.ProviderCode), valueOrDash(payload.TenantUUID),
-		payload.FlowID, payload.State, retry, latency.Milliseconds(), err,
+		"sessiontoken_callback: failed provider=%s provider_app=%s tenant_uuid=%s flow_id=%s state=%s flow_status=%s retry=%d latency_ms=%d error=%v",
+		valueOrDash(payload.ProviderCode), valueOrDash(payload.ProviderAppCode), valueOrDash(payload.TenantUUID),
+		payload.FlowID, payload.State, valueOrDash(payload.Status), retry, latency.Milliseconds(), err,
 	)
 }
 

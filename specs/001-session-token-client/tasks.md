@@ -38,6 +38,12 @@ description: "Task list template for feature implementation"
 - [X] T002 拉取依赖并验证 go modules 版本（`go mod tidy`）
 - [X] T003 [P] 创建 `pkg/client/sessionToken/` 目录框架（manager、flow、callback、storage 子目录）
 
+## Phase 1.5: SessionToken 服务进程与部署对齐
+
+- [X] T046 在 `cmd/sessiontoken/main.go` 构建独立 HTTP 服务，加载配置（含 `POWERX_SESSION_TOKEN_*` env）、初始化 Redis FlowStore/manager，并注册 `RegisterSessionTokenFlowCreateRoute` 与 `RegisterSessionTokenFlowGetRoute` 监听 `:7070`。
+- [X] T047 [P] 在 `Makefile` 增加 `sessiontoken` 目标，并在 `README.md` / `specs/001-session-token-client/quickstart.md` 提供 `make sessiontoken`、`go run ./cmd/sessiontoken` 示例与启动顺序（先 MediaX SessionToken 服务再启动插件）。
+- [X] T048 同步 `docs/plan/creative/channels.md` 与相关部署文档，描述插件如何使用 `POWERX_SESSION_TOKEN_BASE_URL`、`API_TOKEN`、`CALLBACK_URL` 指向 MediaX SessionToken 服务，并链接 `docs/plan/mediax-sdk.md`。
+
 ## Phase 2: Foundational (Blocking Prerequisites)
 
 - [X] T004 设计 Flow 数据结构与 Redis key 前缀（`pkg/client/sessionToken/flow.go`）
@@ -121,6 +127,7 @@ description: "Task list template for feature implementation"
 - [X] T043 运行示例 curl/quickstart，验证 Flow 创建→查询→回调闭环（`specs/001-session-token-client/quickstart.md` 指引）
 - [X] T044 为 Flow 创建/查询与回调添加 latency/成功率指标上报或日志量化（`pkg/client/sessionToken/manager.go`, `pkg/client/sessionToken/callback/dispatcher.go`）
 - [X] T045 根据指标结果更新 README 或运维指引，记录 SLA 检查/调优方法（`README.md`, `docs/plan/session_token_client.md`）
+- [ ] T049 [P] 输出 `sessiontoken_metric` 与 `sessiontoken_callback` 日志/指标字段（`action/provider/tenant_uuid/flow_id/status/latency_ms/retry`），并在 README/Quickstart 中说明如何 tail 该日志（`pkg/client/sessionToken/manager.go`, `pkg/client/sessionToken/callback/dispatcher.go`, `README.md`）。
 
 ## Dependencies & Execution Order
 

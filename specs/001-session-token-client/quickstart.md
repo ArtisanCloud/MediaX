@@ -6,10 +6,14 @@
 - `config.yaml` 里为知乎添加 `SessionTokenConfig`，包含 Service/Auth/Harvester/Callback/Network 字段，secret 使用环境变量引用
 
 ## Setup Steps
-0. **准备环境变量**
+0. **准备环境变量（服务与插件共用）**
    ```bash
-   export SESSIONTOKEN_API_TOKEN=x-session-token-demo
+   export POWERX_SESSION_TOKEN_BASE_URL="http://127.0.0.1:7070"
+   export POWERX_SESSION_TOKEN_API_TOKEN="dev-session-token"
+   export POWERX_SESSION_TOKEN_CALLBACK_URL="https://plugin.local/api/v1/admin/platforms/session-token/callback"
+   export SESSIONTOKEN_REDIS_ADDR="127.0.0.1:6379"
    ```
+   > 插件/Studio 必须与 MediaX 服务共用上述值，避免 BaseURL/API Token 不一致导致 401。
 1. **拉取依赖**
    ```bash
    go mod tidy
@@ -34,7 +38,15 @@
        network:
          proxy_pool: zhihu-default
    ```
-3. **挂载 HTTP Handler**
+3. **启动 SessionToken 服务**
+   ```bash
+   make sessiontoken
+   # 或者
+   go run ./cmd/sessiontoken -config config.yaml
+   ```
+   先在 MediaX 仓库启动服务，待日志输出 `sessiontoken: server listening` 后，再启动插件或浏览器容器。
+
+4. **（可选）挂载 HTTP Handler**
    ```go
    mux := http.NewServeMux()
    store := redisstore.NewFlowStore(redisClient, mediaX.Logger)
@@ -42,14 +54,18 @@
      sessiontoken.WithAuthenticator(auth),
      sessiontoken.WithCallbackDispatcher(dispatcher),
    )
-   sessiontokenhandler.RegisterSessionTokenFlowCreateRoute(mux, mgr, os.Getenv("SESSIONTOKEN_API_TOKEN"), mediaX.Logger)
-   sessiontokenhandler.RegisterSessionTokenFlowGetRoute(mux, mgr, os.Getenv("SESSIONTOKEN_API_TOKEN"), mediaX.Logger)
+   token := os.Getenv("POWERX_SESSION_TOKEN_API_TOKEN")
+   if token == "" {
+     token = os.Getenv("SESSIONTOKEN_API_TOKEN")
+   }
+   sessiontokenhandler.RegisterSessionTokenFlowCreateRoute(mux, mgr, token, mediaX.Logger)
+   sessiontokenhandler.RegisterSessionTokenFlowGetRoute(mux, mgr, token, mediaX.Logger)
    ```
-4. **运行单元测试**
+5. **运行单元测试**
    ```bash
    go test ./pkg/client/sessionToken/... ./pkg/client/zhihu/sessionToken/...
    ```
-5. **示例：创建 Flow**
+6. **示例：创建 Flow**
    ```bash
    FLOW_RESPONSE=$(curl --noproxy "*" -s -X POST http://localhost:8080/session-token/flows \
      -H "Authorization: Bearer $SESSIONTOKEN_API_TOKEN" \
@@ -66,12 +82,12 @@
    echo "$FLOW_RESPONSE"
    export FLOW_ID=$(echo "$FLOW_RESPONSE" | jq -r '.flow.flow_id')
    ```
-6. **轮询 Flow + 查看凭证**
+7. **轮询 Flow + 查看凭证**
    ```bash
    curl --noproxy "*" -H "Authorization: Bearer $SESSIONTOKEN_API_TOKEN" \
      http://localhost:8080/session-token/flows/$FLOW_ID | jq '.flow.status,.flow.result'
    ```
-7. **查看日志指标**
+8. **查看日志指标**
    - Flow 创建/查询会输出 `sessiontoken_metric: action=create_flow provider=zhihu ... latency_ms=12`，可据此评估延迟。
    - 回调成功时会看到 `sessiontoken_callback: success provider=zhihu tenant_uuid=tenant_x flow_id=... retry=0 latency_ms=5`；若失败则会有 `sessiontoken_callback: failed ... retry=2 latency_ms=900 error=...`，便于排查。
 

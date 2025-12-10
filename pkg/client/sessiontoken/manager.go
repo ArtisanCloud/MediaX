@@ -372,6 +372,7 @@ func (m *Manager) logFlowMetric(ctx context.Context, action string, flow *Flow, 
 	state := "-"
 	flowID := "-"
 	status := ""
+	retry := 0
 	if flow != nil {
 		provider = sanitizeLogValue(flow.ProviderCode)
 		providerApp = sanitizeLogValue(flow.ProviderAppCode)
@@ -380,14 +381,15 @@ func (m *Manager) logFlowMetric(ctx context.Context, action string, flow *Flow, 
 		state = sanitizeLogValue(flow.State)
 		flowID = sanitizeLogValue(flow.FlowID)
 		status = string(flow.Status)
+		retry = flow.RetryAttempts
 	}
 	logger := m.logger.WithContext(ctx)
-	message := "sessiontoken_metric: action=%s provider=%s provider_app=%s tenant_uuid=%s account_id=%s state=%s flow_id=%s status=%s latency_ms=%d"
+	message := "sessiontoken_metric: action=%s provider=%s provider_app=%s tenant_uuid=%s account_id=%s state=%s flow_id=%s status=%s latency_ms=%d retry=%d"
 	if err != nil {
-		logger.ErrorF(message+" error=%v", action, provider, providerApp, tenant, account, state, flowID, status, latency, err)
+		logger.ErrorF(message+" error=%v", action, provider, providerApp, tenant, account, state, flowID, status, latency, retry, err)
 		return
 	}
-	logger.InfoF(message, action, provider, providerApp, tenant, account, state, flowID, status, latency)
+	logger.InfoF(message, action, provider, providerApp, tenant, account, state, flowID, status, latency, retry)
 }
 
 func sanitizeLogValue(value string) string {
