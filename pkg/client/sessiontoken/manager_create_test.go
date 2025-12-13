@@ -208,16 +208,21 @@ func TestManagerGetFlowSuccess(t *testing.T) {
 	}
 }
 
-func TestManagerGetFlowExpired(t *testing.T) {
+func TestManagerGetFlowExpiredStillAccessible(t *testing.T) {
 	store := &fakeFlowStore{}
 	now := time.Unix(1800001000, 0)
-	store.getFlow = &Flow{
+	expired := &Flow{
 		FlowID:    "stf_expired",
 		ExpiresAt: now.Add(-time.Minute),
 	}
+	store.getFlow = expired
 	mgr := NewManager(nil, nil, nil, store, WithClock(func() time.Time { return now }))
-	if _, err := mgr.GetFlow(context.Background(), "stf_expired"); err == nil {
-		t.Fatalf("expected error for expired flow")
+	flow, err := mgr.GetFlow(context.Background(), "stf_expired")
+	if err != nil {
+		t.Fatalf("expected expired flow to be returned, got err=%v", err)
+	}
+	if flow != expired {
+		t.Fatalf("expected underlying store flow to be returned")
 	}
 }
 

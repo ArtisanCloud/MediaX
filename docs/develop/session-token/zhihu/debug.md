@@ -119,11 +119,13 @@ scripts/sessiontoken-debug.sh sanity "$SESSION_TOKEN"
 
 脚本会自动读取 `POWERX_SESSION_TOKEN_BASE_URL` 与 `SESSIONTOKEN_API_TOKEN`/`POWERX_SESSION_TOKEN_API_TOKEN`，并在系统安装 `jq` 时自动美化输出。通过 `/debug` 创建 Flow 后，将回调中的 `metadata.session_token` 复制给脚本，即可在本地验证 API 是否仍可访问，或触发 `ZH_COOKIE_EXPIRED` 回调。
 
+> 若想复用现有 Flow，可在本地直接操作 Redis：`redis-cli --raw keys 'sessionToken:flow:*'` 列出所有 key，然后 `redis-cli --raw GET "sessionToken:flow:<id>" | jq '.'` 查看对应 metadata。确认 Flow 仍在有效期后，把 ID 粘到 `/debug` → “Flow ID” 输入框，再点“从 Flow 填充 SessionToken”即可调试。
+
 ### 3.4 API 调试面板（Beta）
 
 为了减少“抓 Cookie → 切终端 → curl”的上下文切换，调试页新增了“API 调试”组件，默认与 Provider 选择联动，并具备以下能力：
 
-1. **接口目录**：自动列出当前 Provider 的可调试 API（Zhihu followings/channels/articles/sanity...），展示 `METHOD PATH` + 说明，方便直接点选。
+1. **接口目录**：自动列出当前 Provider + 版本（例如 Zhihu v4）的可调试 API（followings/channels/articles/sanity...），展示 `METHOD PATH` + 说明，方便直接点选。切换顶部 API 版本下拉时，接口列表会同步刷新，保证与 `pkg/client/zhihu/web/sessionTokenClient/<version>` 的实现保持一致。
 2. **路径/Query 解析**：输入 `channel_id=xxx&limit=10` 之类的键值对时，调试页会自动把 `{channel_id}` 写入路径、并将剩余字段拼成 query string，无需手写 URL。
 3. **SessionToken 自动注入**：点击“从 Flow 填充 SessionToken”会调用 `GET /session-token/flows/<flow_id>`，优先读取 `metadata.session_token`；如为空，会用 `cookie_sessionid/cookie_joid/...` 拼出临时串写入 `X-SessionToken`。
 4. **一键发起请求**：填写 Body（JSON，可选）后点击“发送请求”，页面会自动携带 `Authorization: Bearer <API Token>` 与 `X-SessionToken`，直接请求当前 SessionToken 服务的 `/zhihu/v1/*` handler，并在下方 `pre` 区块显示 HTTP 状态码与格式化响应。

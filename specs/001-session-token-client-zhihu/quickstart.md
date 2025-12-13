@@ -118,7 +118,8 @@
    - 勾选“复用 Cookie”后，metadata 将包含 `reuse_session=true`，服务会先尝试使用同租户/账号最近一次成功 Flow 的 SessionToken；若缓存存在则立即 `succeeded`，否则继续提示用户登录。
    - “Mock 回调”区域会实时显示最近 20 条 `/debug/callback` 记录，也可点击“刷新/清空”按钮或通过 `POST /debug/callback` 手动重放 payload。
    - 若希望自动拉起浏览器并回写 Cookie，可在仓库根目录执行 `pnpm install && npx playwright install chromium`，随后运行 `pnpm sessiontoken:browser --flow $FLOW_ID [--base http://127.0.0.1:7070]`。脚本会打开 Chromium、指导你登录知乎，并在完成后自动调用 `POST /debug/flows/<flow_id>/metadata`，同时在终端输出 `/debug/callback` 记录。
-   - “API 调试（Beta）”面板会根据 Provider 自动加载可测试的 Zhihu API，支持输入 `channel_id=xxx&limit=10` 这类 query/path 参数；点击“从 Flow 填充 SessionToken”即可自 `GET /session-token/flows/<id>` 自动写入 `X-SessionToken`，再点“发送请求”就能用当前凭证直接访问 `/zhihu/v1/*`，结果会在页面底部实时展示，方便一站式验证“抓 Cookie → 调 API → 模拟失效”。
+   - “API 调试（Beta）”面板会根据 Provider 及所选 API 版本（如 v4）自动加载可测试的 Zhihu API，支持输入 `channel_id=xxx&limit=10` 这类 query/path 参数；点击“从 Flow 填充 SessionToken”即可自 `GET /session-token/flows/<id>` 自动写入 `X-SessionToken`，再点“发送请求”就能用当前凭证直接访问 `/zhihu/v1/*`，结果会在页面底部实时展示，方便一站式验证“抓 Cookie → 调 API → 模拟失效”。
+   - 若需要复用已存在的 Flow，可直接在本机 `redis-cli --raw keys 'sessionToken:flow:*'` 列出 key，再用 `redis-cli --raw GET "sessionToken:flow:<id>" | jq '.'` 查看 metadata；把 Flow ID 粘回 `/debug` 即可继续调试。
 9. **快速调用 Zhihu API / 查看 Flow**
    - 使用提供的脚本一键操作：
      ```bash

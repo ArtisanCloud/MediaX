@@ -185,10 +185,6 @@ func (m *Manager) GetFlow(ctx context.Context, flowID string) (flow *Flow, err e
 	if flow == nil {
 		return nil, ErrFlowNotFound
 	}
-	now := m.clock().UTC()
-	if flow.ExpiresAt.Before(now) {
-		return nil, ErrFlowNotFound
-	}
 	return flow, nil
 }
 

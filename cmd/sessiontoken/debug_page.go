@@ -134,8 +134,8 @@ var debugPageTemplate = template.Must(template.New("debug_page").Parse(`<!DOCTYP
       </label>
     </div>
     <div style="flex:1">
-      <label>Account ID
-        <input id="account" type="text" value="acct_debug" />
+      <label>Account ID（留空自动解析）
+        <input id="account" type="text" placeholder="michaelhu-93" />
       </label>
     </div>
   </div>
@@ -174,8 +174,20 @@ var debugPageTemplate = template.Must(template.New("debug_page").Parse(`<!DOCTYP
   <p style="font-size:12px;color:#666;">命令默认使用 <code>SESSIONTOKEN_API_TOKEN</code> 环境变量（默认 <code>dev-session-token</code>）。可在终端中替换 <code>&lt;flow_id&gt;</code> 或追加 <code>--api-token</code>、<code>--base</code> 参数。</p>
 </section>
 <section>
+  <h2>CLI 调试脚本</h2>
+  <p><code>scripts/sessiontoken-debug.sh</code> 可在终端直接调用 Flow/API（会复用 <code>POWERX_SESSION_TOKEN_*</code> 环境变量）。</p>
+  <label>Flow 查询命令</label>
+  <div class="row">
+    <input id="flowCliCommand" type="text" readonly />
+    <button type="button" onclick="copyFlowCliCommand()">复制命令</button>
+  </div>
+  <p style="font-size:12px;color:#666;">更多示例：<code>scripts/sessiontoken-debug.sh followings "$SESSION_TOKEN"</code>、<code>scripts/sessiontoken-debug.sh channels "$SESSION_TOKEN" column_id 10 0</code>、<code>scripts/sessiontoken-debug.sh sanity "$SESSION_TOKEN"</code>。</p>
+  <p style="font-size:12px;color:#666;">需要枚举 Redis 中的现有 Flow，可在本地运行 <code>redis-cli --raw keys 'sessionToken:flow:*'</code> 查看全部 key，再用 <code>redis-cli --raw GET "sessionToken:flow:stf_xxx" \| jq '.'</code> 检查 metadata。</p>
+</section>
+<section>
   <h2>API 调试（Beta）</h2>
   <p>选择 Provider 后可直接调用对应 API，默认会附带 <code>Authorization: Bearer ...</code>。如需 <code>X-SessionToken</code> 可以点击“从 Flow 填充”。</p>
+  <div id="apiVersionInfo" style="margin-bottom:8px;font-size:12px;color:#666;">当前版本：v4</div>
   <label>API Endpoint
     <select id="apiEndpoint"></select>
   </label>
@@ -235,8 +247,10 @@ const output = document.getElementById('output');
 const callbackLogOutput = document.getElementById('callbackLog');
 const applyPresetBtn = document.getElementById('applyPresetBtn');
 const playwrightCommandInput = document.getElementById('playwrightCommand');
+const flowCliCommandInput = document.getElementById('flowCliCommand');
 const apiEndpointSelect = document.getElementById('apiEndpoint');
 const apiInfoLabel = document.getElementById('apiInfo');
+const apiVersionInfo = document.getElementById('apiVersionInfo');
 const apiQueryInput = document.getElementById('apiQuery');
 const apiBodyInput = document.getElementById('apiBody');
 const apiSessionTokenInput = document.getElementById('apiSessionToken');
@@ -274,59 +288,90 @@ const providerCatalog = {
 };
 
 const apiCatalog = {
-  zhihu: [
-    {
-      id: 'followings',
-      label: 'GET /zhihu/v1/me/followings',
-      method: 'GET',
-      path: '/zhihu/v1/me/followings',
-      sampleQuery: 'limit=10&offset=0',
-      requiresSessionToken: true,
-      description: '获取当前账号关注对象'
-    },
-    {
-      id: 'channels',
-      label: 'GET /zhihu/v1/channels/{channel_id}/articles',
-      method: 'GET',
-      path: '/zhihu/v1/channels/{channel_id}/articles',
-      sampleQuery: 'channel_id=12345&limit=10&offset=0',
-      requiresSessionToken: true,
-      description: '查询某频道下文章列表'
-    },
-    {
-      id: 'article_get',
-      label: 'GET /zhihu/v1/articles/{article_id}',
-      method: 'GET',
-      path: '/zhihu/v1/articles/{article_id}',
-      sampleQuery: 'article_id=1234567890',
-      requiresSessionToken: true,
-      description: '获取单篇文章详情'
-    },
-    {
-      id: 'article_post',
-      label: 'POST /zhihu/v1/articles',
-      method: 'POST',
-      path: '/zhihu/v1/articles',
-      sampleBody: '{\n  "title": "示例标题",\n  "content": "<p>示例内容</p>"\n}',
-      requiresSessionToken: true,
-      description: '发布文章，content 支持 HTML'
-    },
-    {
-      id: 'sanity_check',
-      label: 'POST /zhihu/v1/sanity/check',
-      method: 'POST',
-      path: '/zhihu/v1/sanity/check',
-      sampleBody: '{ }',
-      requiresSessionToken: true,
-      description: '调用知乎自检接口，验证 SessionToken 是否有效'
-    }
-  ],
+  zhihu: {
+    v4: [
+      {
+        id: 'followings',
+        label: 'GET /zhihu/v1/me/followings',
+        method: 'GET',
+        path: '/zhihu/v1/me/followings',
+        displayPathTemplate: '/zhihu/{version}/me/followings',
+        sampleQuery: 'limit=10&offset=0',
+        requiresSessionToken: true,
+        description: '获取当前账号关注对象'
+      },
+      {
+        id: 'channels',
+        label: 'GET /zhihu/v1/channels/{channel_id}/articles',
+        method: 'GET',
+        path: '/zhihu/v1/channels/{channel_id}/articles',
+        displayPathTemplate: '/zhihu/{version}/channels/{channel_id}/articles',
+        sampleQuery: 'channel_id=12345&limit=10&offset=0',
+        requiresSessionToken: true,
+        description: '查询某频道下文章列表'
+      },
+      {
+        id: 'article_get',
+        label: 'GET /zhihu/v1/articles/{article_id}',
+        method: 'GET',
+        path: '/zhihu/v1/articles/{article_id}',
+        displayPathTemplate: '/zhihu/{version}/articles/{article_id}',
+        sampleQuery: 'article_id=1234567890',
+        requiresSessionToken: true,
+        description: '获取单篇文章详情'
+      },
+      {
+        id: 'article_post',
+        label: 'POST /zhihu/v1/articles',
+        method: 'POST',
+        path: '/zhihu/v1/articles',
+        displayPathTemplate: '/zhihu/{version}/articles',
+        sampleBody: '{\n  "title": "示例标题",\n  "content": "<p>示例内容</p>"\n}',
+        requiresSessionToken: true,
+        description: '发布文章，content 支持 HTML'
+      },
+      {
+        id: 'sanity_check',
+        label: 'POST /zhihu/v1/sanity/check',
+        method: 'POST',
+        path: '/zhihu/v1/sanity/check',
+        displayPathTemplate: '/zhihu/{version}/sanity/check',
+        sampleBody: '{ }',
+        requiresSessionToken: true,
+        description: '调用知乎自检接口，验证 SessionToken 是否有效'
+      }
+    ]
+  },
   redbook: [],
   google: []
 };
 
+function currentProviderVersionKey() {
+  const version = selectedVersion();
+  if (version) {
+    return version;
+  }
+  return 'default';
+}
+
+function resolveProviderEndpoints(provider) {
+  const catalog = apiCatalog[provider];
+  if (!catalog) {
+    return [];
+  }
+  if (Array.isArray(catalog)) {
+    return catalog;
+  }
+  const versionKey = currentProviderVersionKey();
+  if (catalog[versionKey] && catalog[versionKey].length) {
+    return catalog[versionKey];
+  }
+  const firstVersion = Object.keys(catalog)[0];
+  return catalog[firstVersion] || [];
+}
+
 function apiEndpointStorageKey(provider) {
-  return 'st_debug_api_endpoint_' + provider;
+  return 'st_debug_api_endpoint_' + provider + '_' + currentProviderVersionKey();
 }
 
 function rebuildApiEndpoints(preserveSelection) {
@@ -334,7 +379,7 @@ function rebuildApiEndpoints(preserveSelection) {
     return;
   }
   const provider = providerSelect.value;
-  const endpoints = apiCatalog[provider] || [];
+  const endpoints = resolveProviderEndpoints(provider);
   apiEndpointSelect.innerHTML = '';
   if (!endpoints.length) {
     apiEndpointSelect.disabled = true;
@@ -348,7 +393,7 @@ function rebuildApiEndpoints(preserveSelection) {
   endpoints.forEach((endpoint) => {
     const option = document.createElement('option');
     option.value = endpoint.id;
-    option.textContent = endpoint.label;
+    option.textContent = formatEndpointLabel(endpoint);
     apiEndpointSelect.appendChild(option);
   });
   if (currentValue && endpoints.some(ep => ep.id === currentValue)) {
@@ -364,7 +409,7 @@ function getSelectedApiEndpoint() {
     return null;
   }
   const provider = providerSelect.value;
-  const endpoints = apiCatalog[provider] || [];
+  const endpoints = resolveProviderEndpoints(provider);
   const selected = apiEndpointSelect.value;
   if (!selected) {
     return endpoints[0] || null;
@@ -378,16 +423,49 @@ function setApiInfoMessage(message) {
   }
 }
 
+function resolveEndpointDisplayPath(endpoint) {
+  if (!endpoint) {
+    return '';
+  }
+  const version = selectedVersion() || 'v4';
+  if (endpoint.displayPathTemplate) {
+    return endpoint.displayPathTemplate.replace('{version}', version);
+  }
+  return endpoint.path || '';
+}
+
+function formatEndpointLabel(endpoint) {
+  if (!endpoint) {
+    return '';
+  }
+  const method = endpoint.method || 'GET';
+  const displayPath = resolveEndpointDisplayPath(endpoint);
+  if (displayPath) {
+    return method + ' ' + displayPath;
+  }
+  return method + ' ' + (endpoint.path || '');
+}
+
+function updateApiVersionInfo() {
+  if (!apiVersionInfo) {
+    return;
+  }
+  const version = selectedVersion() || 'default';
+  apiVersionInfo.textContent = '当前版本：' + version;
+}
+
 function updateApiInfo() {
   const endpoint = getSelectedApiEndpoint();
   if (!endpoint) {
     setApiInfoMessage('当前 Provider 暂无 API');
     return;
   }
+  updateApiVersionInfo();
   localStorage.setItem(apiEndpointStorageKey(providerSelect.value), endpoint.id);
   const parts = [];
-  if (endpoint.method && endpoint.path) {
-    parts.push(endpoint.method + ' ' + endpoint.path);
+  const displayPath = resolveEndpointDisplayPath(endpoint);
+  if (endpoint.method && displayPath) {
+    parts.push(endpoint.method + ' ' + displayPath);
   }
   if (endpoint.description) {
     parts.push('— ' + endpoint.description);
@@ -541,6 +619,7 @@ function rebuildAppOptions(preserveSelection) {
   }
   toggleCustomAppInput();
   rebuildVersionOptions(preserveSelection);
+  rebuildApiEndpoints(true);
 }
 
 function toggleCustomAppInput() {
@@ -619,12 +698,34 @@ function updatePlaywrightCommand() {
   }
 }
 
+function buildFlowCliCommand() {
+  const flowId = flowIdInput.value.trim() || '<flow_id>';
+  return 'scripts/sessiontoken-debug.sh flow ' + flowId;
+}
+
+function updateFlowCliCommand() {
+  if (flowCliCommandInput) {
+    flowCliCommandInput.value = buildFlowCliCommand();
+  }
+}
+
 function copyPlaywrightCommand() {
   if (!playwrightCommandInput) {
     return;
   }
   navigator.clipboard.writeText(playwrightCommandInput.value).then(() => {
     log('Playwright CLI 命令已复制，可在终端运行。');
+  }).catch((err) => {
+    log('复制 CLI 命令失败: ' + err);
+  });
+}
+
+function copyFlowCliCommand() {
+  if (!flowCliCommandInput) {
+    return;
+  }
+  navigator.clipboard.writeText(flowCliCommandInput.value).then(() => {
+    log('sessiontoken-debug.sh 命令已复制，终端中替换 flow_id 后执行。');
   }).catch((err) => {
     log('复制 CLI 命令失败: ' + err);
   });
@@ -821,7 +922,7 @@ async function createFlow() {
     const payload = {
       provider_code: providerSelect.value,
       provider_app_code: providerAppCode,
-      account_id: accountInput.value || 'acct_debug',
+      account_id: accountInput.value.trim(),
       tenant_uuid: tenantInput.value || 'tenant_debug',
       state: state,
       callback_url: callbackInput.value || defaults.callback,
@@ -923,7 +1024,10 @@ function manualApplyPreset() {
   applyPreset(true, true);
 }
 
-flowIdInput.addEventListener('input', updatePlaywrightCommand);
+flowIdInput.addEventListener('input', () => {
+  updatePlaywrightCommand();
+  updateFlowCliCommand();
+});
 providerSelect.addEventListener('change', () => {
   rebuildAppOptions(false);
   rebuildApiEndpoints(true);
@@ -943,6 +1047,9 @@ if (apiEndpointSelect) {
 }
 apiVersionSelect.addEventListener('change', () => {
   localStorage.setItem('st_debug_api_version', apiVersionSelect.value);
+  rebuildApiEndpoints(false);
+  resetApiResponse();
+  updateApiVersionInfo();
 });
 reuseInput.addEventListener('change', () => {
   localStorage.setItem('st_debug_reuse', reuseInput.checked ? '1' : '0');
@@ -951,6 +1058,7 @@ applyPresetBtn.addEventListener('click', manualApplyPreset);
 refreshCallbackLogs(true);
 setInterval(() => refreshCallbackLogs(true), 5000);
 updatePlaywrightCommand();
+updateFlowCliCommand();
 </script>
 </body>
 </html>`))

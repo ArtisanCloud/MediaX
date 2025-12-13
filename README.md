@@ -181,7 +181,7 @@ zhihu_config:
 | `POWERX_SESSION_TOKEN_CALLBACK_SECRET` | 回调签名 secret，对应 `callback.secret` | `mediax-sessiontoken-callback` |
 | `SESSIONTOKEN_DEBUG_CALLBACK_URL` | `/debug` 页面默认回调地址 | `http://127.0.0.1:7070/debug/callback` |
 | `SESSIONTOKEN_REDIS_ADDR` | Flow 存储 Redis | `127.0.0.1:6379` |
-| `SESSIONTOKEN_ZHIHU_PROXY` | 代理地址，覆盖 `network.proxy` | 空 |
+| `SESSIONTOKEN_ZHIHU_PROXY` | 代理地址，覆盖 `network.proxy`（可填 `none`/`direct` 表示禁用代理；未设置时默认 `none`） | 空 |
 | `SESSIONTOKEN_ZHIHU_API_BASE_URL` | 可覆盖默认 `https://www.zhihu.com` | 空 |
 | `SESSIONTOKEN_ZHIHU_API_VERSION` | 强制指定 Zhihu API 版本（如 `v4`） | `v4` |
 
@@ -241,15 +241,15 @@ zhihu_config:
   3. 登录完成后脚本利用 CDP 读取 `document.cookie` 并调用 `POST /debug/flows/<flow_id>/metadata` 写回；终端中会显示 `/debug/callback` 返回的状态。
   4. 关闭窗口后即可在 `/debug` 页面刷新“Mock 回调”看到成功记录，再继续调用 `zhihu/v1/*` API。该 CLI 便于 QA 将整套流程脚本化，也可以在调试页里通过按钮提示用户运行。
 - 如浏览器本身已处于登录状态，可勾选“复用 Cookie”选项，MediaX 会读取同租户/账号最近一次成功 Flow 的凭证并直接 `succeeded`，无需再次手动登录；若缓存缺失则自动回退到手动登录流程。
-- **API 调试面板（Beta）**：`/debug` 页新增“API 调试”区块，会根据所选 Provider 动态展示可调试的 Zhihu API（method/path/说明），并可一键复制示例 query/body。点击“从 Flow 填充 SessionToken”将调用 `GET /session-token/flows/<flow_id>` 自动填充 `X-SessionToken`，然后填写 query/path 参数并点“发送请求”即可直接调用 `/zhihu/v1/*`，响应会在页面下方实时展示。该面板默认携带 `Authorization: Bearer <API Token>`，也支持自行输入 `session_token` 以模拟失效流程。
+- **API 调试面板（Beta）**：`/debug` 页新增“API 调试”区块，会根据所选 Provider/版本（如 Zhihu v4）动态展示可调试的 Zhihu API（method/path/说明），并可一键复制示例 query/body。点击“从 Flow 填充 SessionToken”将调用 `GET /session-token/flows/<flow_id>` 自动填充 `X-SessionToken`，然后填写 query/path 参数并点“发送请求”即可直接调用 `/zhihu/v1/*`，响应会在页面下方实时展示。该面板默认携带 `Authorization: Bearer <API Token>`，也支持自行输入 `session_token` 以模拟失效流程。
 - 终端快速调试可使用 `scripts/sessiontoken-debug.sh`：
-  ```bash
-  scripts/sessiontoken-debug.sh flow stf_xxx
-  scripts/sessiontoken-debug.sh followings "$SESSION_TOKEN"
-  scripts/sessiontoken-debug.sh channels "$SESSION_TOKEN" zhihu_column_id 10 0
-  scripts/sessiontoken-debug.sh sanity "$SESSION_TOKEN"
-  ```
-  其中 `SESSION_TOKEN` 取自 Flow metadata 或插件回调的 `metadata.session_token` 字段，脚本会自动读取 `POWERX_SESSION_TOKEN_BASE_URL` 及 API Token，并在安装 `jq` 时输出格式化 JSON。
+```bash
+scripts/sessiontoken-debug.sh flow stf_xxx
+scripts/sessiontoken-debug.sh followings "$SESSION_TOKEN"
+scripts/sessiontoken-debug.sh channels "$SESSION_TOKEN" zhihu_column_id 10 0
+scripts/sessiontoken-debug.sh sanity "$SESSION_TOKEN"
+```
+其中 `SESSION_TOKEN` 取自 Flow metadata 或插件回调的 `metadata.session_token` 字段，脚本会自动读取 `POWERX_SESSION_TOKEN_BASE_URL` 及 API Token，并在安装 `jq` 时输出格式化 JSON。需要复用已有 Flow 时，可在本地执行 `redis-cli --raw keys 'sessionToken:flow:*'` 列出 key，再用 `redis-cli --raw GET "sessionToken:flow:<id>" | jq '.'` 查看 metadata，然后把 Flow ID 粘回 `/debug` 调试。
    }
 
 

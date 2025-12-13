@@ -52,6 +52,7 @@ type Client struct {
 	baseURL     string
 	userAgent   string
 	retryDelays []time.Duration
+	proxyDesc   string
 }
 
 // Option allows overriding client defaults (used in tests).
@@ -62,6 +63,7 @@ func WithHTTPClient(httpClient *http.Client) Option {
 	return func(c *Client) {
 		if httpClient != nil {
 			c.httpClient = httpClient
+			c.proxyDesc = "custom"
 		}
 	}
 }
@@ -94,13 +96,15 @@ func NewClient(cfg *config.ZhihuSessionTokenConfig, manager sessiontoken.Session
 	if manager == nil {
 		return nil, errors.New("zhihu.sessiontoken: session token client is nil")
 	}
+	httpClient, proxyDesc := buildHTTPClientWithProxy(cfg)
 	client := &Client{
 		manager:     manager,
 		log:         log,
 		baseURL:     resolveZhihuBaseURL(cfg),
 		userAgent:   resolveUserAgent(cfg),
-		httpClient:  buildHTTPClient(cfg),
+		httpClient:  httpClient,
 		retryDelays: resolveRetrySchedule(cfg),
+		proxyDesc:   proxyDesc,
 	}
 	for _, opt := range opts {
 		if opt != nil {
@@ -108,7 +112,7 @@ func NewClient(cfg *config.ZhihuSessionTokenConfig, manager sessiontoken.Session
 		}
 	}
 	if client.httpClient == nil {
-		client.httpClient = buildHTTPClient(cfg)
+		client.httpClient, client.proxyDesc = buildHTTPClientWithProxy(cfg)
 	}
 	if client.baseURL == "" {
 		client.baseURL = defaultZhihuAPIBase
@@ -173,6 +177,11 @@ func resolveUserAgent(cfg *config.ZhihuSessionTokenConfig) string {
 }
 
 func buildHTTPClient(cfg *config.ZhihuSessionTokenConfig) *http.Client {
+	client, _ := buildHTTPClientWithProxy(cfg)
+	return client
+}
+
+func buildHTTPClientWithProxy(cfg *config.ZhihuSessionTokenConfig) (*http.Client, string) {
 	timeout := 30
 	if cfg != nil && cfg.Network.RequestTimeout > 0 {
 		timeout = cfg.Network.RequestTimeout
@@ -180,20 +189,45 @@ func buildHTTPClient(cfg *config.ZhihuSessionTokenConfig) *http.Client {
 	transport := &http.Transport{
 		Proxy: http.ProxyFromEnvironment,
 	}
-	proxyURI := firstNonEmpty(
-		strings.TrimSpace(os.Getenv("SESSIONTOKEN_ZHIHU_PROXY")),
-		strings.TrimSpace(cfg.Network.Proxy),
-		strings.TrimSpace(cfg.Network.ProxyPool),
-	)
-	if proxyURI != "" {
-		if parsed, err := url.Parse(proxyURI); err == nil {
-			transport.Proxy = http.ProxyURL(parsed)
+	pool := ""
+	if cfg != nil {
+		pool = strings.TrimSpace(cfg.Network.ProxyPool)
+	}
+	proxyCandidate := strings.TrimSpace(os.Getenv("SESSIONTOKEN_ZHIHU_PROXY"))
+	if proxyCandidate == "" && cfg != nil {
+		proxyCandidate = strings.TrimSpace(cfg.Network.Proxy)
+	}
+	proxyDesc := describeDirectProxy(pool)
+	switch {
+	case proxyCandidate == "", strings.EqualFold(proxyCandidate, "none"), strings.EqualFold(proxyCandidate, "direct"):
+		transport.Proxy = nil
+	case func() bool {
+		parsed, err := url.Parse(proxyCandidate)
+		if err != nil || parsed == nil {
+			return false
 		}
+		if parsed.Scheme == "" || parsed.Host == "" {
+			return false
+		}
+		transport.Proxy = http.ProxyURL(parsed)
+		proxyDesc = parsed.String()
+		return true
+	}():
+		// proxy configured successfully, nothing to do
+	default:
+		transport.Proxy = nil
 	}
 	return &http.Client{
 		Timeout:   time.Duration(timeout) * time.Second,
 		Transport: transport,
+	}, proxyDesc
+}
+
+func describeDirectProxy(pool string) string {
+	if strings.TrimSpace(pool) == "" {
+		return "direct"
 	}
+	return fmt.Sprintf("direct(pool:%s)", pool)
 }
 
 func resolveRetrySchedule(cfg *config.ZhihuSessionTokenConfig) []time.Duration {
@@ -233,8 +267,13 @@ func (c *Client) requireFlow(w http.ResponseWriter, r *http.Request, apiName str
 	flow, err := c.manager.FindFlowBySessionToken(r.Context(), token)
 	if err != nil {
 		if errors.Is(err, sessiontoken.ErrFlowNotFound) {
-			c.writeError(w, reqID, http.StatusUnauthorized, codeCookieExpired, "session token expired or unknown")
-			c.logAPICall(r.Context(), apiName, nil, http.StatusUnauthorized, codeCookieExpired, 0, err)
+			if c.log != nil {
+				c.log.WithContext(r.Context()).InfoF(
+					"zhihu_sessiontoken: session token has no flow binding, fallback to raw cookie api=%s",
+					apiName,
+				)
+			}
+			return nil, token, true
 		} else {
 			c.writeError(w, reqID, http.StatusInternalServerError, codeUpstreamError, "failed to resolve session token")
 			c.logAPICall(r.Context(), apiName, nil, http.StatusInternalServerError, codeUpstreamError, 0, err)
@@ -535,13 +574,15 @@ func (c *Client) logAPICall(ctx context.Context, api string, flow *sessiontoken.
 		tenant = sanitizeLogValue(flow.TenantUUID)
 		providerApp = sanitizeLogValue(flow.ProviderAppCode)
 	}
-	message := "sessiontoken_api: provider=zhihu api=%s version=%s flow_id=%s tenant_uuid=%s provider_app=%s status=%d latency_ms=%d code=%s"
+	base := sanitizeLogValue(c.baseURL)
+	proxy := sanitizeLogValue(c.proxyDesc)
+	message := "sessiontoken_api: provider=zhihu api=%s version=%s base_url=%s proxy=%s flow_id=%s tenant_uuid=%s provider_app=%s status=%d latency_ms=%d code=%s"
 	logger := c.log.WithContext(ctx)
 	if cause != nil {
-		logger.WarnF(message+" error=%v", api, c.Version(), flowID, tenant, providerApp, status, latency.Milliseconds(), sanitizeLogValue(code), cause)
+		logger.WarnF(message+" error=%v", api, c.Version(), base, proxy, flowID, tenant, providerApp, status, latency.Milliseconds(), sanitizeLogValue(code), cause)
 		return
 	}
-	logger.InfoF(message, api, c.Version(), flowID, tenant, providerApp, status, latency.Milliseconds(), sanitizeLogValue(code))
+	logger.InfoF(message, api, c.Version(), base, proxy, flowID, tenant, providerApp, status, latency.Milliseconds(), sanitizeLogValue(code))
 }
 
 func sanitizeLogValue(value string) string {
