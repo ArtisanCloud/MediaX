@@ -2,8 +2,12 @@ package sessiontoken
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"sort"
 	"strings"
 	"time"
 
@@ -28,6 +32,18 @@ type Manager struct {
 	authenticator      Authenticator
 	callbackDispatcher CallbackDispatcher
 }
+
+const (
+	metadataSessionTokenKey        = "session_token"
+	metadataCredentialsNote        = "credentials_note"
+	metadataCredentialsExpiresHint = "credentials_expires_hint"
+	metadataLastFailedAPI          = "last_failed_api"
+	metadataReuseSessionKey        = "reuse_session"
+)
+
+const (
+	reuseSessionCachePrefix = "sessionToken:reuse:"
+)
 
 // ManagerOption 用于配置 Manager。
 type ManagerOption func(*Manager)
@@ -197,6 +213,17 @@ func (m *Manager) CompleteFlowSuccess(ctx context.Context, flowID string, creden
 	}
 	flow.Result = sanitizer.MaskCredentialPayload(credentials)
 	flow.LastError = ""
+	flow.Code = ""
+	flow.Message = ""
+	flow.LastFailedAPI = ""
+	flow.CredentialsNote = firstNonEmpty(credentials.Note, metadataValue(flow, metadataCredentialsNote))
+	flow.CredentialsExpiresHint = firstNonEmpty(credentials.ExpiresAt, metadataValue(flow, metadataCredentialsExpiresHint))
+	setMetadataValue(flow, metadataSessionTokenKey, credentials.SessionToken)
+	setMetadataValue(flow, metadataCredentialsNote, flow.CredentialsNote)
+	setMetadataValue(flow, metadataCredentialsExpiresHint, flow.CredentialsExpiresHint)
+	setMetadataValue(flow, metadataLastFailedAPI, "")
+	m.bindSessionTokenIndex(ctx, flow, credentials.SessionToken)
+	m.storeReusableSession(ctx, flow, credentials)
 
 	if err := m.dispatchAndRecordCallback(ctx, flow, credentials); err != nil {
 		return flow, err
@@ -205,14 +232,18 @@ func (m *Manager) CompleteFlowSuccess(ctx context.Context, flowID string, creden
 }
 
 // CompleteFlowFailed 在凭证采集失败时更新 Flow 并触发失败回调。
-func (m *Manager) CompleteFlowFailed(ctx context.Context, flowID string, reason string) (*Flow, error) {
+func (m *Manager) CompleteFlowFailed(ctx context.Context, flowID string, failure *FlowFailure) (*Flow, error) {
 	start := time.Now()
 	var flow *Flow
 	var err error
 	defer func() {
 		m.logFlowMetric(ctx, "complete_flow_failed", flow, start, err)
 	}()
-	if strings.TrimSpace(reason) == "" {
+	if failure == nil {
+		err = errors.New("sessiontoken: failure payload is nil")
+		return nil, err
+	}
+	if strings.TrimSpace(failure.Reason) == "" {
 		err = errors.New("sessiontoken: failure reason is empty")
 		return nil, err
 	}
@@ -223,13 +254,53 @@ func (m *Manager) CompleteFlowFailed(ctx context.Context, flowID string, reason 
 	if err := m.stateMachine.Transition(flow, FlowStatusFailed); err != nil {
 		return nil, err
 	}
-	flow.LastError = reason
+	flow.LastError = strings.TrimSpace(failure.Reason)
 	flow.Result = nil
+	flow.Code = strings.TrimSpace(failure.Code)
+	flow.Message = strings.TrimSpace(failure.Message)
+	flow.LastFailedAPI = strings.TrimSpace(failure.LastFailedAPI)
+	setMetadataValue(flow, metadataLastFailedAPI, flow.LastFailedAPI)
 
 	if err := m.dispatchAndRecordCallback(ctx, flow, nil); err != nil {
 		return flow, err
 	}
 	return flow, nil
+}
+
+// MarkTokenInvalid 简化 API 调用触发的凭证失效流程。
+func (m *Manager) MarkTokenInvalid(ctx context.Context, flowID string, code string, message string, api string) (*Flow, error) {
+	reason := strings.TrimSpace(message)
+	if reason == "" && strings.TrimSpace(code) != "" {
+		reason = fmt.Sprintf("session token invalid: %s", strings.TrimSpace(code))
+	}
+	if reason == "" {
+		reason = "session token invalid"
+	}
+	return m.CompleteFlowFailed(ctx, flowID, &FlowFailure{
+		Reason:        reason,
+		Code:          strings.TrimSpace(code),
+		Message:       strings.TrimSpace(message),
+		LastFailedAPI: strings.TrimSpace(api),
+	})
+}
+
+// FindFlowBySessionToken 根据 session_token 查询对应的 Flow。
+func (m *Manager) FindFlowBySessionToken(ctx context.Context, token string) (*Flow, error) {
+	key := sessionTokenIndexKey(token)
+	if key == "" {
+		return nil, ErrFlowNotFound
+	}
+	if m.cache == nil {
+		return nil, errors.New("sessiontoken: cache is not configured")
+	}
+	data, err := m.cache.Get(ctx, key)
+	if err != nil {
+		return nil, err
+	}
+	if len(data) == 0 {
+		return nil, ErrFlowNotFound
+	}
+	return m.GetFlow(ctx, string(data))
 }
 
 func (m *Manager) validateCreateOptions(opts *CreateFlowOptions) error {
@@ -339,6 +410,9 @@ func (m *Manager) dispatchCallback(ctx context.Context, flow *Flow, credentials 
 		ProviderCode:    flow.ProviderCode,
 		ProviderAppCode: flow.ProviderAppCode,
 		TenantUUID:      flow.TenantUUID,
+		Code:            flow.Code,
+		Message:         flow.Message,
+		LastFailedAPI:   flow.LastFailedAPI,
 		Credentials:     credentials,
 		Metadata:        cloneMetadata(flow.Metadata),
 	}
@@ -354,10 +428,46 @@ func cloneMetadata(meta map[string]string) map[string]string {
 		return nil
 	}
 	cloned := make(map[string]string, len(meta))
-	for k, v := range meta {
-		cloned[k] = v
+	keys := make([]string, 0, len(meta))
+	for k := range meta {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	for _, k := range keys {
+		cloned[k] = meta[k]
 	}
 	return cloned
+}
+
+func metadataValue(flow *Flow, key string) string {
+	if flow == nil || len(flow.Metadata) == 0 {
+		return ""
+	}
+	return strings.TrimSpace(flow.Metadata[key])
+}
+
+func setMetadataValue(flow *Flow, key, value string) {
+	if flow == nil || key == "" {
+		return
+	}
+	if flow.Metadata == nil {
+		flow.Metadata = make(map[string]string)
+	}
+	trimmed := strings.TrimSpace(value)
+	if trimmed == "" {
+		delete(flow.Metadata, key)
+		return
+	}
+	flow.Metadata[key] = trimmed
+}
+
+func firstNonEmpty(values ...string) string {
+	for _, v := range values {
+		if strings.TrimSpace(v) != "" {
+			return strings.TrimSpace(v)
+		}
+	}
+	return ""
 }
 
 func (m *Manager) logFlowMetric(ctx context.Context, action string, flow *Flow, start time.Time, err error) {
@@ -398,4 +508,117 @@ func sanitizeLogValue(value string) string {
 		return "-"
 	}
 	return value
+}
+
+func (m *Manager) bindSessionTokenIndex(ctx context.Context, flow *Flow, token string) {
+	if m.cache == nil || flow == nil {
+		return
+	}
+	key := sessionTokenIndexKey(token)
+	if key == "" || strings.TrimSpace(flow.FlowID) == "" {
+		return
+	}
+	ttl := flow.ExpiresAt.Sub(m.clock().UTC()) + DefaultAuditTTL
+	if ttl <= DefaultAuditTTL {
+		ttl = DefaultAuditTTL
+	}
+	if err := m.cache.Set(ctx, key, []byte(flow.FlowID), ttl); err != nil && m.logger != nil {
+		m.logger.WithContext(ctx).WarnF("sessiontoken: cache session token index failed flow_id=%s error=%v", sanitizeLogValue(flow.FlowID), err)
+	}
+}
+
+// FetchReusableSession 从缓存中读取可复用的 session 凭证。
+func (m *Manager) FetchReusableSession(ctx context.Context, flow *Flow) (*callback.CredentialPayload, error) {
+	if m.cache == nil || flow == nil {
+		return nil, ErrFlowNotFound
+	}
+	key := reuseSessionCacheKey(flow)
+	if key == "" {
+		return nil, ErrFlowNotFound
+	}
+	data, err := m.cache.Get(ctx, key)
+	if err != nil {
+		return nil, err
+	}
+	if len(data) == 0 {
+		return nil, ErrFlowNotFound
+	}
+	var payload callback.CredentialPayload
+	if err := json.Unmarshal(data, &payload); err != nil {
+		return nil, err
+	}
+	if strings.TrimSpace(payload.SessionToken) == "" {
+		return nil, errors.New("sessiontoken: cached session token is empty")
+	}
+	return &payload, nil
+}
+
+func (m *Manager) storeReusableSession(ctx context.Context, flow *Flow, credentials *callback.CredentialPayload) {
+	if m.cache == nil || flow == nil || credentials == nil {
+		return
+	}
+	if strings.TrimSpace(credentials.SessionToken) == "" {
+		return
+	}
+	key := reuseSessionCacheKey(flow)
+	if key == "" {
+		return
+	}
+	clone := cloneCredentialPayload(credentials)
+	data, err := json.Marshal(clone)
+	if err != nil {
+		if m.logger != nil {
+			m.logger.WithContext(ctx).WarnF("sessiontoken: marshal reusable session failed flow_id=%s error=%v", sanitizeLogValue(flow.FlowID), err)
+		}
+		return
+	}
+	ttl := flow.ExpiresAt.Sub(m.clock().UTC()) + DefaultAuditTTL
+	if ttl <= DefaultAuditTTL {
+		ttl = DefaultAuditTTL
+	}
+	if err := m.cache.Set(ctx, key, data, ttl); err != nil && m.logger != nil {
+		m.logger.WithContext(ctx).WarnF("sessiontoken: cache reusable session failed flow_id=%s error=%v", sanitizeLogValue(flow.FlowID), err)
+	}
+}
+
+func reuseSessionCacheKey(flow *Flow) string {
+	if flow == nil {
+		return ""
+	}
+	parts := []string{
+		strings.ToLower(strings.TrimSpace(flow.ProviderCode)),
+		strings.ToLower(strings.TrimSpace(flow.ProviderAppCode)),
+		strings.ToLower(strings.TrimSpace(flow.TenantUUID)),
+		strings.ToLower(strings.TrimSpace(flow.AccountID)),
+	}
+	base := strings.Join(parts, "|")
+	sum := sha256.Sum256([]byte(base))
+	return reuseSessionCachePrefix + hex.EncodeToString(sum[:])
+}
+
+func cloneCredentialPayload(payload *callback.CredentialPayload) *callback.CredentialPayload {
+	if payload == nil {
+		return nil
+	}
+	cloned := *payload
+	if len(payload.Cookies) > 0 {
+		cloned.Cookies = make([]callback.Cookie, len(payload.Cookies))
+		copy(cloned.Cookies, payload.Cookies)
+	}
+	if len(payload.Headers) > 0 {
+		cloned.Headers = make(map[string]string, len(payload.Headers))
+		for k, v := range payload.Headers {
+			cloned.Headers[k] = v
+		}
+	}
+	return &cloned
+}
+
+func parseBoolFlag(value string) bool {
+	switch strings.ToLower(strings.TrimSpace(value)) {
+	case "1", "true", "t", "yes", "y", "on":
+		return true
+	default:
+		return false
+	}
 }

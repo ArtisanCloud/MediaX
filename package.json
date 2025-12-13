@@ -1,0 +1,30 @@
+{
+  "name": "mediax",
+  "version": "1.0.0",
+  "description": "MediaX 是一个支持多平台内容发布的轻量级 SDK，旨在帮助开发者快速集成到主流自媒体平台，实现统一的内容发布接口。",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs",
+    "example": "examples"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "sessiontoken:browser": "node ./tools/sessiontoken-browser/cli.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ArtisanCloud/MediaX.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/ArtisanCloud/MediaX/issues"
+  },
+  "homepage": "https://github.com/ArtisanCloud/MediaX#readme",
+  "devDependencies": {
+    "node-fetch": "^2.7.0",
+    "playwright": "^1.57.0"
+  }
+}

@@ -6,7 +6,6 @@ import (
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/hex"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -18,49 +17,6 @@ import (
 
 	"github.com/ArtisanCloud/MediaXCore/pkg/logger"
 )
-
-// CredentialPayload 表示需要回传给业务的凭证。
-type CredentialPayload struct {
-	SessionToken string            `json:"session_token"`
-	Cookies      []Cookie          `json:"cookies_json,omitempty"`
-	Headers      map[string]string `json:"headers_json,omitempty"`
-	ExpiresAt    string            `json:"expires_at,omitempty"`
-	CapturedAt   string            `json:"captured_at,omitempty"`
-	Note         string            `json:"note,omitempty"`
-}
-
-// Cookie 是回传时的 cookie 结构。
-type Cookie struct {
-	Name   string `json:"name"`
-	Value  string `json:"value"`
-	Domain string `json:"domain,omitempty"`
-}
-
-// Payload 是发送到业务侧的回调信息。
-type Payload struct {
-	FlowID          string             `json:"flow_id"`
-	State           string             `json:"state"`
-	Status          string             `json:"status"`
-	ProviderCode    string             `json:"provider_code,omitempty"`
-	ProviderAppCode string             `json:"provider_app_code,omitempty"`
-	TenantUUID      string             `json:"tenant_uuid,omitempty"`
-	Credentials     *CredentialPayload `json:"credentials,omitempty"`
-	Metadata        map[string]string  `json:"metadata,omitempty"`
-	Timestamp       int64              `json:"timestamp"`
-	Nonce           string             `json:"nonce"`
-}
-
-// Body 返回 JSON 编码后的 payload。
-func (p *Payload) Body() ([]byte, error) {
-	return json.Marshal(p)
-}
-
-// Request 定义了回调请求。
-type Request struct {
-	URL     string            `json:"-"`
-	Payload *Payload          `json:"payload"`
-	Headers map[string]string `json:"headers"`
-}
 
 // Dispatcher 抽象回调投递行为。
 type Dispatcher interface {
@@ -169,6 +125,7 @@ func (d *HTTPDispatcher) Dispatch(ctx context.Context, req *Request) (int, error
 	headers["X-MediaX-Signature"] = sig
 
 	start := time.Now()
+	targetURL := strings.TrimSpace(req.URL)
 	attempts := 0
 	maxAttempts := len(d.retryDelays) + 1
 	var lastErr error
@@ -195,77 +152,61 @@ func (d *HTTPDispatcher) Dispatch(ctx context.Context, req *Request) (int, error
 		resp, err := d.httpDo(httpReq)
 		if err != nil {
 			lastErr = err
-			d.logRetry(ctx, req.Payload, attempts-1, err)
+			d.logRetry(ctx, req.Payload, attempts-1, err, targetURL)
 			continue
 		}
 		io.Copy(io.Discard, resp.Body)
 		resp.Body.Close()
 		if resp.StatusCode >= 200 && resp.StatusCode < 300 {
-			d.logSuccess(ctx, req.Payload, attempts-1, resp.StatusCode, time.Since(start))
+			d.logSuccess(ctx, req.Payload, attempts-1, resp.StatusCode, time.Since(start), targetURL)
 			return attempts - 1, nil
 		}
 		lastErr = fmt.Errorf("callback: unexpected status code %d", resp.StatusCode)
 		if resp.StatusCode >= 400 && resp.StatusCode < 500 {
-			d.logFailure(ctx, req.Payload, attempts-1, lastErr, time.Since(start))
+			d.logFailure(ctx, req.Payload, attempts-1, lastErr, time.Since(start), targetURL)
 			return attempts - 1, lastErr
 		}
-		d.logRetry(ctx, req.Payload, attempts-1, lastErr)
+		d.logRetry(ctx, req.Payload, attempts-1, lastErr, targetURL)
 	}
 	if lastErr == nil {
 		lastErr = errors.New("callback: dispatcher exhausted retries")
 	}
-	d.logFailure(ctx, req.Payload, attempts-1, lastErr, time.Since(start))
+	d.logFailure(ctx, req.Payload, attempts-1, lastErr, time.Since(start), targetURL)
 	return attempts - 1, lastErr
 }
 
-func cloneHeaders(in map[string]string) map[string]string {
-	if len(in) == 0 {
-		return map[string]string{}
-	}
-	out := make(map[string]string, len(in))
-	for k, v := range in {
-		out[k] = v
-	}
-	return out
-}
-
-func (d *HTTPDispatcher) logSuccess(ctx context.Context, payload *Payload, retry int, status int, latency time.Duration) {
+func (d *HTTPDispatcher) logSuccess(ctx context.Context, payload *Payload, retry int, status int, latency time.Duration, callbackURL string) {
 	if d.logger == nil {
 		return
 	}
 	d.logger.WithContext(ctx).InfoF(
-		"sessiontoken_callback: success provider=%s provider_app=%s tenant_uuid=%s flow_id=%s state=%s flow_status=%s retry=%d http_status=%d latency_ms=%d",
+		"sessiontoken_callback: success provider=%s provider_app=%s tenant_uuid=%s callback_url=%s flow_id=%s state=%s flow_status=%s code=%s retry_count=%d http_status=%d latency_ms=%d",
 		valueOrDash(payload.ProviderCode), valueOrDash(payload.ProviderAppCode), valueOrDash(payload.TenantUUID),
-		payload.FlowID, payload.State, valueOrDash(payload.Status), retry, status, latency.Milliseconds(),
+		valueOrDash(callbackURL), payload.FlowID, payload.State, valueOrDash(payload.Status), valueOrDash(payload.Code),
+		retry, status, latency.Milliseconds(),
 	)
 }
 
-func (d *HTTPDispatcher) logRetry(ctx context.Context, payload *Payload, retry int, err error) {
+func (d *HTTPDispatcher) logRetry(ctx context.Context, payload *Payload, retry int, err error, callbackURL string) {
 	if d.logger == nil {
 		return
 	}
 	d.logger.WithContext(ctx).WarnF(
-		"sessiontoken_callback: retry provider=%s provider_app=%s tenant_uuid=%s flow_id=%s state=%s flow_status=%s retry=%d error=%v",
+		"sessiontoken_callback: retry provider=%s provider_app=%s tenant_uuid=%s callback_url=%s flow_id=%s state=%s flow_status=%s code=%s retry_count=%d error=%v",
 		valueOrDash(payload.ProviderCode), valueOrDash(payload.ProviderAppCode), valueOrDash(payload.TenantUUID),
-		payload.FlowID, payload.State, valueOrDash(payload.Status), retry, err,
+		valueOrDash(callbackURL), payload.FlowID, payload.State, valueOrDash(payload.Status), valueOrDash(payload.Code),
+		retry, err,
 	)
 }
 
-func (d *HTTPDispatcher) logFailure(ctx context.Context, payload *Payload, retry int, err error, latency time.Duration) {
+func (d *HTTPDispatcher) logFailure(ctx context.Context, payload *Payload, retry int, err error, latency time.Duration, callbackURL string) {
 	if d.logger == nil {
 		return
 	}
 	d.logger.WithContext(ctx).ErrorF(
-		"sessiontoken_callback: failed provider=%s provider_app=%s tenant_uuid=%s flow_id=%s state=%s flow_status=%s retry=%d latency_ms=%d error=%v",
+		"sessiontoken_callback: failed provider=%s provider_app=%s tenant_uuid=%s callback_url=%s flow_id=%s state=%s flow_status=%s code=%s retry_count=%d latency_ms=%d error=%v",
 		valueOrDash(payload.ProviderCode), valueOrDash(payload.ProviderAppCode), valueOrDash(payload.TenantUUID),
-		payload.FlowID, payload.State, valueOrDash(payload.Status), retry, latency.Milliseconds(), err,
+		valueOrDash(callbackURL), payload.FlowID, payload.State, valueOrDash(payload.Status), valueOrDash(payload.Code),
+		retry, latency.Milliseconds(), err,
 	)
-}
-
-func valueOrDash(value string) string {
-	value = strings.TrimSpace(value)
-	if value == "" {
-		return "-"
-	}
-	return value
 }

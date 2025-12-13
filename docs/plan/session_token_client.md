@@ -142,9 +142,9 @@
 1. **单元测试/接口联合测试**
    ```bash
    go test ./pkg/client/sessionToken/... \
-     ./pkg/client/zhihu/sessionToken/... \
-     ./pkg/server/handlers/session_token \
-     ./pkg/server/middleware/session_token
+     ./server/zhihu/sessionToken/... \
+     ./server/handlers/session_token \
+     ./server/middleware/session_token
    ```
 2. **挂载 HTTP Handler**
    ```go

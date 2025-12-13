@@ -21,7 +21,7 @@ func NewStateMachine() *StateMachine {
 	return &StateMachine{
 		now: time.Now,
 		transitions: map[FlowStatus][]FlowStatus{
-			FlowStatusPending:     {FlowStatusPending, FlowStatusAuthorizing, FlowStatusFailed},
+			FlowStatusPending:     {FlowStatusPending, FlowStatusAuthorizing, FlowStatusSucceeded, FlowStatusFailed},
 			FlowStatusAuthorizing: {FlowStatusAuthorizing, FlowStatusSucceeded, FlowStatusFailed},
 			FlowStatusSucceeded:   {FlowStatusSucceeded},
 			FlowStatusFailed:      {FlowStatusFailed},

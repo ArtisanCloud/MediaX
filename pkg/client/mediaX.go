@@ -30,9 +30,9 @@ import (
 	sessiontoken "github.com/ArtisanCloud/MediaX/pkg/client/sessionToken"
 	officialAccount "github.com/ArtisanCloud/MediaX/pkg/client/wechat/officialAccount/clientTokenClient"
 	"github.com/ArtisanCloud/MediaX/pkg/client/zhihu/core"
-	"github.com/ArtisanCloud/MediaX/pkg/client/zhihu/sessionToken/authenticator"
-	zhCallback "github.com/ArtisanCloud/MediaX/pkg/client/zhihu/sessionToken/callback"
-	zhHarvester "github.com/ArtisanCloud/MediaX/pkg/client/zhihu/sessionToken/harvester"
+	"github.com/ArtisanCloud/MediaX/server/zhihu/sessionToken/authenticator"
+	zhCallback "github.com/ArtisanCloud/MediaX/server/zhihu/sessionToken/callback"
+	zhHarvester "github.com/ArtisanCloud/MediaX/server/zhihu/sessionToken/harvester"
 	"github.com/ArtisanCloud/MediaXCore/pkg/cache"
 	"github.com/ArtisanCloud/MediaXCore/pkg/logger"
 )

@@ -18,9 +18,11 @@ import (
 
 	"github.com/ArtisanCloud/MediaX/pkg/client"
 	config2 "github.com/ArtisanCloud/MediaX/pkg/client/config"
+	sessiontoken "github.com/ArtisanCloud/MediaX/pkg/client/sessionToken"
 	sessiontokenredis "github.com/ArtisanCloud/MediaX/pkg/client/sessionToken/storage/redis"
-	sessionhandler "github.com/ArtisanCloud/MediaX/pkg/server/handlers/session_token"
+	zhihuweb "github.com/ArtisanCloud/MediaX/pkg/client/zhihu/web/sessionTokenClient"
 	"github.com/ArtisanCloud/MediaX/pkg/utils"
+	sessionhandler "github.com/ArtisanCloud/MediaX/server/handlers/session_token"
 	"github.com/ArtisanCloud/MediaXCore/pkg/cache"
 	loggerconfig "github.com/ArtisanCloud/MediaXCore/pkg/logger/config"
 )
@@ -32,14 +34,15 @@ const (
 
 func main() {
 	configPathFlag := flag.String("config", "", "Path to config.yaml for SessionToken service")
+	portFlag := flag.String("port", "", "Override listen port (e.g. 7070 or :7070)")
 	flag.Parse()
 
-	if err := run(*configPathFlag); err != nil {
+	if err := run(*configPathFlag, *portFlag); err != nil {
 		log.Fatalf("sessiontoken: %v", err)
 	}
 }
 
-func run(configPathFlag string) error {
+func run(configPathFlag, portFlag string) error {
 	configPath := resolveConfigPath(configPathFlag)
 	localConfig := &config2.LocalConfig{}
 	if err := utils.LoadYAML(configPath, localConfig); err != nil {
@@ -62,20 +65,33 @@ func run(configPathFlag string) error {
 	mediaX := client.NewMediaX(&config2.MediaXConfig{Logger: buildLogConfig()}, cacheStore)
 
 	flowStore := sessiontokenredis.NewFlowStore(redisClient)
-	manager, _, err := mediaX.CreateZhihuSessionTokenClient(localConfig.ZhihuConfig.SessionToken, flowStore)
+	manager, harvester, err := mediaX.CreateZhihuSessionTokenClient(localConfig.ZhihuConfig.SessionToken, flowStore)
 	if err != nil {
 		return fmt.Errorf("create zhihu session token client: %w", err)
 	}
 
 	apiToken := resolveAPIToken(localConfig.ZhihuConfig.SessionToken.Service.APIToken)
-	listenAddr := resolveListenAddr()
+	listenAddr := resolveListenAddr(portFlag)
+
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+
+	flowClient := sessiontoken.NewFlowOrchestrator(ctx, manager, harvester, mediaX.Logger)
+	zhihuAPI, err := zhihuweb.NewClient(localConfig.ZhihuConfig.SessionToken, flowClient, mediaX.Logger)
+	if err != nil {
+		return fmt.Errorf("create zhihu web api client: %w", err)
+	}
 
 	mux := http.NewServeMux()
-	if err := sessionhandler.RegisterSessionTokenFlowCreateRoute(mux, manager, apiToken, mediaX.Logger); err != nil {
+	registerDebugPage(mux, mediaX.Logger, flowStore)
+	if err := sessionhandler.RegisterSessionTokenFlowCreateRoute(mux, flowClient, apiToken, mediaX.Logger); err != nil {
 		return fmt.Errorf("register create route: %w", err)
 	}
-	if err := sessionhandler.RegisterSessionTokenFlowGetRoute(mux, manager, apiToken, mediaX.Logger); err != nil {
+	if err := sessionhandler.RegisterSessionTokenFlowGetRoute(mux, flowClient, apiToken, mediaX.Logger); err != nil {
 		return fmt.Errorf("register get route: %w", err)
+	}
+	if err := zhihuAPI.RegisterRoutes(mux, apiToken); err != nil {
+		return fmt.Errorf("register zhihu routes: %w", err)
 	}
 
 	server := &http.Server{
@@ -85,10 +101,6 @@ func run(configPathFlag string) error {
 		WriteTimeout: 30 * time.Second,
 		IdleTimeout:  60 * time.Second,
 	}
-
-	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
-	defer stop()
-
 	go func() {
 		<-ctx.Done()
 		shutdownCtx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
@@ -116,7 +128,14 @@ func resolveConfigPath(flagPath string) string {
 	return defaultConfigPath
 }
 
-func resolveListenAddr() string {
+func resolveListenAddr(flagPort string) string {
+	if strings.TrimSpace(flagPort) != "" {
+		port := strings.TrimSpace(flagPort)
+		if strings.HasPrefix(port, ":") {
+			return port
+		}
+		return ":" + port
+	}
 	if addr := firstNonEmptyEnv("SESSIONTOKEN_LISTEN_ADDR", "POWERX_SESSION_TOKEN_LISTEN_ADDR"); addr != "" {
 		return addr
 	}

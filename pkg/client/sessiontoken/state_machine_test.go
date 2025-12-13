@@ -25,10 +25,10 @@ func TestStateMachineAllowsValidTransitions(t *testing.T) {
 
 func TestStateMachineRejectsInvalidTransitions(t *testing.T) {
 	sm := NewStateMachine()
-	flow := &Flow{Status: FlowStatusPending}
+	flow := &Flow{Status: FlowStatusAuthorizing}
 
-	if err := sm.Transition(flow, FlowStatusSucceeded); err == nil {
-		t.Fatal("expected pending->succeeded to be rejected")
+	if err := sm.Transition(flow, FlowStatusPending); err == nil {
+		t.Fatal("expected authorizing->pending to be rejected")
 	}
 }
 

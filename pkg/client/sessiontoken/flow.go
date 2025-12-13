@@ -41,22 +41,35 @@ var (
 
 // Flow 代表一次 SessionToken 登录流程。
 type Flow struct {
-	FlowID          string                      `json:"flow_id"`
-	ProviderCode    string                      `json:"provider_code"`
-	ProviderAppCode string                      `json:"provider_app_code"`
-	TenantUUID      string                      `json:"tenant_uuid"`
-	AccountID       string                      `json:"account_id"`
-	State           string                      `json:"state"`
-	Status          FlowStatus                  `json:"status"`
-	AuthorizeURL    string                      `json:"authorize_url"`
-	ExpiresAt       time.Time                   `json:"expires_at"`
-	Metadata        map[string]string           `json:"metadata,omitempty"`
-	Result          *callback.CredentialPayload `json:"result,omitempty"`
-	LastError       string                      `json:"last_error,omitempty"`
-	CallbackURL     string                      `json:"callback_url"`
-	RetryAttempts   int                         `json:"retry_attempts"`
-	CreatedAt       time.Time                   `json:"created_at"`
-	UpdatedAt       time.Time                   `json:"updated_at"`
+	FlowID                 string                      `json:"flow_id"`
+	ProviderCode           string                      `json:"provider_code"`
+	ProviderAppCode        string                      `json:"provider_app_code"`
+	TenantUUID             string                      `json:"tenant_uuid"`
+	AccountID              string                      `json:"account_id"`
+	State                  string                      `json:"state"`
+	Status                 FlowStatus                  `json:"status"`
+	AuthorizeURL           string                      `json:"authorize_url"`
+	ExpiresAt              time.Time                   `json:"expires_at"`
+	Metadata               map[string]string           `json:"metadata,omitempty"`
+	Result                 *callback.CredentialPayload `json:"result,omitempty"`
+	CredentialsNote        string                      `json:"credentials_note,omitempty"`
+	CredentialsExpiresHint string                      `json:"credentials_expires_hint,omitempty"`
+	Code                   string                      `json:"code,omitempty"`
+	Message                string                      `json:"message,omitempty"`
+	LastFailedAPI          string                      `json:"last_failed_api,omitempty"`
+	LastError              string                      `json:"last_error,omitempty"`
+	CallbackURL            string                      `json:"callback_url"`
+	RetryAttempts          int                         `json:"retry_attempts"`
+	CreatedAt              time.Time                   `json:"created_at"`
+	UpdatedAt              time.Time                   `json:"updated_at"`
+}
+
+// FlowFailure 描述 Flow 失败时需要记录的上下文字段。
+type FlowFailure struct {
+	Reason        string
+	Code          string
+	Message       string
+	LastFailedAPI string
 }
 
 // FlowStore 定义了 Flow 持久化层需要实现的接口。
