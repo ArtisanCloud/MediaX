@@ -221,9 +221,86 @@
 3. **验收标准**：
    - 本地可成功运行一次 Flow，回调含 Cookie。
    - 能用同一 `session_token` 调用封装接口获取关注频道/文章。
-   - 将 Cookie 改为无效值后，接口返回 401 且收到 `ZH_COOKIE_EXPIRED` 回调。
+- 将 Cookie 改为无效值后，接口返回 401 且收到 `ZH_COOKIE_EXPIRED` 回调。
 
-## 8. API 版本扩展 Playbook
+## 8. 对外调用指引（Flow → API 串联）
+
+面向外部应用的标准接入流程如下，所有示例默认 SessionToken 服务监听在 `http://127.0.0.1:7070`，API Token 为 `dev-session-token`。
+
+1. **创建 Flow 并登录**：在 `/debug` 页面选择 Provider=Zhihu、App=zhihu_article，点击“创建 Flow”，复制 `authorize_url` 打开浏览器登录，或使用 `scripts/sessiontoken-debug.sh`/Playwright CLI 自动登录。
+2. **采集并保存 SessionToken**：登录完成后由浏览器脚本或 CLI 把 `session_token`（整串 Cookie）写入 Flow metadata。SessionToken 服务成功后会回调外部系统，payload 中包含 `session_token`、`flow_id` 等字段。外部系统需要把 `session_token` 原样持久化，后续调用统一放到请求头 `X-SessionToken` 中。
+3. **串联封装 API**：依次调用关注列表 → 频道文章 → 文章详情/发布等接口即可实现完整链路。
+
+### 8.1 获取关注频道
+
+```bash
+curl --noproxy "*" \
+  "http://127.0.0.1:7070/zhihu/v1/me/followings?limit=20&offset=0" \
+  -H "Authorization: Bearer dev-session-token" \
+  -H "X-SessionToken: ${SESSION_TOKEN}"
+```
+
+- 响应来自知乎 `/api/v4/members/{account}/following-columns`；`data[*].id` 就是频道（专栏）ID。
+- 如需指定账号，可在 query 里加 `account_id=<url_token>`，将跳过 Flow 中的自动解析。
+
+### 8.2 获取频道文章列表
+
+```bash
+curl --noproxy "*" \
+  "http://127.0.0.1:7070/zhihu/v1/channels/${CHANNEL_ID}/articles?limit=10&offset=0" \
+  -H "Authorization: Bearer dev-session-token" \
+  -H "X-SessionToken: ${SESSION_TOKEN}"
+```
+
+- 服务端会将请求转发到 `/api/v4/columns/${CHANNEL_ID}/items`，返回该专栏的近期文章；`paging.next` 可用于翻页。
+
+### 8.3 获取单篇文章详情
+
+```bash
+curl --noproxy "*" \
+  "http://127.0.0.1:7070/zhihu/v1/articles/${ARTICLE_ID}" \
+  -H "Authorization: Bearer dev-session-token" \
+  -H "X-SessionToken: ${SESSION_TOKEN}"
+```
+
+- 只需在路径中填入 `ARTICLE_ID`（例如 `652814019`），body 留空即可。返回结构与知乎 `/api/v4/articles/{id}` 基本一致。
+
+### 8.4 发布文章
+
+```bash
+curl --noproxy "*" \
+  "http://127.0.0.1:7070/zhihu/v1/articles" \
+  -H "Authorization: Bearer dev-session-token" \
+  -H "X-SessionToken: ${SESSION_TOKEN}" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "title": "示例标题",
+    "content": "<p>示例内容</p>"
+  }'
+```
+
+- body 至少包含 `title` 与 `content`（HTML 字符串）；如需投稿到指定专栏可扩展字段，保持 JSON 结构即可。
+- 如果知乎返回 4xx/5xx，会在响应里附带 `code`/`message`，以便调用方快速定位。
+
+### 8.5 SessionToken 有效性自检
+
+```bash
+curl --noproxy "*" \
+  "http://127.0.0.1:7070/zhihu/v1/sanity/check" \
+  -H "Authorization: Bearer dev-session-token" \
+  -H "X-SessionToken: ${SESSION_TOKEN}"
+```
+
+- 用于定期心跳，成功表示 Cookie 仍能访问 `/api/v4/me`；失败会返回 `ZH_COOKIE_EXPIRED` 并触发 Flow 失败回调。
+
+### 8.6 调试捷径
+
+- `/debug` 页面的“API 调试（Beta）”区域已内置上述接口，既可以通过 UI 发送请求，也可以点击“从 Flow 填充”自动带入 SessionToken。
+- 终端用户也可以运行 `scripts/sessiontoken-debug.sh followings "$SESSION_TOKEN"` 等脚本快速验证。
+
+通过以上步骤，外部应用即可搭建“自动刷新 SessionToken → 拉取关注频道 → 获取频道文章 → 获取/发布文章 → 心跳监控”的闭环。
+
+## 9. API 版本扩展 Playbook
 
 1. **代码结构**：在 `pkg/client/zhihu/web/sessionTokenClient/` 下创建新的版本目录（如 `v5/`），复制 `v4` 的 handler 骨架，仅改动上游路径/响应整形逻辑；公共工具函数仍放在 `v4` 目录或抽到 `internal`，避免重复。
 2. **入口注册**：在 `pkg/client/zhihu/web/sessionTokenClient/client.go` 的 `buildRouter` 中新增 `case "v5": return v5.NewClient(...)`；如果需要临时灰度，可扩展 `resolveAPIVersion`，支持以 Flow metadata/Provider App 决定版本。
@@ -231,7 +308,7 @@
 4. **调试工具**：`/debug` 页面模板需同步新增版本选项，并在创建 Flow 时把 `metadata.api_version` 写入，以确保插件/日志可以回溯；脚本 `sessiontoken-debug.sh` 也可支持 `--version`，方便 curl 时附带。
 5. **测试/验收**：针对新增版本补充 httptest 覆盖基础成功/401/403/5xx 情形，并跑一遍“创建 Flow → 登录 → `/debug/callback` → API 调用 → 失效回调”流程确认兼容；必要时在日志中输出 `version=...` 字段方便监控。
 
-## 9. 风险与TODO
+## 10. 风险与TODO
 
 - **Cookie 结构变动**：知乎可能更换字段，需要监控调试日志并快速更新 `watch_cookies`。
 - **高频调用封禁**：对文章/频道接口需加节流与 IP 池支持，可复用 `zhihu_config.sessionToken.network`。
