@@ -79,6 +79,24 @@ google_youtube_config:
 
    CLI 会把响应格式化为 JSON 输出，失败时直接返回 Go error，方便脚本化联调。`cmd/accesstoken` 也会读取 `google_youtube_config` 中的 `proxy_api_url/timeout/http_debug`，因此无需额外写死网络配置。
 
+#### 4.1.1 订阅 → 视频 → 评论闭环
+
+> 典型外部应用希望：读取订阅频道 → 拉取频道视频 → 发布自有视频 → 获取/回复评论。以下检查清单可在本地逐项验证。
+
+| 场景 | 本地入口 | 最小参数 | 说明 |
+| --- | --- | --- | --- |
+| 获取订阅频道列表 | `pkg/client/google/youtube/accessTokenClient/subscriptions`（`yt.GetSubscriptionsClient().List`） | `part=snippet,contentDetails` + `mine=true` | 建议在 Playground 或自定义脚本中调用，日志记录 `provider=google api=subscriptions.list`。 |
+| 获取订阅频道最新视频 | CLI `videos.list`（`-action videos.list -part snippet -channel-id <channelId>`）或 `pkg/client/.../playlistItems` | `channelId` / `playlistId` | 对应 “获取每个频道的 videos 列表” 用例。 |
+| 发布自有视频 | `pkg/client/google/youtube/accessTokenClient/video`. `Insert` | `part=snippet,status` + 上传媒资 | 通过 Playground 或自定义工具执行，可复用 CLI 的 AccessToken 与代理配置。 |
+| 获取自己发布视频的评论 | `pkg/client/google/youtube/accessTokenClient/commentThreads`. `List` | `videoId` + `part=snippet,replies` | 建议在 Playground 中演练，输出 JSON 并记录日志。 |
+| 回复视频评论 | `pkg/client/google/youtube/accessTokenClient/comments`. `Insert` 或 `commentThreads.Insert` | `part=snippet` + `parentId`/`videoId` | 验证完 `List` 后即可调用，确保 CLI/Playground 使用相同 AccessToken。 |
+
+调试提示：
+
+1. **订阅 & 视频列表**：可通过 CLI（videos.list）或在 Playground 中调用 `subscriptions.List` + `playlistItems.List` 组合来完成链路。
+2. **发布与评论**：推荐在 Playground 中添加辅助函数，调用 `video.Insert`、`commentThreads.List/Insert` 等 API；这些调用与 CLI 共用 `google_youtube_config`，无需额外配置。
+3. **验证流程**：完成上述五个动作后，记录 CLI/Playground 响应与日志，作为“订阅→视频→评论”闭环的验收依据。
+
 ### 4.2 使用 `playground/google.go`（保持与旧教程兼容）
 
 1. 启动 Redis：`docker run --rm -p 6379:6379 redis:7-alpine`（若已经在用 SessionToken，可跳过）。
