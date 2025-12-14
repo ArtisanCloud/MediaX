@@ -39,3 +39,6 @@ config.yaml
 
 # Go modules
 go.sum
+
+.env
+node_modules/
