@@ -27,6 +27,21 @@ redbook_juguang_config:
     app_id: "your_redbook_app_id"
     app_secret: "your_redbook_app_secret"
 
+google_youtube_config:
+  api_url: "https://www.googleapis.com"
+  proxy_api_url: ""
+  timeout: 15
+  http_debug: false
+  oauth:
+    access_token_url: "https://oauth2.googleapis.com/token"
+    proxy_access_token_url: ""
+    client_id: "your_google_client_id.apps.googleusercontent.com"
+    client_secret: "your_google_client_secret"
+    redirect_url: "http://localhost"
+    scope: "https://www.googleapis.com/auth/youtube.force-ssl"
+    refresh_token: "your_refresh_token_if_any"
+    access_token: ""   # 可填入临时 AccessToken；也可以通过环境变量提供
+    token_expiry: 0
 
 zhihu_config:
   sessionToken:

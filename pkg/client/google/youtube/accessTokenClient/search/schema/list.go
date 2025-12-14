@@ -31,7 +31,7 @@ type YouTubeSearchListReq struct {
 	VideoPaidProductPlacement string `json:"videoPaidProductPlacement,omitempty"` // 视频是否包含付费宣传内容（可选，如 any,true）
 	VideoSyndicated           string `json:"videoSyndicated,omitempty"`           // 视频是否已同步（可选，如 any,true）
 	VideoType                 string `json:"videoType,omitempty"`                 // 视频类型（可选，如 any,episode,movie）
-
+	PageToken                 string `json:"pageToken,omitempty"`                 // 分页令牌（可选）
 }
 
 // Id 资源ID
