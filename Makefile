@@ -3,6 +3,8 @@ ROOT_DIR    = $(shell pwd)
 include $(ROOT_DIR)/makefiles/genDoc.mk
 include $(ROOT_DIR)/makefiles/syncProtobuf.mk
 
+ARGS ?=
+
 .PHONY: sessiontoken
 sessiontoken:
 	@echo "[MediaX] 启动 SessionToken 服务 (默认监听 :7070)"

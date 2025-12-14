@@ -73,7 +73,13 @@ google_youtube_config:
   oauth_key: "tenantA.youtube"   # 对应 token 仓库的 key
 ```
 
-`GetOAuthToken` 的返回值需要至少包含 `access_token`，可选 `expires_in/refresh_token/token_type`。若需让 SDK 自动发起刷新，可以在 `OAuthConfig.refresh_token` 中填入长期有效的值。
+建议按照以下顺序配置：
+
+1. 复制 `config.example.yaml` → `config.yaml`，保留 `${GOOGLE_YOUTUBE_CLIENT_ID}` 等占位符。
+2. 在 shell 中导出对应环境变量，或使用 Secret Manager 注入 `client_id/client_secret/refresh_token/access_token`。
+3. 可选：通过 `oauth_key` 区分不同租户的凭证仓库。
+
+`GetOAuthToken` 的返回值需要至少包含 `access_token`，可选 `expires_in/refresh_token/token_type`。若需让 SDK 自动发起刷新，可以在 `OAuthConfig.refresh_token` 中填入长期有效的值；`oauth_key` 用于在日志/缓存中区分不同账号。
 
 ## 4. Token 管理策略
 

@@ -13,6 +13,7 @@ MediaX 的 Google YouTube AccessTokenClient（`pkg/client/google/youtube/accessT
 - **异常与日志**：依赖 `MediaXCore/pkg/logger`，在 `kernel.BaseClient` 层记录请求响应、配额使用情况，便于与 MediaX 统一链路观测接入。
 - **缓存与限流**：留空 `cache.ICache` 接口，便于按业务需要注入 Redis/MemCache，用于 token、配额策略或接口数据预热。
 - **参数转换**：统一使用 `object.StructToStringMap` 将请求结构体转换为 query string，减少重复代码。
+- **配置模板**：`config.example.yaml`/`config.yaml` 已内置 `google_youtube_config` 示例（含 `oauth_key` 与环境变量占位符）；调试指南详见 `docs/develop/access-token/google/develop.md`、`debug.md`。
 
 ## 4. 能力矩阵
 | 功能域 | 子客户端 / 路径 | 已实现方法 | 说明 |

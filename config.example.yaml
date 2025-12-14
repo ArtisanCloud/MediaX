@@ -30,18 +30,19 @@ redbook_juguang_config:
 google_youtube_config:
   api_url: "https://www.googleapis.com"
   proxy_api_url: ""
-  timeout: 15
-  http_debug: false
+  timeout: 15            # 请求超时时间（秒）
+  http_debug: false       # 是否打印 HTTP 请求/响应
   oauth:
     access_token_url: "https://oauth2.googleapis.com/token"
     proxy_access_token_url: ""
-    client_id: "your_google_client_id.apps.googleusercontent.com"
-    client_secret: "your_google_client_secret"
+    client_id: "${GOOGLE_YOUTUBE_CLIENT_ID}"            # 推荐通过环境变量注入
+    client_secret: "${GOOGLE_YOUTUBE_CLIENT_SECRET}"
     redirect_url: "http://localhost"
     scope: "https://www.googleapis.com/auth/youtube.force-ssl"
-    refresh_token: "your_refresh_token_if_any"
-    access_token: ""   # 可填入临时 AccessToken；也可以通过环境变量提供
+    refresh_token: "${GOOGLE_YOUTUBE_REFRESH_TOKEN}"
+    access_token: "${GOOGLE_YOUTUBE_ACCESS_TOKEN}"   # 可填入临时 AccessToken；也可以通过环境变量提供
     token_expiry: 0
+  oauth_key: "default"    # 映射 token 仓库或租户标识
 
 zhihu_config:
   sessionToken:

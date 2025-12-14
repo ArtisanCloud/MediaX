@@ -11,7 +11,7 @@
 
 ## Phase 2: Foundational (Blocking Prerequisites)
 
-- [ ] T002 Add `accesstoken` make target wiring到 `cmd/accesstoken` 入口，确保整个团队有统一命令 (`Makefile`)
+- [x] T002 Add `accesstoken` make target wiring到 `cmd/accesstoken` 入口，确保整个团队有统一命令 (`Makefile`)
 
 ---
 
@@ -22,11 +22,11 @@
 
 ### Implementation
 
-- [ ] T003 [US1] 扩充 `google_youtube_config` 模板到 `config.example.yaml`，包含 API URL、OAuth 字段与注释
-- [ ] T004 [US1] 同步 `config.yaml` 示例中的 `google_youtube_config`，并在注释里提醒使用环境变量注入敏感值
-- [ ] T005 [US1] 在 `docs/develop/access-token/google/develop.md` 中编写配置章节（模板拷贝、oauth_key、环境变量覆盖顺序）
-- [ ] T006 [US1] 更新 `docs/develop/access-token/google/debug.md`，描述准备配置、代理参数、AccessToken 缺失/过期处理以及 Redis 缓存清理命令
-- [ ] T007 [US1] 在 `docs/plan/google/youtube_access_token_client.md` 的能力矩阵内追加配置能力与引用链接，确保 SDK 使用者能定位模板
+- [x] T003 [US1] 扩充 `google_youtube_config` 模板到 `config.example.yaml`，包含 API URL、OAuth 字段与注释
+- [x] T004 [US1] 同步 `config.yaml` 示例中的 `google_youtube_config`，并在注释里提醒使用环境变量注入敏感值
+- [x] T005 [US1] 在 `docs/develop/access-token/google/develop.md` 中编写配置章节（模板拷贝、oauth_key、环境变量覆盖顺序）
+- [x] T006 [US1] 更新 `docs/develop/access-token/google/debug.md`，描述准备配置、代理参数、AccessToken 缺失/过期处理以及 Redis 缓存清理命令
+- [x] T007 [US1] 在 `docs/plan/google/youtube_access_token_client.md` 的能力矩阵内追加配置能力与引用链接，确保 SDK 使用者能定位模板
 
 ---
 

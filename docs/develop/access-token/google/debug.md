@@ -31,7 +31,8 @@
 ## 3. 更新 `config.yaml`
 
 1. 复制模板：`cp config.example.yaml config.yaml`（如已有配置，确保包含 `google_youtube_config` 块）。
-2. 在 `google_youtube_config` 内填充 OAuth 凭证：
+2. 在 `google_youtube_config` 内填充 OAuth 凭证；模板支持 `${GOOGLE_YOUTUBE_CLIENT_ID}` 等环境变量占位符，可先在 shell 中 `export` 对应值以防止明文写入仓库。
+3. 如需代理，将 `proxy_api_url` 指向公司内网代理（CLI 会继承该设置）；若使用 Redis 缓存 AccessToken，请确认 `SESSIONTOKEN_REDIS_ADDR` 或自定义地址已经启动。
 
 ```yaml
 google_youtube_config:
@@ -50,6 +51,12 @@ google_youtube_config:
 ```
 
 > **提示**：`config.example.yaml` 中已包含完整模板，若后续需要不同环境的配置，可用 `MEDIA_X_CONFIG=/path/to/config` 覆盖 CLI 读取的路径。`ClientConfig` 会自动缓存 AccessToken，缓存 key 形如 `mediax.access_token.<md5>`。如需强制刷新，可手动删除 Redis 中的对应 key。
+
+### 3.1 AccessToken 缺失/过期排查
+
+- **缺失**：CLI 会提示 `missing access token`，请确认是否设置 `GOOGLE_YOUTUBE_ACCESS_TOKEN` 或在 `config.yaml` 中写入占位符并导出环境变量。
+- **过期**：若出现 `invalid_grant`/`401`，执行 `redis-cli --raw keys 'mediax.access_token.*' | xargs -I{} redis-cli DEL {}` 清除缓存，再刷新 token。
+- **代理导致连接失败**：检查 `proxy_api_url` 是否可访问 Google API，必要时临时禁用。
 
 ## 4. 启动本地调试脚本
 
