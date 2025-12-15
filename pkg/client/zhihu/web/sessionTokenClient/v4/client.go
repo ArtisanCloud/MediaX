@@ -15,9 +15,9 @@ import (
 	"time"
 
 	"github.com/ArtisanCloud/MediaX/pkg/client/config"
-	sessiontoken "github.com/ArtisanCloud/MediaX/pkg/client/sessionToken"
+	sessiontoken "github.com/ArtisanCloud/MediaX/pkg/client/sessiontoken"
 	sessionmiddleware "github.com/ArtisanCloud/MediaX/server/middleware/session_token"
-	zhmiddleware "github.com/ArtisanCloud/MediaX/server/zhihu/sessionToken/middleware"
+	zhmiddleware "github.com/ArtisanCloud/MediaX/server/zhihu/sessiontoken/middleware"
 	"github.com/ArtisanCloud/MediaXCore/pkg/logger"
 	"github.com/google/uuid"
 )
@@ -288,7 +288,7 @@ func (c *Client) forward(
 	r *http.Request,
 	apiName string,
 	flow *sessiontoken.Flow,
-	sessionToken string,
+	sessiontoken string,
 	method string,
 	upstreamPath string,
 	query url.Values,
@@ -296,7 +296,7 @@ func (c *Client) forward(
 ) {
 	reqID := uuid.NewString()
 	start := time.Now()
-	status, body, upstreamURL, err := c.callZhihu(r.Context(), method, upstreamPath, query, payload, sessionToken)
+	status, body, upstreamURL, err := c.callZhihu(r.Context(), method, upstreamPath, query, payload, sessiontoken)
 	if err != nil {
 		c.writeError(w, reqID, http.StatusBadGateway, codeUpstreamError, "upstream request failed")
 		c.logAPICall(r.Context(), apiName, flow, http.StatusBadGateway, codeUpstreamError, time.Since(start), err)
@@ -329,7 +329,7 @@ func (c *Client) forward(
 	)
 }
 
-func (c *Client) callZhihu(ctx context.Context, method, path string, query url.Values, payload []byte, sessionToken string) (int, []byte, string, error) {
+func (c *Client) callZhihu(ctx context.Context, method, path string, query url.Values, payload []byte, sessiontoken string) (int, []byte, string, error) {
 	if !strings.HasPrefix(path, "/") {
 		path = "/" + path
 	}
@@ -337,17 +337,17 @@ func (c *Client) callZhihu(ctx context.Context, method, path string, query url.V
 	if len(query) > 0 {
 		endpoint = endpoint + "?" + query.Encode()
 	}
-	status, body, err := c.invokeZhihu(ctx, method, endpoint, payload, sessionToken)
+	status, body, err := c.invokeZhihu(ctx, method, endpoint, payload, sessiontoken)
 	return status, body, endpoint, err
 }
 
-func (c *Client) invokeZhihu(ctx context.Context, method, endpoint string, payload []byte, sessionToken string) (int, []byte, error) {
+func (c *Client) invokeZhihu(ctx context.Context, method, endpoint string, payload []byte, sessiontoken string) (int, []byte, error) {
 	attempts := len(c.retryDelays) + 1
 	var lastErr error
 	var status int
 	var body []byte
 	for attempt := 1; attempt <= attempts; attempt++ {
-		status, body, lastErr = c.performRequest(ctx, method, endpoint, payload, sessionToken)
+		status, body, lastErr = c.performRequest(ctx, method, endpoint, payload, sessiontoken)
 		if lastErr != nil {
 			if ctxErr := ctx.Err(); ctxErr != nil {
 				return 0, nil, ctxErr
@@ -392,7 +392,7 @@ func (c *Client) pauseForRetry(ctx context.Context, attempt int) error {
 	}
 }
 
-func (c *Client) performRequest(ctx context.Context, method, endpoint string, payload []byte, sessionToken string) (int, []byte, error) {
+func (c *Client) performRequest(ctx context.Context, method, endpoint string, payload []byte, sessiontoken string) (int, []byte, error) {
 	var body io.Reader
 	if len(payload) > 0 {
 		body = bytes.NewReader(payload)
@@ -406,7 +406,7 @@ func (c *Client) performRequest(ctx context.Context, method, endpoint string, pa
 	}
 	req.Header.Set("Accept", "application/json, text/plain, */*")
 	req.Header.Set("User-Agent", c.userAgent)
-	req.Header.Set("Cookie", sessionToken)
+	req.Header.Set("Cookie", sessiontoken)
 	if req.Header.Get("Referer") == "" {
 		req.Header.Set("Referer", "https://www.zhihu.com/")
 	}

@@ -8,8 +8,8 @@ import (
 	"testing"
 	"time"
 
-	sessiontoken "github.com/ArtisanCloud/MediaX/pkg/client/sessionToken"
-	callback "github.com/ArtisanCloud/MediaX/pkg/client/sessionToken/callback"
+	sessiontoken "github.com/ArtisanCloud/MediaX/pkg/client/sessiontoken"
+	callback "github.com/ArtisanCloud/MediaX/pkg/client/sessiontoken/callback"
 )
 
 type flowGetFakeManager struct {

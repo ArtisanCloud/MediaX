@@ -81,6 +81,98 @@ google_youtube_config:
 
 `GetOAuthToken` 的返回值需要至少包含 `access_token`，可选 `expires_in/refresh_token/token_type`。若需让 SDK 自动发起刷新，可以在 `OAuthConfig.refresh_token` 中填入长期有效的值；`oauth_key` 用于在日志/缓存中区分不同账号。
 
+### 3.2 CLI 调试与样例输出
+
+`cmd/accesstoken` 为配置章节提供了“所见即所得”的校验方式：
+
+1. **注入凭证**：可选择 `-access-token`、`GOOGLE_YOUTUBE_ACCESS_TOKEN`/`YOUTUBE_ACCESS_TOKEN` 环境变量、或 `config.yaml` 中的 `oauth.access_token`。优先级为 flag > env > config，CLI 日志会打印 `token_source`。
+2. **运行命令**：`make accesstoken ARGS='-action videos.list -part snippet -ids <videoId>'`。命令会读取 `google_youtube_config`（含代理、超时、`http_debug`）并在 stdout 输出 JSON。
+3. **查看结果**：标准输出返回结构化响应，同时 `logs/info.log` 将记录 `provider=google action=<action> channel_id=...`，便于对照后台日志。
+
+```bash
+export MEDIA_X_CONFIG=$PWD/config.yaml
+export GOOGLE_YOUTUBE_ACCESS_TOKEN="$(pass show youtube/dev-token)"
+
+make accesstoken ARGS='-action search.list -part snippet -query "MediaX" -max-results 3'
+make accesstoken ARGS='-action playlists.list -part snippet -mine -max-results 5'
+
+# 或参照 SessionToken 的方式，先设置环境变量再直接 make：
+export ACCESSTOKEN_ACTION=videos.list
+export ACCESSTOKEN_PART=snippet
+export ACCESSTOKEN_IDS=dQw4w9WgXcQ
+make accesstoken
+```
+
+示例输出（节选）：
+
+```json
+{
+  "kind": "youtube#videoListResponse",
+  "pageInfo": {
+    "resultsPerPage": 3
+  },
+  "items": [
+    {
+      "id": "dQw4w9WgXcQ",
+      "snippet": {
+        "title": "MediaX Demo Video",
+        "channelTitle": "ArtisanCloud"
+      }
+    }
+  ]
+}
+```
+
+约束提示：
+
+- `-action`、`-part` 必填，`-max-results` 仅允许 1~50；`videos.list` 需 `-ids` 或 `-chart`；`playlists.list` 中 `-mine` 与 `-ids` 互斥。
+- CLI 支持 `-config` 覆盖配置路径，并自动尊重 `MEDIA_X_CONFIG`、`HTTPS_PROXY` 等环境变量。
+- 无论 CLI 还是 Playground 都会复用 `MediaXCore` 日志器，输出脱敏后的 `token_source`、`provider` 与参数摘要，可直接粘贴到工单里定位问题。
+- 遇到 `invalid_grant`/`quotaExceeded` 等错误时，请跳转到 `docs/develop/access-token/google/debug.md` 的 “常见问题排查” 小节获取具体指引。
+
+### 3.3 Playground 调试步骤
+
+`main.go` 已内置开关，可在不修改源码的情况下运行 Google Playground：
+
+1. **准备配置/Token**：与 CLI 相同，确保 `MEDIA_X_CONFIG`（默认为仓库根目录的 `config.yaml`）可读取 `google_youtube_config`，并通过 `GOOGLE_YOUTUBE_ACCESS_TOKEN` 或 `oauth.access_token` 提供可用 AccessToken。
+2. **选择缓存**：默认使用 Redis（`PLAYGROUND_REDIS_ADDR=127.0.0.1:6379`），若希望快速验证可 `export PLAYGROUND_CACHE_MODE=memory` 切到内存缓存；日志会告知 cache 选择。
+3. **启用 Playground**：`export PLAYGROUND_GOOGLE_YOUTUBE=1`，然后运行 `go run ./main.go`。关闭时移除该环境变量即可。
+4. **日志落地**：`buildLoggerConfig` 会把日志写入 `logs/info.log`/`logs/error.log`，并默认开启控制台输出，方便观察 `provider=google action=videos.list token_source=env` 等字段；`playground/google.go` 内部会脱敏 AccessToken。
+5. **Token 回调示例**：示例代码会自动复写 `GetOAuthToken`，注入一个来自环境变量/配置的 AccessToken。可根据业务需要替换成自定义读取逻辑，例如：
+
+```go
+googleCfg.GetOAuthToken = func(key string, refresh bool) object.HashMap {
+    token, ttl := myVault.FetchToken(key) // 自行实现
+    mediaX.Logger.InfoF("playground: inject token source=vault key=%s refresh=%t token=%s", key, refresh, maskToken(token))
+    return object.HashMap{
+        "access_token": token,
+        "expires_in":   ttl.Seconds(),
+    }
+}
+```
+
+Playground 默认调用 `videos.list`（可通过 `PLAYGROUND_YOUTUBE_VIDEO_IDS/PLAYGROUND_YOUTUBE_REGION` 等环境变量覆盖），因此非常适合和 CLI 互为对照验证。若需要覆盖订阅/评论等模块，可在 `playground/google.go` 中复制 `PlayGoogleYouTube` 的结构并替换请求体。
+
+> 快速复盘：先在 Quickstart（`specs/002-youtube-access-token/quickstart.md`）完成配置 → 依次执行 CLI 与 Playground → 若出现异常参考本页与 `debug.md`。这样文档与代码形成闭环，减少重复排查成本。
+
+### 3.4 AccessToken 调试服务（WIP）
+
+> 需求来源：与 SessionToken 调试台对齐，为产品/QA/合作伙伴提供“开箱即用”的浏览器沙盒。详见 `specs/002-youtube-access-token/spec.md` 的 User Story 4 与 `tasks.md` Phase 5。
+
+计划中的 `cmd/accesstoken/server` 将：
+
+1. **启动方式**：`make accesstoken-serve`（或 `go run ./cmd/accesstoken/server`），默认监听 `:7070`，可通过 `-port`/`ACCESSTOKEN_LISTEN_ADDR` 覆盖。
+2. **权限控制**：与 SessionToken 一样支持 API Token，环境变量为 `ACCESSTOKEN_API_TOKEN`（默认 `dev-accesstoken`）。
+3. **共享配置**：读取 `MEDIA_X_CONFIG`/`config.yaml` 与 `GOOGLE_YOUTUBE_*` 环境变量，底层依旧使用 `MediaX.CreateGoogleYouTubeACClient`。
+4. **页面功能**：`/debug/accesstoken` 复用 `cmd/sessiontoken/debug_page.go` 的交互骨架，增加 Provider（Google）、App（`oauth_key`）与 API 版本下拉框，提供：
+   - AccessToken/RefreshToken 操控区，支持“刷新 token”“注入临时 token”。
+   - API 调试区，可选择 `videos.list`、`search.list`、`playlists.list` 等 action，并填写参数后一键发起请求。
+   - 回调日志区，展示 `/debug/callback` 捕获的 OAuth 回调（时间、Flow ID、Query、Headers、Body），支持清空。
+   - CLI/Playwright 命令快捷键，方便把浏览器调试流程同步到终端脚本。
+5. **REST API**：页面调用 `POST /accesstoken/token` 与 `POST /accesstoken/call` 等接口，所有请求都复用 `cmd/accesstoken` 的执行逻辑并输出结构化 JSON，日志自动脱敏 `access_token`。
+
+该服务仍在开发阶段，后续 PR 会把页面与 API 的细节补充到本节与 `debug.md`。如果你希望提前参与设计，可参考 `cmd/sessiontoken/debug_page.go` 与 `server/handlers/session_token` 的实现模式，提前准备代理/Redis 环境。
+
 ## 4. Token 管理策略
 
 MediaX 的 `GoogleAccessTokenHandler` 默认会：
@@ -147,5 +239,18 @@ MediaX 的 `GoogleAccessTokenHandler` 默认会：
 - 能力细节：`docs/plan/google/youtube_access_token_client.md`
 - Token 处理：`pkg/client/google/core/accessTokenHandler.go`
 - 其它平台开发指南：`docs/develop/*`
+
+## 10. CLI/Playground 闭环演练
+
+> 对新人来说，按照“订阅 → 视频 → 发布 → 评论”顺序走通一次，可以验证配置、权限与 AccessToken 是否全部就绪。
+
+| 阶段 | 工具入口 | 命令/示例 | 目标 |
+| --- | --- | --- | --- |
+| 订阅 | Playground `subscriptions.List`（`yt.GetSubscriptionsClient().List`） | `go run ./main.go` 并在 `playground/google.go` 中调用 `subscriptionsListExample(ctx, "snippet,contentDetails", true)` | 验证 AccessToken 能访问订阅资源，并记录 `provider=google action=subscriptions.list`。 |
+| 视频/搜索 | CLI `videos.list` / `search.list` | `make accesstoken ARGS='-action videos.list -part snippet -ids <videoId>'` 或 `make accesstoken ARGS='-action search.list -part snippet -query "MediaX demo" -channel-id <channelId>'` | 读取具体视频或频道数据，确认 CLI 配置、代理与日志都正常。 |
+| 发布 | Playground `video.Insert` 示例 | `go run ./main.go`，在 Playground 中启用 `videoInsertExample` 并提供文件流 | 真实演练上传流程（CLI 当前以读操作为主），并观察 `logs/info.log`。 |
+| 评论 | Playground `commentThreads.List` + `comments.Insert` | `go run ./main.go`，执行 `commentFlowExample`（先 List 再 Insert） | 完成闭环最后一步：读取并回复评论，确保权限 Scope 足够。 |
+
+完成表格中的 4 步，即可把 CLI 与 Playground 两条链路串联起来，形成可以复用的验收脚本。
 
 按照以上步骤即可在自有项目中稳定复用 `GoogleYouTubeACClient`，并与 MediaX 的日志、缓存和观测体系保持一致。若需新增尚未封装的 API，可参考现有子客户端结构，在 `pkg/client/google/youtube/accessTokenClient/<module>` 目录内新增 `client.go` + `schema` 文件，再补充文档。

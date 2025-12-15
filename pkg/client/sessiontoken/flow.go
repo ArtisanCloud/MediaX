@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/ArtisanCloud/MediaX/pkg/client/sessionToken/callback"
+	"github.com/ArtisanCloud/MediaX/pkg/client/sessiontoken/callback"
 )
 
 // FlowStatus 表示 Flow 生命周期中的状态。
@@ -23,8 +23,8 @@ const (
 )
 
 const (
-	FlowKeyPrefix      = "sessionToken:flow:"
-	FlowStateKeyPrefix = "sessionToken:flow:state:"
+	FlowKeyPrefix      = "sessiontoken:flow:"
+	FlowStateKeyPrefix = "sessiontoken:flow:state:"
 )
 
 var (

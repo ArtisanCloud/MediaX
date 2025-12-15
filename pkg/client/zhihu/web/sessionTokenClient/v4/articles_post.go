@@ -16,7 +16,7 @@ func (c *Client) handleArticlePost(w http.ResponseWriter, r *http.Request) {
 		methodNotAllowed(w, http.MethodPost)
 		return
 	}
-	flow, sessionToken, ok := c.requireFlow(w, r, apiArticlePost)
+	flow, sessiontoken, ok := c.requireFlow(w, r, apiArticlePost)
 	if !ok {
 		return
 	}
@@ -49,7 +49,7 @@ func (c *Client) handleArticlePost(w http.ResponseWriter, r *http.Request) {
 		c.logAPICall(r.Context(), apiArticlePost, flow, http.StatusBadRequest, codeBadRequest, 0, errors.New("missing title/content"))
 		return
 	}
-	c.forward(w, r, apiArticlePost, flow, sessionToken, http.MethodPost, "/api/v4/articles", nil, raw)
+	c.forward(w, r, apiArticlePost, flow, sessiontoken, http.MethodPost, "/api/v4/articles", nil, raw)
 }
 
 func extractStringField(value interface{}) string {

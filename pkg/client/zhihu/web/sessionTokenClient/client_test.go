@@ -1,4 +1,4 @@
-package sessionTokenClient
+package sessiontokenclient
 
 import (
 	"context"
@@ -6,8 +6,8 @@ import (
 	"testing"
 
 	"github.com/ArtisanCloud/MediaX/pkg/client/config"
-	sessiontoken "github.com/ArtisanCloud/MediaX/pkg/client/sessionToken"
-	"github.com/ArtisanCloud/MediaX/pkg/client/sessionToken/callback"
+	sessiontoken "github.com/ArtisanCloud/MediaX/pkg/client/sessiontoken"
+	"github.com/ArtisanCloud/MediaX/pkg/client/sessiontoken/callback"
 )
 
 func TestNewClientDefaultsToV4(t *testing.T) {

@@ -8,8 +8,8 @@ import (
 	"time"
 
 	"github.com/ArtisanCloud/MediaX/pkg/client/config"
-	sessiontoken "github.com/ArtisanCloud/MediaX/pkg/client/sessionToken"
-	callbackpkg "github.com/ArtisanCloud/MediaX/pkg/client/sessionToken/callback"
+	sessiontoken "github.com/ArtisanCloud/MediaX/pkg/client/sessiontoken"
+	callbackpkg "github.com/ArtisanCloud/MediaX/pkg/client/sessiontoken/callback"
 )
 
 // Harvester 根据 Flow.Metadata 构建凭证 payload。

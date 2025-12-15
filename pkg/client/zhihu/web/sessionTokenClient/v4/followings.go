@@ -10,7 +10,7 @@ import (
 	"strconv"
 	"strings"
 
-	sessiontoken "github.com/ArtisanCloud/MediaX/pkg/client/sessionToken"
+	sessiontoken "github.com/ArtisanCloud/MediaX/pkg/client/sessiontoken"
 	"github.com/google/uuid"
 )
 
@@ -21,12 +21,12 @@ func (c *Client) handleMeFollowings(w http.ResponseWriter, r *http.Request) {
 		methodNotAllowed(w, http.MethodGet)
 		return
 	}
-	flow, sessionToken, ok := c.requireFlow(w, r, apiMeFollowings)
+	flow, sessiontoken, ok := c.requireFlow(w, r, apiMeFollowings)
 	if !ok {
 		return
 	}
 	rawQuery := r.URL.Query()
-	accountID, err := c.resolveAccountID(r.Context(), flow, sessionToken, rawQuery)
+	accountID, err := c.resolveAccountID(r.Context(), flow, sessiontoken, rawQuery)
 	if err != nil {
 		reqID := uuid.NewString()
 		status := http.StatusBadRequest
@@ -61,17 +61,17 @@ func (c *Client) handleMeFollowings(w http.ResponseWriter, r *http.Request) {
 	}
 	query.Set("include", include)
 	path := "/api/v4/members/" + url.PathEscape(accountID) + "/following-columns"
-	c.forward(w, r, apiMeFollowings, flow, sessionToken, http.MethodGet, path, query, nil)
+	c.forward(w, r, apiMeFollowings, flow, sessiontoken, http.MethodGet, path, query, nil)
 }
 
-func (c *Client) resolveAccountID(ctx context.Context, flow *sessiontoken.Flow, sessionToken string, query url.Values) (string, error) {
+func (c *Client) resolveAccountID(ctx context.Context, flow *sessiontoken.Flow, sessiontoken string, query url.Values) (string, error) {
 	if candidate := queryAccountIDOverride(query); candidate != "" {
 		return candidate, nil
 	}
 	if candidate := accountIDFromFlow(flow); candidate != "" {
 		return candidate, nil
 	}
-	return c.fetchAccountIDFromProfile(ctx, sessionToken)
+	return c.fetchAccountIDFromProfile(ctx, sessiontoken)
 }
 
 func queryAccountIDOverride(values url.Values) string {
@@ -129,8 +129,8 @@ func sanitizeAccountID(value string) string {
 	return trimmed
 }
 
-func (c *Client) fetchAccountIDFromProfile(ctx context.Context, sessionToken string) (string, error) {
-	status, body, upstream, err := c.callZhihu(ctx, http.MethodGet, "/api/v4/me", nil, nil, sessionToken)
+func (c *Client) fetchAccountIDFromProfile(ctx context.Context, sessiontoken string) (string, error) {
+	status, body, upstream, err := c.callZhihu(ctx, http.MethodGet, "/api/v4/me", nil, nil, sessiontoken)
 	if err != nil {
 		return "", &accountIDError{
 			status:  http.StatusBadGateway,

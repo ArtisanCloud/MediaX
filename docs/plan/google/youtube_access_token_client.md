@@ -15,6 +15,15 @@ MediaX 的 Google YouTube AccessTokenClient（`pkg/client/google/youtube/accessT
 - **参数转换**：统一使用 `object.StructToStringMap` 将请求结构体转换为 query string，减少重复代码。
 - **配置模板**：`config.example.yaml`/`config.yaml` 已内置 `google_youtube_config` 示例（含 `oauth_key` 与环境变量占位符）；调试指南详见 `docs/develop/access-token/google/develop.md`、`debug.md`。
 
+### 3.1 CLI 与 Playground 的角色
+
+| 入口 | 配置来源 | Token 注入 | 主要用途 | 与 AccessToken Handler 的关系 |
+| --- | --- | --- | --- | --- |
+| `cmd/accesstoken` | `config.yaml` (`-config`/`MEDIA_X_CONFIG`) + flag + env | CLI 解析后将 AccessToken/TTL 写入 `GoogleYouTubeConfig.GetOAuthToken`，并调用 `MediaX.CreateGoogleYouTubeACClient` | 快速调试 `videos/search/playlists`，支持脚本化输出 JSON | 通过 `GoogleAccessTokenHandler` 使用自定义 `GetCustomToken`，可验证缓存命中与 TTL 行为 |
+| `go run ./main.go` + `playground/google.go` | 同上，但可通过 `PLAYGROUND_*` 环境变量覆盖 | 在示例中统一读取 env/config 后注入回调；默认基于 Redis，支持 `PLAYGROUND_CACHE_MODE=memory` | 模拟真实服务端流程，包括自定义日志、闭环演练 | 直接调用 `TokenHandler.GetCustomToken`，展示如何在业务中替换为 Vault/Redis 读取逻辑 |
+
+> 补充：两者共享 `google_youtube_config` 结构，因此在 Quickstart/调试文档中推荐“先跑 CLI → 再启用 Playground”的顺序，确保 AccessToken Handler 在 CLI 已经验证通过后再被 Playground 复用。
+
 ## 4. 能力矩阵
 | 功能域 | 子客户端 / 路径 | 已实现方法 | 说明 |
 | --- | --- | --- | --- |

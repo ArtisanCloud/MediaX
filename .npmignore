@@ -1,0 +1,23 @@
+# Ignore development artifacts when publishing to npm
+.git/
+.github/
+.vscode/
+.idea/
+node_modules/
+dist/
+build/
+coverage/
+logs/
+*.log
+.env
+.env.*
+config.yaml
+specs/
+docs/
+examples/
+playground/
+cmd/
+scripts/
+tools/
+makefiles/
+manifest/

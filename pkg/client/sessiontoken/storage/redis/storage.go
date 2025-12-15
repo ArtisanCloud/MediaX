@@ -8,7 +8,7 @@ import (
 
 	"github.com/redis/go-redis/v9"
 
-	sessiontoken "github.com/ArtisanCloud/MediaX/pkg/client/sessionToken"
+	sessiontoken "github.com/ArtisanCloud/MediaX/pkg/client/sessiontoken"
 )
 
 // FlowStore 使用 redis 存储 Flow。

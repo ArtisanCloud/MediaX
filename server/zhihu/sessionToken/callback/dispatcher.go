@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/ArtisanCloud/MediaX/pkg/client/config"
-	callbackpkg "github.com/ArtisanCloud/MediaX/pkg/client/sessionToken/callback"
+	callbackpkg "github.com/ArtisanCloud/MediaX/pkg/client/sessiontoken/callback"
 	"github.com/ArtisanCloud/MediaXCore/pkg/logger"
 )
 

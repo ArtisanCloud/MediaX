@@ -14,9 +14,9 @@ import (
 	"time"
 
 	"github.com/ArtisanCloud/MediaX/pkg/client/config"
-	sessiontoken "github.com/ArtisanCloud/MediaX/pkg/client/sessionToken"
-	"github.com/ArtisanCloud/MediaX/pkg/client/sessionToken/callback"
-	zhmiddleware "github.com/ArtisanCloud/MediaX/server/zhihu/sessionToken/middleware"
+	sessiontoken "github.com/ArtisanCloud/MediaX/pkg/client/sessiontoken"
+	"github.com/ArtisanCloud/MediaX/pkg/client/sessiontoken/callback"
+	zhmiddleware "github.com/ArtisanCloud/MediaX/server/zhihu/sessiontoken/middleware"
 )
 
 const testBaseURL = "https://example.com"

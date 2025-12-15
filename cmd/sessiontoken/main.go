@@ -18,9 +18,9 @@ import (
 
 	"github.com/ArtisanCloud/MediaX/pkg/client"
 	config2 "github.com/ArtisanCloud/MediaX/pkg/client/config"
-	sessiontoken "github.com/ArtisanCloud/MediaX/pkg/client/sessionToken"
-	sessiontokenredis "github.com/ArtisanCloud/MediaX/pkg/client/sessionToken/storage/redis"
-	zhihuweb "github.com/ArtisanCloud/MediaX/pkg/client/zhihu/web/sessionTokenClient"
+	sessiontoken "github.com/ArtisanCloud/MediaX/pkg/client/sessiontoken"
+	sessiontokenredis "github.com/ArtisanCloud/MediaX/pkg/client/sessiontoken/storage/redis"
+	zhihuweb "github.com/ArtisanCloud/MediaX/pkg/client/zhihu/web/sessiontokenclient"
 	"github.com/ArtisanCloud/MediaX/pkg/utils"
 	sessionhandler "github.com/ArtisanCloud/MediaX/server/handlers/session_token"
 	"github.com/ArtisanCloud/MediaXCore/pkg/cache"
@@ -49,7 +49,7 @@ func run(configPathFlag, portFlag string) error {
 		return fmt.Errorf("load config %s: %w", configPath, err)
 	}
 	if localConfig.ZhihuConfig == nil || localConfig.ZhihuConfig.SessionToken == nil {
-		return errors.New("zhihu.sessiontoken: missing zhihu_config.sessionToken in config.yaml")
+		return errors.New("zhihu.sessiontoken: missing zhihu_config.sessiontoken in config.yaml")
 	}
 
 	redisClient, err := buildRedisClient()

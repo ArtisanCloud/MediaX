@@ -3,7 +3,7 @@ package sanitizer
 import (
 	"strings"
 
-	"github.com/ArtisanCloud/MediaX/pkg/client/sessionToken/callback"
+	"github.com/ArtisanCloud/MediaX/pkg/client/sessiontoken/callback"
 )
 
 // MaskString 仅保留首尾字符，中间使用 * 替换。

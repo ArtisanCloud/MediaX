@@ -7,9 +7,9 @@ import (
 	"net/http"
 	"strings"
 
-	sessiontoken "github.com/ArtisanCloud/MediaX/pkg/client/sessionToken"
-	sessionapi "github.com/ArtisanCloud/MediaX/pkg/client/sessionToken/api"
-	"github.com/ArtisanCloud/MediaX/pkg/client/sessionToken/sanitizer"
+	sessiontoken "github.com/ArtisanCloud/MediaX/pkg/client/sessiontoken"
+	sessionapi "github.com/ArtisanCloud/MediaX/pkg/client/sessiontoken/api"
+	"github.com/ArtisanCloud/MediaX/pkg/client/sessiontoken/sanitizer"
 	sessionmiddleware "github.com/ArtisanCloud/MediaX/server/middleware/session_token"
 	"github.com/ArtisanCloud/MediaXCore/pkg/logger"
 )
