@@ -4,6 +4,7 @@
    - 复制 `config.example.yaml` → `config.yaml`。
    - 在 `google_youtube_config` 中填写 `client_id/client_secret/scope`，若已有长期 token，可直接填入 `oauth.refresh_token` 或通过环境变量提供。
    - 设定 `oauth_key`，方便 CLI/Playground 记录 token 来源。
+   - 本地调试推荐将 `oauth.redirect_url` 设置为 `http://localhost:7071/debug/callback`，这样 Google OAuth 完成后可直接在 Web 沙盒页面查看回调日志。
 
 2. **注入 AccessToken**
    - 临时 token：运行 `export GOOGLE_YOUTUBE_ACCESS_TOKEN='<token>'`。
@@ -18,10 +19,12 @@
    - 若失败，检查错误信息：`invalid_grant`（刷新 token 失效）、`quotaExceeded`、`insufficientPermissions` 等，详细排查流程见 `docs/develop/access-token/google/debug.md`。
    - 想要和 SessionToken 一样“先 export 再 make”也可以：`export ACCESSTOKEN_ACTION=videos.list`、`export ACCESSTOKEN_PART=snippet` 等，然后直接 `make accesstoken`，flag>环境变量>配置文件。
 
-4. **启动 AccessToken 调试服务（开发中）**
-   - 目标是与 SessionToken 调试台一致：`make accesstoken-serve`（或 `go run ./cmd/accesstoken/server`）后默认监听 `http://127.0.0.1:7070`，页面路径为 `/debug/accesstoken`。
-   - 服务会读取 `config.yaml` 与 `GOOGLE_YOUTUBE_*` 环境变量，支持在 UI 中切换 Provider/App/API 版本、刷新 AccessToken、调用 `videos.list/search.list/playlists.list`，并展示 `/debug/callback` 收到的回调日志。
-   - 可通过 `ACCESSTOKEN_API_TOKEN`（默认 `dev-accesstoken`）限制访问；若需要代理/Redis，可沿用 CLI 的 `SESSIONTOKEN_REDIS_*` 与 `HTTPS_PROXY` 变量。该服务目前处于规划阶段，请关注 `specs/002-youtube-access-token/tasks.md` 中的 US4 进度。
+4. **启动 AccessToken 调试服务（Web 沙盒）**
+   - `make accesstoken-serve`（或 `go run ./cmd/accesstoken/server -config config.yaml`）默认监听 `http://127.0.0.1:7071`，页面路径 `/debug`（与 `/debug/accesstoken` 等效）。
+   - AccessToken JSON：`{"config_path":"config.yaml","access_token":"","access_token_ttl":3600}` → “解析 AccessToken”按钮会告诉你 token 来源与脱敏值。
+   - API JSON：`{"action":"videos.list","part":"snippet","ids":"dQw4w9WgXcQ"}` → “执行 API”后会把 Google 响应写到 `<pre>`，同时复用 CLI 的日志/代理/缓存设置。
+   - Provider/Provider App 下拉会根据配置自动生成（默认 “Google YouTube (default)”），未来新增平台可直接复用该调试台。
+   - OAuth 回调日志：任何命中 `/debug/callback` 的请求都会显示在表格里，可一键清空；通过 `ACCESSTOKEN_API_TOKEN`（默认为 `dev-accesstoken`）保护 API，支持 `ACCESSTOKEN_LISTEN_ADDR`/`ACCESSTOKEN_REDIS_*` 等环境变量。
 
 5. **验证 Playground**
    - 设置开关：`export PLAYGROUND_GOOGLE_YOUTUBE=1`（可选 `PLAYGROUND_CACHE_MODE=memory` 切换缓存模式）。

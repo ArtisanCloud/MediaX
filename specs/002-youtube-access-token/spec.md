@@ -55,7 +55,7 @@
 
 ### User Story 4 - AccessToken 调试服务 (Priority: P1)
 
-作为外部应用开发者，我希望像 SessionToken 调试台一样，能够在本地启动一套默认监听 `:7070` 的 Web 服务，页面上可以切换 Provider/App/API 版本、快速复现授权与接口调试，从而在浏览器里模拟真实业务如何消费授权账号。
+作为外部应用开发者，我希望像 SessionToken 调试台一样，能够在本地启动一套默认监听 `:7071` 的 Web 服务，页面上可以切换 Provider/App/API 版本、快速复现授权与接口调试，从而在浏览器里模拟真实业务如何消费授权账号。
 
 **Why this priority**: CLI/Playground 对非工程人员门槛较高，缺少“沙盒式”交互会阻碍演示与联调；统一的调试服务能沿用 SessionToken 的交互范式并支持 OAuth 回调观察，是交付给产品/QA/合作伙伴的必要能力。
 
@@ -63,7 +63,7 @@
 
 **Acceptance Scenarios**:
 
-1. **Given** 在仓库根目录执行 `make accesstoken-serve`（或 `go run ./cmd/accesstoken/server`），**When** 进程启动后，**Then** 控制台输出 `listening on :7070`，浏览器访问 `http://127.0.0.1:7070/debug/accesstoken` 能看到 Provider/App/API 版本的选择控件。
+1. **Given** 在仓库根目录执行 `make accesstoken-serve`（或 `go run ./cmd/accesstoken/server`），**When** 进程启动后，**Then** 控制台输出 `listening on :7071`，浏览器访问 `http://127.0.0.1:7071/debug/accesstoken` 能看到 Provider/App/API 版本的选择控件。
 2. **Given** 调试页选择 `provider=google`、`app=youtube.default` 并沿用配置里的 `oauth_key`，**When** 点击“生成授权链接/刷新 AccessToken”，**Then** 服务会调用与 CLI 相同的逻辑输出 JSON（含脱敏 `token_source`），同时 `/debug/callback` 记录 OAuth 回调 Body 与 Query。
 3. **Given** 在调试页配置 `videos.list`／`search.list` 参数，**When** 点击“调用 API”，**Then** 服务器通过 `GoogleYouTubeACClient` 发起请求并返回结构化响应，同时页面展示请求日志、耗时与错误信息，方便 QA 直接验证。
 
@@ -88,7 +88,7 @@
 - **FR-007**: 文档 MUST 强调敏感配置的管理方式（仅本地/Secret Manager），并提醒在提交前移除临时 token。 
 - **FR-008**: 文档 MUST reference `docs/plan/google/youtube_access_token_client.md` 以说明可调用的子客户端列表和能力范围。 
 - **FR-009**: 文档 MUST 描述“订阅 → 视频 → 发布 → 评论”的完整示例流程，列出各步骤对应的 CLI 命令或 Playground API，确保外部应用能据此调试闭环能力。
-- **FR-010**: 新增的 AccessToken 调试服务 MUST 默认监听 `:7070`，支持从 `config.yaml`/环境变量读取 `google_youtube_config`，并提供 API Token（默认 `dev-accesstoken`）校验。
+- **FR-010**: 新增的 AccessToken 调试服务 MUST 默认监听 `:7071`，支持从 `config.yaml`/环境变量读取 `google_youtube_config`，并提供 API Token（默认 `dev-accesstoken`）校验。
 - **FR-011**: 调试服务 MUST 提供 HTML 调试页（Provider/App/API 选择、授权 URL/AccessToken 操作、API 参数输入）以及 REST API（如 `/accesstoken/token`、`/accesstoken/call`、`/debug/callback`），功能与 SessionToken 调试台一致，所有请求都复用 `GoogleYouTubeACClient`。
 - **FR-012**: 调试服务 MUST 记录回调日志（时间、FlowID、Query、Headers、Body），以列表形式展示在页面上，并允许用户清空记录；日志需脱敏 token。
 
@@ -97,7 +97,7 @@
 - **GoogleYouTubeConfig**: 描述 API URL、超时、调试开关、OAuth 凭证、AccessToken/RefreshToken、oauth_key；与 `config.yaml`、环境变量以及 CLI 参数映射。 
 - **AccessToken CLI Invocation**: 由 action、核心参数、AccessToken 来源构成，输出 JSON 结果或错误；记录日志并遵循代理/超时配置。 
 - **Playground Execution Context**: 使用 `MediaX.CreateGoogleYouTubeACClient`、`GetOAuthToken` 回调和 `BaseClient` 日志；与 CLI 共享配置、用于展示完整 SDK 行为。
-- **AccessToken Debug Service**: 常驻监听 `:7070` 的 HTTP 服务，集成 HTML 调试页、REST 接口与 `/debug/callback` 日志，可供产品/QA 在浏览器中选择 Provider/App/API 并发起授权或 API 调用，背后依然调用 `GoogleYouTubeACClient`。
+- **AccessToken Debug Service**: 常驻监听 `:7071` 的 HTTP 服务，集成 HTML 调试页、REST 接口与 `/debug/callback` 日志，可供产品/QA 在浏览器中选择 Provider/App/API 并发起授权或 API 调用，背后依然调用 `GoogleYouTubeACClient`。
 
 ## MediaX Architecture Guardrails *(must reference Constitution sections)*
 

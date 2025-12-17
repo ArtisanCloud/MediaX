@@ -8,7 +8,7 @@ import (
 
 	"github.com/ArtisanCloud/MediaX/pkg/client"
 	"github.com/ArtisanCloud/MediaX/pkg/client/config"
-	videoSchema "github.com/ArtisanCloud/MediaX/pkg/client/google/youtube/accessTokenClient/video/schema"
+	videoSchema "github.com/ArtisanCloud/MediaX/pkg/client/google/youtube/accessTokenClient/v4/video/schema"
 	"github.com/ArtisanCloud/MediaXCore/utils/fmt"
 	"github.com/ArtisanCloud/MediaXCore/utils/object"
 )
@@ -22,16 +22,25 @@ const (
 // PlayGoogleYouTube 演示如何复用 config.yaml + GetOAuthToken 回调来调试视频接口。
 // 根据环境变量控制 AccessToken 来源，输出的日志会脱敏 token，方便复制到工单中排查。
 func PlayGoogleYouTube(localConfig *config.LocalConfig, mediaX *client.MediaX) {
-	if localConfig == nil || localConfig.GoogleYouTubeConfig == nil {
-		panic("playground: missing google_youtube_config in config.yaml")
+	if localConfig == nil || localConfig.AccessTokenProviders == nil {
+		panic("playground: missing access_token_providers in config.yaml")
 	}
+	_, ytApp := localConfig.AccessTokenProviders.FindAppByProviderCode("google_youtube")
+	if ytApp == nil {
+		panic("playground: missing google_youtube app in access_token_providers")
+	}
+	mode := ytApp.FindMode("default")
+	if mode == nil || mode.GoogleYouTubeConfig == nil {
+		panic("playground: google_youtube app 缺少授权模式或配置")
+	}
+	ytCfg := mode.GoogleYouTubeConfig
 
-	token, source := resolvePlaygroundAccessToken(localConfig.GoogleYouTubeConfig)
+	token, source := resolvePlaygroundAccessToken(ytCfg)
 	if strings.TrimSpace(token) == "" {
 		panic("playground: provide GOOGLE_YOUTUBE_ACCESS_TOKEN or oauth.access_token before running example")
 	}
 
-	localConfig.GoogleYouTubeConfig.GetOAuthToken = func(key string, refresh bool) object.HashMap {
+	ytCfg.GetOAuthToken = func(key string, refresh bool) object.HashMap {
 		if mediaX.Logger != nil {
 			mediaX.Logger.InfoF(
 				"playground: inject access token source=%s refresh=%t oauth_key=%s token=%s",
@@ -47,7 +56,7 @@ func PlayGoogleYouTube(localConfig *config.LocalConfig, mediaX *client.MediaX) {
 		}
 	}
 
-	ytClient, err := mediaX.CreateGoogleYouTubeACClient(localConfig.GoogleYouTubeConfig)
+	ytClient, err := mediaX.CreateGoogleYouTubeACClient(ytCfg)
 	if err != nil {
 		panic(err)
 	}
@@ -63,7 +72,7 @@ func PlayGoogleYouTube(localConfig *config.LocalConfig, mediaX *client.MediaX) {
 			valueOrDash(req.ID),
 			valueOrDash(req.Chart),
 			valueOrDash(req.RegionCode),
-			valueOrDash(localConfig.GoogleYouTubeConfig.OauthKey),
+			valueOrDash(ytCfg.OauthKey),
 		)
 	}
 

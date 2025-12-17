@@ -1,10 +1,12 @@
 package kernel
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 	"time"
 
 	request2 "github.com/ArtisanCloud/MediaX/internal/kernel/request"
@@ -135,7 +137,20 @@ func (client *BaseClient) OverrideGetMiddlewareOfRefreshAccessToken() {
 				}
 
 				if response.StatusCode != http.StatusOK {
-					return response, fmt.Errorf("http schema code:%d", response.StatusCode)
+					var bodySnippet string
+					if response.Body != nil {
+						bodyBytes, _ := io.ReadAll(response.Body)
+						_ = response.Body.Close()
+						response.Body = io.NopCloser(bytes.NewBuffer(bodyBytes))
+						if len(bodyBytes) > 0 {
+							snippet := bodyBytes
+							if len(snippet) > 2048 {
+								snippet = snippet[:2048]
+							}
+							bodySnippet = strings.TrimSpace(string(snippet))
+						}
+					}
+					return response, fmt.Errorf("http schema code:%d body:%s", response.StatusCode, bodySnippet)
 				}
 
 				// Token refresh logic here if needed

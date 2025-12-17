@@ -87,7 +87,7 @@
 ### 3.3 API 版本管理
 
 - Zhihu Web API 的具体实现按版本拆分在 `pkg/client/zhihu/web/sessionTokenClient/v4/*` 目录中，后续若知乎升级 `api/v5`，仅需新增 `v5` 目录并在入口注册。
-- 通过 `zhihu_config.sessionToken.service.api_version`（或环境变量 `SESSIONTOKEN_ZHIHU_API_VERSION`）即可在不改代码的情况下切换版本，默认值为 `v4`。
+- 通过 `session_token_providers.providers[].apps[].auth_modes[].zhihu_session_token_config.service.api_version`（或环境变量 `SESSIONTOKEN_ZHIHU_API_VERSION`）即可在不改代码的情况下切换版本，默认值为 `v4`。
 - `/debug` 页面在创建 Flow 时会自动在 metadata 中注入 `api_version` 字段，便于 SDK/插件侧回溯；`sessiontoken_api` 日志也会输出 `version=v4`，方便排查。
 
 ### 3.4 会话复用策略
@@ -102,7 +102,7 @@
 
 - **请求头**：必须传 `X-SessionToken`（即之前回调给外部的 `session_token`），服务端将其还原为 Cookie。
 - **鉴权**：如果 SessionToken 服务检测到 token 缺失或过期，直接返回 `401` 并回调 `ZH_COOKIE_EXPIRED`。
-- **Proxy/UA**：沿用 `config.yaml` 中 `zhihu_config.sessionToken.network`、`authenticator.default_user_agent`。
+- **Proxy/UA**：沿用 `config.yaml` 中 `session_token_providers.providers[].apps[].auth_modes[].zhihu_session_token_config.network`、`authenticator.default_user_agent`。
 
 ### 4.2 需要封装的接口
 
@@ -304,14 +304,14 @@ curl --noproxy "*" \
 
 1. **代码结构**：在 `pkg/client/zhihu/web/sessionTokenClient/` 下创建新的版本目录（如 `v5/`），复制 `v4` 的 handler 骨架，仅改动上游路径/响应整形逻辑；公共工具函数仍放在 `v4` 目录或抽到 `internal`，避免重复。
 2. **入口注册**：在 `pkg/client/zhihu/web/sessionTokenClient/client.go` 的 `buildRouter` 中新增 `case "v5": return v5.NewClient(...)`；如果需要临时灰度，可扩展 `resolveAPIVersion`，支持以 Flow metadata/Provider App 决定版本。
-3. **配置/环境变量**：`zhihu_config.sessionToken.service.api_version` 用于设置默认版本；`SESSIONTOKEN_ZHIHU_API_VERSION` 可在运行期覆盖（含 `/debug` 页面）。更新 `config.example.yaml`、`.env.example` 与 README/quickstart 的映射，提示新版本可选值。
+3. **配置/环境变量**：`session_token_providers.providers[].apps[].auth_modes[].zhihu_session_token_config.service.api_version` 用于设置默认版本；`SESSIONTOKEN_ZHIHU_API_VERSION` 可在运行期覆盖（含 `/debug` 页面）。更新 `config.example.yaml`、`.env.example` 与 README/quickstart 的映射，提示新版本可选值。
 4. **调试工具**：`/debug` 页面模板需同步新增版本选项，并在创建 Flow 时把 `metadata.api_version` 写入，以确保插件/日志可以回溯；脚本 `sessiontoken-debug.sh` 也可支持 `--version`，方便 curl 时附带。
 5. **测试/验收**：针对新增版本补充 httptest 覆盖基础成功/401/403/5xx 情形，并跑一遍“创建 Flow → 登录 → `/debug/callback` → API 调用 → 失效回调”流程确认兼容；必要时在日志中输出 `version=...` 字段方便监控。
 
 ## 10. 风险与TODO
 
 - **Cookie 结构变动**：知乎可能更换字段，需要监控调试日志并快速更新 `watch_cookies`。
-- **高频调用封禁**：对文章/频道接口需加节流与 IP 池支持，可复用 `zhihu_config.sessionToken.network`。
+- **高频调用封禁**：对文章/频道接口需加节流与 IP 池支持，可复用 `session_token_providers.providers[].apps[].auth_modes[].zhihu_session_token_config.network`。
 - **发布接口风控**：文章发布需 CSRF Token、`x-xsrf-token` 等，后续迭代再评估实现。
 - **调试页安全**：`/debug/flows/<id>/metadata` 写入接口仅用于本地，可通过 `SESSIONTOKEN_DISABLE_DEBUG_PAGE` 阻止生产暴露。
 

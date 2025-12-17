@@ -8,7 +8,7 @@
 本特性需要把 `google_youtube_config` 模板、`cmd/accesstoken` CLI、Playground 示例与全新的 Web 调试服务整理成统一的开发/调试体验。计划包括：
 1. 更新配置文档与示例，确保 `config.yaml`/环境变量都能驱动 AccessToken 客户端。
 2. 设计并实现 CLI（action/参数/错误处理）与 Playground 演练流程，形成快速验证路径，并提供“订阅 → 视频 → 发布 → 评论”闭环用例。
-3. 交付 AccessToken 调试服务（默认端口 `:7070`），页面体验复用 SessionToken 调试台，可在浏览器中完成授权回调与 API 调用。
+3. 交付 AccessToken 调试服务（默认端口 `:7071`），页面体验复用 SessionToken 调试台，可在浏览器中完成授权回调与 API 调用。
 4. 产出 Quickstart、数据模型与 API/CLI/调试服务契约，便于后续在 README 或 docs 中引用。
 
 ## Technical Context
@@ -78,7 +78,7 @@ specs/002-youtube-access-token/   # 本特性文档
 
 为满足最新需求，需要在现有 CLI/Playground 之外新增一套 Web 调试服务，沿用 SessionToken 架构：
 
-- **入口形式**：`cmd/accesstoken/server`（或 `cmd/accesstoken/main.go` 中新增 `serve` 子命令）读取 `config.yaml`，默认监听 `:7070`，通过 `SESSIONTOKEN` 同款 `registerDebugPage` 思路提供 HTML 页面。
+- **入口形式**：`cmd/accesstoken/server`（或 `cmd/accesstoken/main.go` 中新增 `serve` 子命令）读取 `config.yaml`，默认监听 `:7071`，通过 `SESSIONTOKEN` 同款 `registerDebugPage` 思路提供 HTML 页面。
 - **核心路由**：
   1. `/debug/accesstoken`：静态页面，包含 Provider/App/API 版本选择、AccessToken/RefreshToken 操作、API 调试表单、回调日志展示。
   2. `/accesstoken/token`：POST，根据 `oauth_key` 或自定义凭证刷新 AccessToken，底层调用 `GoogleYouTubeACClient` 的 `GetOAuthToken` 回调。

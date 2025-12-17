@@ -2,11 +2,6 @@ package config
 
 import "strings"
 
-// ZhihuConfig 聚合知乎相关配置。
-type ZhihuConfig struct {
-	SessionToken *ZhihuSessionTokenConfig `yaml:"sessiontoken" json:"sessiontoken"`
-}
-
 // ZhihuSessionTokenConfig 描述知乎 SessionToken 适配器所需的全部配置。
 type ZhihuSessionTokenConfig struct {
 	Strategy      string                               `yaml:"strategy,omitempty" json:"strategy,omitempty"` // 策略版本标识，如 zhihu_pc_v1

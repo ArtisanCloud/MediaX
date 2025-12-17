@@ -49,14 +49,14 @@
 ## Phase 5: User Story 4 - AccessToken 调试服务 (Priority: P1)
 
 **Goal**: 为产品/QA/合作伙伴提供可视化调试入口，复用 SessionToken 调试台的交互，在浏览器中完成授权回调观测、AccessToken 刷新与 API 调用。
-**Independent Test**: `make accesstoken-serve`（或 `go run ./cmd/accesstoken/server`）后访问 `http://127.0.0.1:7070/debug/accesstoken`，无需 CLI/Playground 即可完成最小链路。
+**Independent Test**: `make accesstoken-serve`（或 `go run ./cmd/accesstoken/server`）后访问 `http://127.0.0.1:7071/debug/accesstoken`，无需 CLI/Playground 即可完成最小链路。
 
 ### Implementation
 
-- [ ] T022 [US4] 新增 `cmd/accesstoken/server`（或 `cmd/accesstoken/main.go` 中引入 `serve` 子命令），整合配置加载、日志、缓存与 API Token 解析，默认监听 `:7070`。
-- [ ] T023 [US4] 复用/改写 `cmd/sessiontoken/debug_page.go`，实现 AccessToken 专用调试页，覆盖 Provider/App/API 版本选择、授权 URL/AccessToken 操作、API 调试表单、回调日志表格。
-- [ ] T024 [US4] 暴露 RESTful 接口（`/accesstoken/token`、`/accesstoken/call`、`/debug/callback`），内部复用 CLI 的执行逻辑，并输出 JSON/错误结构，日志需脱敏 token。
-- [ ] T025 [US4] 在 `docs/develop/access-token/google/develop.md` / `debug.md` / `quickstart.md` 等文档补充调试服务的启动方式、页面说明、API token 配置与常见排查步骤。
+- [x] T022 [US4] 新增 `cmd/accesstoken/server`（或 `cmd/accesstoken/main.go` 中引入 `serve` 子命令），整合配置加载、日志、缓存与 API Token 解析，默认监听 `:7071`。
+- [x] T023 [US4] 复用/改写 `cmd/sessiontoken/debug_page.go`，实现 AccessToken 专用调试页，覆盖 Provider/App/API 版本选择、授权 URL/AccessToken 操作、API 调试表单、回调日志表格。
+- [x] T024 [US4] 暴露 RESTful 接口（`/accesstoken/token`、`/accesstoken/call`、`/debug/callback`），内部复用 CLI 的执行逻辑，并输出 JSON/错误结构，日志需脱敏 token。
+- [x] T025 [US4] 在 `docs/develop/access-token/google/develop.md` / `debug.md` / `quickstart.md` 等文档补充调试服务的启动方式、页面说明、API token 配置与常见排查步骤。
 
 ---
 
