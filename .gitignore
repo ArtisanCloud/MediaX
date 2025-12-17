@@ -16,18 +16,25 @@
 /vendor/
 
 # GoLand IDE files
-# .idea/
+.idea/
 
 # VS Code IDE files
-# .vscode/
+.vscode/
 
 # OS files
 .DS_Store
 Thumbs.db
+*.tmp
+*.swp
 
 # Logs
 *.log
 logs/
+
+# Node/JS build artifacts
+dist/
+build/
+coverage/
 
 config.yaml
 
@@ -39,3 +46,7 @@ config.yaml
 
 # Go modules
 go.sum
+
+.env
+.env.*
+node_modules/

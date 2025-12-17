@@ -20,12 +20,19 @@
 package client
 
 import (
+	"errors"
+
 	"github.com/ArtisanCloud/MediaX/pkg/client/byteDance/douYin/accessTokenClient"
 	"github.com/ArtisanCloud/MediaX/pkg/client/byteDance/douYin/clientTokenClient"
 	"github.com/ArtisanCloud/MediaX/pkg/client/config"
 	accessTokenClient3 "github.com/ArtisanCloud/MediaX/pkg/client/google/youtube/accessTokenClient"
 	accessTokenClient2 "github.com/ArtisanCloud/MediaX/pkg/client/redBook/juGuang/accessTokenClient"
+	sessiontoken "github.com/ArtisanCloud/MediaX/pkg/client/sessiontoken"
 	officialAccount "github.com/ArtisanCloud/MediaX/pkg/client/wechat/officialAccount/clientTokenClient"
+	"github.com/ArtisanCloud/MediaX/pkg/client/zhihu/core"
+	"github.com/ArtisanCloud/MediaX/server/zhihu/sessiontoken/authenticator"
+	zhCallback "github.com/ArtisanCloud/MediaX/server/zhihu/sessiontoken/callback"
+	zhHarvester "github.com/ArtisanCloud/MediaX/server/zhihu/sessiontoken/harvester"
 	"github.com/ArtisanCloud/MediaXCore/pkg/cache"
 	"github.com/ArtisanCloud/MediaXCore/pkg/logger"
 )
@@ -129,4 +136,40 @@ func (m *MediaX) CreateByteDanceDouYinCTClient(cfg *config.ByteDanceDouYinConfig
 //   - error: 创建过程中的错误信息
 func (m *MediaX) CreateRedBookJuGuangACClient(cfg *config.RedBookJuGuangConfig) (*accessTokenClient2.RedBookJuGuangACClient, error) {
 	return accessTokenClient2.NewRedBookJuGuangACClient(cfg, m.Logger, m.Cache)
+}
+
+// CreateZhihuSessionTokenClient 创建知乎 SessionToken 管理器（返回 Manager + Harvester，方便调用方驱动凭证抓取）。
+func (m *MediaX) CreateZhihuSessionTokenClient(cfg *config.ZhihuSessionTokenConfig, store sessiontoken.FlowStore) (*sessiontoken.Manager, sessiontoken.CredentialHarvester, error) {
+	if cfg == nil {
+		return nil, nil, errors.New("zhihu.sessiontoken: config is nil")
+	}
+	if store == nil {
+		return nil, nil, errors.New("zhihu.sessiontoken: flow store is nil")
+	}
+	coreClient, err := core.NewClient(cfg, m.Logger, m.Cache)
+	if err != nil {
+		return nil, nil, err
+	}
+	auth, err := authenticator.NewAuthenticator(&cfg.Authenticator)
+	if err != nil {
+		return nil, nil, err
+	}
+	harvester, err := zhHarvester.NewHarvester(&cfg.Harvester)
+	if err != nil {
+		return nil, nil, err
+	}
+	dispatcher, err := zhCallback.NewDispatcher(&cfg.Callback, m.Logger)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	manager := sessiontoken.NewManager(
+		coreClient.BaseClient,
+		m.Logger,
+		m.Cache,
+		store,
+		sessiontoken.WithAuthenticator(auth),
+		sessiontoken.WithCallbackDispatcher(dispatcher),
+	)
+	return manager, harvester, nil
 }

@@ -1,0 +1,245 @@
+openapi: 3.0.3
+info:
+  title: MediaX SessionToken Flows API
+  version: 0.1.0
+paths:
+  /session-token/flows:
+    post:
+      summary: Create SessionToken Flow
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateFlowRequest'
+      responses:
+        '201':
+          description: Flow created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreateFlowResponse'
+              example:
+                flow:
+                  flow_id: stf_1234567890abcdef
+                  provider_code: zhihu
+                  provider_app_code: zhihu_article
+                  tenant_uuid: tenant_demo
+                  account_id: acct_demo
+                  state: ui-flow-123
+                  status: pending
+                  authorize_url: https://www.zhihu.com/signin?flow_id=stf_1234567890abcdef&state=ui-flow-123
+                  callback_url: https://plugin/api/callback
+                  expires_at: 2025-12-10T06:34:12Z
+                  metadata:
+                    login_mode: password
+                  credentials_note: ""
+                  credentials_expires_hint: ""
+                  code: ""
+                  message: ""
+                  last_failed_api: ""
+                  retry_attempts: 0
+                  created_at: 2025-12-10T06:04:12Z
+                  updated_at: 2025-12-10T06:04:12Z
+        '400':
+          description: Invalid payload/provider unsupported
+        '401':
+          description: Missing or invalid API token
+  /session-token/flows/{flow_id}:
+    get:
+      summary: Get Flow status/result
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: flow_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Flow state
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetFlowResponse'
+              example:
+                flow:
+                  flow_id: stf_1234567890abcdef
+                  provider_code: zhihu
+                  provider_app_code: zhihu_article
+                  tenant_uuid: tenant_demo
+                  account_id: acct_demo
+                  state: ui-flow-123
+                  status: succeeded
+                  authorize_url: https://www.zhihu.com/signin?flow_id=stf_1234567890abcdef&state=ui-flow-123
+                  callback_url: https://plugin/api/callback
+                  expires_at: 2025-12-10T06:34:12Z
+                  expires_in: 1710
+                  metadata:
+                    login_mode: password
+                    session_token: SESSIONID=7zKo...; JOID=VV0W...; osd=VF4T...; q_c1=f5693a25|1765503157000|...; d_c0=kpYUP2...|1765503068; unlock_ticket=AEBC...
+                    cookie_sessionid: 7zKo...
+                    cookie_joid: VV0W...
+                    cookie_osd: VF4T...
+                    cookie_q_c1: f5693a25|1765503157000|...
+                    cookie_d_c0: kpYUP2...|1765503068
+                    cookie_unlock_ticket: AEBC...
+                  result:
+                    session_token: qui*****************************************b26f
+                    headers_json:
+                      X-Demo: ses******oken
+                    captured_at: 2025-12-10T06:09:45Z
+                  credentials_note: Chrome 123 / Mac
+                  credentials_expires_hint: 2025-12-20T00:00:00Z
+                  code: ""
+                  message: ""
+                  last_failed_api: ""
+                  retry_attempts: 0
+                  last_error: ""
+                  created_at: 2025-12-10T06:04:12Z
+                  updated_at: 2025-12-10T06:09:45Z
+        '404':
+          description: Flow not found or expired
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    CreateFlowRequest:
+      type: object
+      required: [provider_code, provider_app_code, tenant_uuid, state, callback_url]
+      properties:
+        provider_code:
+          type: string
+          example: zhihu
+        provider_app_code:
+          type: string
+          example: zhihu_article
+        account_id:
+          type: string
+        tenant_uuid:
+          type: string
+        state:
+          type: string
+        callback_url:
+          type: string
+          format: uri
+        metadata:
+          type: object
+          additionalProperties:
+            type: string
+          description: |
+            存储 Flow 附加信息。成功后至少包含：
+              - `session_token`：聚合的 Cookie 字符串
+              - `cookie_<name>`：如 `cookie_sessionid`、`cookie_joid` 等
+              - `credentials_note` / `credentials_expires_hint`
+    CreateFlowResponse:
+      type: object
+      properties:
+        flow:
+          $ref: '#/components/schemas/Flow'
+    GetFlowResponse:
+      type: object
+      properties:
+        flow:
+          allOf:
+            - $ref: '#/components/schemas/Flow'
+            - type: object
+              properties:
+                expires_in:
+                  type: integer
+                  format: int64
+                  description: 从当前时间到过期的秒数
+                last_error:
+                  type: string
+                result:
+                  $ref: '#/components/schemas/CredentialPayload'
+    Flow:
+      type: object
+      properties:
+        flow_id:
+          type: string
+        provider_code:
+          type: string
+        provider_app_code:
+          type: string
+        tenant_uuid:
+          type: string
+        account_id:
+          type: string
+        state:
+          type: string
+        status:
+          type: string
+          enum: [pending, authorizing, succeeded, failed]
+        authorize_url:
+          type: string
+          format: uri
+        callback_url:
+          type: string
+          format: uri
+        expires_at:
+          type: string
+          format: date-time
+        metadata:
+          type: object
+          additionalProperties:
+            type: string
+        credentials_note:
+          type: string
+          description: 记录凭证捕获环境/设备信息
+        credentials_expires_hint:
+          type: string
+          format: date-time
+          description: 凭证预计失效时间提示
+        code:
+          type: string
+          description: Flow 失败或凭证失效时的错误码（如 ZH_COOKIE_EXPIRED）
+        message:
+          type: string
+          description: Flow 失败或凭证失效时的文案描述
+        last_failed_api:
+          type: string
+          description: 最近一次失败的上游 API（含方法和 URL）
+        retry_attempts:
+          type: integer
+          format: int32
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    CredentialPayload:
+      type: object
+      properties:
+        session_token:
+          type: string
+        cookies_json:
+          type: array
+          items:
+            type: object
+            properties:
+              name:
+                type: string
+              value:
+                type: string
+              domain:
+                type: string
+        headers_json:
+          type: object
+          additionalProperties:
+            type: string
+        expires_at:
+          type: string
+          format: date-time
+        captured_at:
+          type: string
+          format: date-time
+        note:
+          type: string

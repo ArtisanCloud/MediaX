@@ -1,0 +1,23 @@
+{
+  "files.associations": {
+    "*.mdc": "md"
+  },
+  "[mdc]": {
+    "editor.tabSize": 2,
+    "editor.insertSpaces": true,
+    "editor.formatOnPaste": true
+  },
+  "[markdown]": {
+    "editor.formatOnSave": true,
+    "editor.defaultFormatter": "DavidAnson.vscode-markdownlint"
+  },
+  "auto-run-command.rules": [
+      {
+        "condition": "always",
+        "command": "claude-vscode.sidebar.open",
+        "message": "Running Claude Code in VSCode"
+      }
+  ],
+  "mdc.enableFormatting": true,
+  "mdc.enableComponentMetadataCompletions": true
+}
