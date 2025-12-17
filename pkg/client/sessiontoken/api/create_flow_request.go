@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	sessiontoken "github.com/ArtisanCloud/MediaX/pkg/client/sessionToken"
+	sessiontoken "github.com/ArtisanCloud/MediaX/pkg/client/sessiontoken"
 )
 
 // CreateFlowRequest 描述插件创建 Flow 时提交的 payload。

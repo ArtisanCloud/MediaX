@@ -10,7 +10,7 @@
 - **Provider 适配器**：按 `docs/plan/session_token_client.md` 实现各平台的 Authenticator/Harvester（入口 URL、脚本、代理策略、凭证标准化）。
 - **回调**：服务在 Flow 成功后向插件传入的 `callback_url`（`/admin/platforms/session-token/callback`）POST 标准化凭证；支持签名校验、重试与日志。
 - **配置共享**：插件端通过 `POWERX_SESSION_TOKEN_*` 指向该服务；MediaX 端需保证 BaseURL/API Token/CallbackURL 一致，详见 `docs/plan/creative/channels.md#21-环境变量映射`。
-- **默认配置模板**：MediaX 仓库必须维护可直接使用的 `config.example.yaml`（或等效模板），在 `zhihu_config.sessionToken` 等段落中填写“版本配套”的默认入口 URL、脚本 ID、UA、回调 secret/Redis 模板，而不是 `${ZH_*}` 占位符；插件可在启动 SessionToken 服务前自动复制该模板，避免开发者手工配置。模板中已包含 `service.api_version`、`harvester.watch_cookies`、`callback.retry_backoff`、`network.proxy` 等字段。
+- **默认配置模板**：MediaX 仓库必须维护可直接使用的 `config.example.yaml`（或等效模板），在 `session_token_providers`（例如 `providers[].apps[].auth_modes[].zhihu_session_token_config`）等段落中填写“版本配套”的默认入口 URL、脚本 ID、UA、回调 secret/Redis 模板，而不是 `${ZH_*}` 占位符；插件可在启动 SessionToken 服务前自动复制该模板，避免开发者手工配置。模板中已包含 `service.api_version`、`harvester.watch_cookies`、`callback.retry_backoff`、`network.proxy` 等字段。
 - **版本化实现**：`pkg/client/zhihu/web/sessionTokenClient/` 入口负责根据 `service.api_version`（或 `SESSIONTOKEN_ZHIHU_API_VERSION`）加载对应版本目录，例如当前默认 `v4/*`；新增版本只需要落地新的目录并在入口注册，调试页元数据会自动带上 `api_version`，日志 (`sessiontoken_api`) 亦输出 `version=...` 供监控。
 - **默认策略模板（`zhihu_pc_v1`）**：`config.example.yaml` 已提供 MediaX Studio 同步验证过的默认参数，可直接复制为 `config.yaml` 使用：
   - `service`：`base_url=http://127.0.0.1:7070`、`api_token=dev-session-token`、`timeout=30s`、`http_debug=false`；与 `make sessiontoken` 默认监听一致。

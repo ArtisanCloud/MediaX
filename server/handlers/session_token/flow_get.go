@@ -8,8 +8,8 @@ import (
 	"strings"
 	"time"
 
-	sessiontoken "github.com/ArtisanCloud/MediaX/pkg/client/sessionToken"
-	sessionapi "github.com/ArtisanCloud/MediaX/pkg/client/sessionToken/api"
+	sessiontoken "github.com/ArtisanCloud/MediaX/pkg/client/sessiontoken"
+	sessionapi "github.com/ArtisanCloud/MediaX/pkg/client/sessiontoken/api"
 	sessionmiddleware "github.com/ArtisanCloud/MediaX/server/middleware/session_token"
 	"github.com/ArtisanCloud/MediaXCore/pkg/logger"
 )

@@ -14,7 +14,7 @@ import (
 	"sync"
 	"time"
 
-	sessiontoken "github.com/ArtisanCloud/MediaX/pkg/client/sessionToken"
+	sessiontoken "github.com/ArtisanCloud/MediaX/pkg/client/sessiontoken"
 	"github.com/ArtisanCloud/MediaXCore/pkg/logger"
 )
 
@@ -182,7 +182,7 @@ var debugPageTemplate = template.Must(template.New("debug_page").Parse(`<!DOCTYP
     <button type="button" onclick="copyFlowCliCommand()">复制命令</button>
   </div>
   <p style="font-size:12px;color:#666;">更多示例：<code>scripts/sessiontoken-debug.sh followings "$SESSION_TOKEN"</code>、<code>scripts/sessiontoken-debug.sh channels "$SESSION_TOKEN" column_id 10 0</code>、<code>scripts/sessiontoken-debug.sh sanity "$SESSION_TOKEN"</code>。</p>
-  <p style="font-size:12px;color:#666;">需要枚举 Redis 中的现有 Flow，可在本地运行 <code>redis-cli --raw keys 'sessionToken:flow:*'</code> 查看全部 key，再用 <code>redis-cli --raw GET "sessionToken:flow:stf_xxx" \| jq '.'</code> 检查 metadata。</p>
+  <p style="font-size:12px;color:#666;">需要枚举 Redis 中的现有 Flow，可在本地运行 <code>redis-cli --raw keys 'sessiontoken:flow:*'</code> 查看全部 key，再用 <code>redis-cli --raw GET "sessiontoken:flow:stf_xxx" \| jq '.'</code> 检查 metadata。</p>
 </section>
 <section>
   <h2>API 调试（Beta）</h2>
@@ -806,15 +806,15 @@ async function loadSessionTokenFromFlow() {
       throw new Error(JSON.stringify(data));
     }
     const metadata = (data.flow && data.flow.metadata) || {};
-    let sessionToken = metadata.session_token || '';
-    if (!sessionToken) {
-      sessionToken = buildSessionTokenFromPieces(metadata);
+    let sessiontoken = metadata.session_token || '';
+    if (!sessiontoken) {
+      sessiontoken = buildSessionTokenFromPieces(metadata);
     }
-    if (!sessionToken) {
+    if (!sessiontoken) {
       log('Flow metadata 中尚未写入 session_token，可稍后再试。');
       return;
     }
-    apiSessionTokenInput.value = sessionToken;
+    apiSessionTokenInput.value = sessiontoken;
     log('已从 Flow ' + flowId + ' 自动填充 SessionToken。');
   } catch (err) {
     log('加载 SessionToken 失败: ' + err);
@@ -869,9 +869,9 @@ async function sendApiRequest() {
     if (bodyPayload) {
       headers['Content-Type'] = 'application/json';
     }
-    const sessionToken = apiSessionTokenInput.value.trim();
-    if (sessionToken) {
-      headers['X-SessionToken'] = sessionToken;
+    const sessiontoken = apiSessionTokenInput.value.trim();
+    if (sessiontoken) {
+      headers['X-SessionToken'] = sessiontoken;
     } else if (endpoint.requiresSessionToken) {
       log('提示：该接口需要 SessionToken，建议先点击“从 Flow 填充 SessionToken”。');
     }

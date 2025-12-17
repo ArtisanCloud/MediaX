@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/ArtisanCloud/MediaX/pkg/client/config"
-	sessiontoken "github.com/ArtisanCloud/MediaX/pkg/client/sessionToken"
+	sessiontoken "github.com/ArtisanCloud/MediaX/pkg/client/sessiontoken"
 )
 
 func TestAuthenticatorSelectsEntryByMetadata(t *testing.T) {

@@ -21,46 +21,56 @@
    ```
 2. **配置示例** (`config.yaml`，可直接复制 `config.example.yaml`)
    ```yaml
-   zhihu_config:
-     sessionToken:
-       strategy: zhihu_pc_v1
-       service:
-         base_url: http://127.0.0.1:7070
-         api_token: dev-session-token
-         timeout: 30
-         http_debug: false
-         api_version: v4
-       authenticator:
-         entries:
-           - type: pc
-             url: https://www.zhihu.com/signin?next=%2F
-         default_user_agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 14_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.6312.58 Safari/537.36
-         script_ids:
-           - sessiontoken.zhihu.auth.pc.v1
-         captcha_strategy: auto
-       harvester:
-         watch_cookies:
-           - SESSIONID
-           - JOID
-           - osd
-           - q_c1
-           - d_c0
-           - unlock_ticket
-           - z_c0
-         watch_headers:
-           - X-XSRF-TOKEN
-         harvest_script_id: sessiontoken.zhihu.harvest.pc.v1
-       callback:
-         secret: mediax-sessiontoken-callback
-         max_retry: 3
-         retry_backoff: [2, 4, 8]
-       network:
-         proxy: ""
-         proxy_pool: zhihu-default
-         ip_strategy: china_rotating
-         request_timeout: 60
-       api:
-         retry_backoff: [2, 4, 8]
+   session_token_providers:
+     providers:
+       - code: zhihu
+         name: 知乎
+         apps:
+           - code: web
+             name: 知乎 Web
+             provider_code: zhihu_sessiontoken
+             auth_modes:
+               - key: default
+                 label: 默认
+                 zhihu_session_token_config:
+                   strategy: zhihu_pc_v1
+                   service:
+                     base_url: http://127.0.0.1:7070
+                     api_token: dev-session-token
+                     timeout: 30
+                     http_debug: false
+                     api_version: v4
+                   authenticator:
+                     entries:
+                       - type: pc
+                         url: https://www.zhihu.com/signin?next=%2F
+                     default_user_agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 14_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.6312.58 Safari/537.36
+                     script_ids:
+                       - sessiontoken.zhihu.auth.pc.v1
+                     captcha_strategy: auto
+                   harvester:
+                     watch_cookies:
+                       - SESSIONID
+                       - JOID
+                       - osd
+                       - q_c1
+                       - d_c0
+                       - unlock_ticket
+                       - z_c0
+                     watch_headers:
+                       - X-XSRF-TOKEN
+                     harvest_script_id: sessiontoken.zhihu.harvest.pc.v1
+                   callback:
+                     secret: mediax-sessiontoken-callback
+                     max_retry: 3
+                     retry_backoff: [2, 4, 8]
+                   network:
+                     proxy: ""
+                     proxy_pool: zhihu-default
+                     ip_strategy: china_rotating
+                     request_timeout: 60
+                   api:
+                     retry_backoff: [2, 4, 8]
    ```
    > 建议在首次启动前执行 `cp config.example.yaml config.yaml`（或调用 `make sessiontoken-bootstrap`）自动生成配置，再按环境需要覆盖 `callback_secret`/Redis 等少数字段。
 3. **启动 SessionToken 服务**

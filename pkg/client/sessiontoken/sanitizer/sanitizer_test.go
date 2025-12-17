@@ -3,7 +3,7 @@ package sanitizer
 import (
 	"testing"
 
-	"github.com/ArtisanCloud/MediaX/pkg/client/sessionToken/callback"
+	"github.com/ArtisanCloud/MediaX/pkg/client/sessiontoken/callback"
 )
 
 func TestMaskString(t *testing.T) {

@@ -1,70 +1,178 @@
-wechat_official_account_config:
-  oauth:
-    app_id: "your_wechat_app_id"
-    app_secret: "your_wechat_app_secret"
-  base_uri: "https://api.weixin.qq.com"
-  proxy_uri: ""
-  timeout: 5.0
-  http_debug: true
-  component_app_id: "your_component_app_id"
-  component_app_token: "your_component_app_token"
+access_token_providers:
+  providers:
+    - code: "google"
+      name: "Google"
+      apps:
+        - code: "youtube"
+          name: "Google YouTube"
+          provider_code: "google_youtube"
+          api_version: "v4"
+          auth_modes:
+            - key: "default"
+              label: "默认 OAuth"
+              google_youtube_config:
+                api_url: "https://www.googleapis.com"
+                proxy_api_url: ""
+                timeout: 15            # 请求超时时间（秒）
+                http_debug: false      # 是否打印 HTTP 请求/响应
+                oauth:
+                  access_token_url: "https://oauth2.googleapis.com/token"
+                  proxy_access_token_url: ""
+                  client_id: "${GOOGLE_YOUTUBE_CLIENT_ID}"            # 推荐通过环境变量注入
+                  client_secret: "${GOOGLE_YOUTUBE_CLIENT_SECRET}"
+                  redirect_url: "http://localhost:7071/debug/callback"
+                  scope: "https://www.googleapis.com/auth/youtube.force-ssl"
+                  refresh_token: "${GOOGLE_YOUTUBE_REFRESH_TOKEN}"
+                  access_token: "${GOOGLE_YOUTUBE_ACCESS_TOKEN}"   # 可填入临时 AccessToken；也可以通过环境变量提供
+                  token_expiry: 0
+                oauth_key: "default"    # 映射 token 仓库或租户标识
+        - code: "blogger"
+          name: "Google Blogger"
+          provider_code: "google_blogger"
+          api_version: "v3"
+          auth_modes:
+            - key: "default"
+              label: "默认 OAuth"
+              google_blogger_config:
+                api_url: "https://www.googleapis.com"
+                proxy_api_url: ""
+                timeout: 15
+                http_debug: false
+                oauth:
+                  access_token_url: "https://oauth2.googleapis.com/token"
+                  proxy_access_token_url: ""
+                  client_id: "${GOOGLE_BLOGGER_CLIENT_ID}"
+                  client_secret: "${GOOGLE_BLOGGER_CLIENT_SECRET}"
+                  redirect_url: "http://localhost:7071/debug/callback"
+                  scope: "https://www.googleapis.com/auth/blogger"
+                  refresh_token: "${GOOGLE_BLOGGER_REFRESH_TOKEN}"
+                  access_token: "${GOOGLE_BLOGGER_ACCESS_TOKEN}"
+                  token_expiry: 0
+                oauth_key: "default"
+    - code: "byte_dance"
+      name: "字节跳动"
+      apps:
+        - code: "douyin"
+          name: "抖音 Douyin"
+          provider_code: "byte_dance_douyin"
+          api_version: "v1"
+          auth_modes:
+            - key: "default"
+              label: "默认"
+              byte_dance_douyin_config:
+                api_url: "https://open.douyin.com"
+                proxy_api_url: ""
+                timeout: 5.0
+                http_debug: false
+                oauth:
+                  client_id: "your_douyin_app_id"
+                  client_secret: "your_douyin_app_secret"
+    - code: "redbook"
+      name: "小红书"
+      apps:
+        - code: "juguang"
+          name: "小红书聚光"
+          provider_code: "redbook_juguang"
+          api_version: "v1"
+          auth_modes:
+            - key: "default"
+              label: "默认 OAuth"
+              redbook_juguang_config:
+                api_url: "https://www.xiaohongshu.com"
+                proxy_api_url: ""
+                timeout: 5.0
+                http_debug: false
+                oauth:
+                  client_id: "your_redbook_app_id"
+                  client_secret: "your_redbook_app_secret"
+    - code: "bilibili"
+      name: "哔哩哔哩"
+      apps:
+        - code: "default"
+          name: "Bilibili"
+          provider_code: "bilbili"
+          api_version: "v1"
+          auth_modes:
+            - key: "default"
+              label: "默认"
+              bilibili_config:
+                api_url: "https://member.bilibili.com"
+                proxy_api_url: ""
+                timeout: 5.0
+                http_debug: false
+                oauth:
+                  client_id: "your_bilibili_app_id"
+                  client_secret: "your_bilibili_app_secret"
 
-byte_dance_douyin_config:
-  base_uri: "https://open.douyin.com"
-  proxy_uri: ""
-  http_debug: false
-  timeout: 5.0
-  oauth:
-    app_id: "your_douyin_app_id"
-    app_secret: "your_douyin_app_secret"
+client_token_providers:
+  providers:
+    - code: "wechat"
+      name: "微信"
+      apps:
+        - code: "official_account"
+          name: "公众号"
+          provider_code: "wechat_official_account"
+          auth_modes:
+            - key: "default"
+              label: "默认"
+              wechat_official_account_config:
+                api_url: "https://api.weixin.qq.com"
+                proxy_api_url: ""
+                timeout: 5.0
+                http_debug: true
+                oauth:
+                  client_id: "your_wechat_app_id"
+                  client_secret: "your_wechat_app_secret"
+                component_app_id: "your_component_app_id"
+                component_app_token: "your_component_app_token"
 
-redbook_juguang_config:
-  base_uri: "https://www.xiaohongshu.com"
-  proxy_uri: ""
-  timeout: 5.0
-  http_debug: false
-  oauth:
-    app_id: "your_redbook_app_id"
-    app_secret: "your_redbook_app_secret"
-
-
-zhihu_config:
-  sessionToken:
-    strategy: zhihu_pc_v1
-    service:
-      base_url: "http://127.0.0.1:7070"
-      api_token: "dev-session-token"
-      timeout: 30
-      http_debug: false
-      api_version: "v4"
-    authenticator:
-      entries:
-        - type: pc
-          url: "https://www.zhihu.com/signin?next=%2F"
-      default_user_agent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 14_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.6312.58 Safari/537.36"
-      script_ids:
-        - "sessiontoken.zhihu.auth.pc.v1"
-      captcha_strategy: "auto"
-    harvester:
-      watch_cookies:
-        - SESSIONID
-        - JOID
-        - osd
-        - q_c1
-        - d_c0
-        - unlock_ticket
-        - z_c0
-      watch_headers:
-        - X-XSRF-TOKEN
-      harvest_script_id: "sessiontoken.zhihu.harvest.pc.v1"
-    callback:
-      secret: "mediax-sessiontoken-callback"
-      max_retry: 3
-      retry_backoff: [2, 4, 8]
-    network:
-      proxy: ""
-      proxy_pool: "zhihu-default"
-      ip_strategy: "china_rotating"
-      request_timeout: 60
-    api:
-      retry_backoff: [2, 4, 8]
+session_token_providers:
+  providers:
+    - code: "zhihu"
+      name: "知乎"
+      apps:
+        - code: "web"
+          name: "知乎 Web"
+          provider_code: "zhihu_sessiontoken"
+          auth_modes:
+            - key: "default"
+              label: "默认"
+              zhihu_session_token_config:
+                strategy: zhihu_pc_v1
+                service:
+                  base_url: "http://127.0.0.1:7070"
+                  api_token: "dev-session-token"
+                  timeout: 30
+                  http_debug: false
+                  api_version: "v4"
+                authenticator:
+                  entries:
+                    - type: pc
+                      url: "https://www.zhihu.com/signin?next=%2F"
+                  default_user_agent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 14_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.6312.58 Safari/537.36"
+                  script_ids:
+                    - "sessiontoken.zhihu.auth.pc.v1"
+                  captcha_strategy: "auto"
+                harvester:
+                  watch_cookies:
+                    - SESSIONID
+                    - JOID
+                    - osd
+                    - q_c1
+                    - d_c0
+                    - unlock_ticket
+                    - z_c0
+                  watch_headers:
+                    - X-XSRF-TOKEN
+                  harvest_script_id: "sessiontoken.zhihu.harvest.pc.v1"
+                callback:
+                  secret: "mediax-sessiontoken-callback"
+                  max_retry: 3
+                  retry_backoff: [2, 4, 8]
+                network:
+                  proxy: ""
+                  proxy_pool: "zhihu-default"
+                  ip_strategy: "china_rotating"
+                  request_timeout: 60
+                api:
+                  retry_backoff: [2, 4, 8]

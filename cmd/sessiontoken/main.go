@@ -18,9 +18,9 @@ import (
 
 	"github.com/ArtisanCloud/MediaX/pkg/client"
 	config2 "github.com/ArtisanCloud/MediaX/pkg/client/config"
-	sessiontoken "github.com/ArtisanCloud/MediaX/pkg/client/sessionToken"
-	sessiontokenredis "github.com/ArtisanCloud/MediaX/pkg/client/sessionToken/storage/redis"
-	zhihuweb "github.com/ArtisanCloud/MediaX/pkg/client/zhihu/web/sessionTokenClient"
+	sessiontoken "github.com/ArtisanCloud/MediaX/pkg/client/sessiontoken"
+	sessiontokenredis "github.com/ArtisanCloud/MediaX/pkg/client/sessiontoken/storage/redis"
+	zhihuweb "github.com/ArtisanCloud/MediaX/pkg/client/zhihu/web/sessiontokenclient"
 	"github.com/ArtisanCloud/MediaX/pkg/utils"
 	sessionhandler "github.com/ArtisanCloud/MediaX/server/handlers/session_token"
 	"github.com/ArtisanCloud/MediaXCore/pkg/cache"
@@ -48,8 +48,13 @@ func run(configPathFlag, portFlag string) error {
 	if err := utils.LoadYAML(configPath, localConfig); err != nil {
 		return fmt.Errorf("load config %s: %w", configPath, err)
 	}
-	if localConfig.ZhihuConfig == nil || localConfig.ZhihuConfig.SessionToken == nil {
-		return errors.New("zhihu.sessiontoken: missing zhihu_config.sessionToken in config.yaml")
+	zhihuCfg, err := localConfig.SessionTokenProviders.ResolveZhihuSessionToken(
+		firstNonEmptyEnv("SESSIONTOKEN_PROVIDER_CODE"),
+		firstNonEmptyEnv("SESSIONTOKEN_PROVIDER_APP"),
+		firstNonEmptyEnv("SESSIONTOKEN_AUTH_MODE"),
+	)
+	if err != nil {
+		return fmt.Errorf("zhihu.sessiontoken: %w", err)
 	}
 
 	redisClient, err := buildRedisClient()
@@ -65,19 +70,19 @@ func run(configPathFlag, portFlag string) error {
 	mediaX := client.NewMediaX(&config2.MediaXConfig{Logger: buildLogConfig()}, cacheStore)
 
 	flowStore := sessiontokenredis.NewFlowStore(redisClient)
-	manager, harvester, err := mediaX.CreateZhihuSessionTokenClient(localConfig.ZhihuConfig.SessionToken, flowStore)
+	manager, harvester, err := mediaX.CreateZhihuSessionTokenClient(zhihuCfg, flowStore)
 	if err != nil {
 		return fmt.Errorf("create zhihu session token client: %w", err)
 	}
 
-	apiToken := resolveAPIToken(localConfig.ZhihuConfig.SessionToken.Service.APIToken)
+	apiToken := resolveAPIToken(zhihuCfg.Service.APIToken)
 	listenAddr := resolveListenAddr(portFlag)
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
 	flowClient := sessiontoken.NewFlowOrchestrator(ctx, manager, harvester, mediaX.Logger)
-	zhihuAPI, err := zhihuweb.NewClient(localConfig.ZhihuConfig.SessionToken, flowClient, mediaX.Logger)
+	zhihuAPI, err := zhihuweb.NewClient(zhihuCfg, flowClient, mediaX.Logger)
 	if err != nil {
 		return fmt.Errorf("create zhihu web api client: %w", err)
 	}

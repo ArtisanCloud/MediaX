@@ -13,14 +13,14 @@ import (
 // HeaderSessionToken 定义 Zhihu API 需要的 SessionToken Header。
 const HeaderSessionToken = "X-SessionToken"
 
-type sessionTokenContextKey struct{}
+type sessiontokenContextKey struct{}
 
 // SessionTokenFromContext 从请求上下文中提取 X-SessionToken。
 func SessionTokenFromContext(ctx context.Context) string {
 	if ctx == nil {
 		return ""
 	}
-	token, _ := ctx.Value(sessionTokenContextKey{}).(string)
+	token, _ := ctx.Value(sessiontokenContextKey{}).(string)
 	return token
 }
 
@@ -39,7 +39,7 @@ func SessionTokenHeaderMiddleware(log *logger.Logger) func(http.Handler) http.Ha
 				writeSessionTokenError(w)
 				return
 			}
-			ctx := context.WithValue(r.Context(), sessionTokenContextKey{}, rawToken)
+			ctx := context.WithValue(r.Context(), sessiontokenContextKey{}, rawToken)
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}

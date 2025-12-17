@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/ArtisanCloud/MediaX/pkg/client/sessionToken/callback"
+	"github.com/ArtisanCloud/MediaX/pkg/client/sessiontoken/callback"
 )
 
 // SessionTokenClient 定义了暴露给外部的 Flow 管理入口。

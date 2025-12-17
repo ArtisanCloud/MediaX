@@ -7,9 +7,9 @@ func (c *Client) handleSanityCheck(w http.ResponseWriter, r *http.Request) {
 		methodNotAllowed(w, http.MethodPost)
 		return
 	}
-	flow, sessionToken, ok := c.requireFlow(w, r, apiSanityCheck)
+	flow, sessiontoken, ok := c.requireFlow(w, r, apiSanityCheck)
 	if !ok {
 		return
 	}
-	c.forward(w, r, apiSanityCheck, flow, sessionToken, http.MethodGet, "/api/v4/me", nil, nil)
+	c.forward(w, r, apiSanityCheck, flow, sessiontoken, http.MethodGet, "/api/v4/me", nil, nil)
 }

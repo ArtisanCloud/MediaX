@@ -8,7 +8,7 @@ import (
 	"strings"
 
 	"github.com/ArtisanCloud/MediaX/pkg/client/config"
-	sessiontoken "github.com/ArtisanCloud/MediaX/pkg/client/sessionToken"
+	sessiontoken "github.com/ArtisanCloud/MediaX/pkg/client/sessiontoken"
 )
 
 // Authenticator 负责根据配置构建知乎登录入口 URL。

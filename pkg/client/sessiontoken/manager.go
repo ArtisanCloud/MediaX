@@ -14,8 +14,8 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/ArtisanCloud/MediaX/internal/kernel"
-	"github.com/ArtisanCloud/MediaX/pkg/client/sessionToken/callback"
-	"github.com/ArtisanCloud/MediaX/pkg/client/sessionToken/sanitizer"
+	"github.com/ArtisanCloud/MediaX/pkg/client/sessiontoken/callback"
+	"github.com/ArtisanCloud/MediaX/pkg/client/sessiontoken/sanitizer"
 	"github.com/ArtisanCloud/MediaXCore/pkg/cache"
 	"github.com/ArtisanCloud/MediaXCore/pkg/logger"
 )
@@ -42,7 +42,7 @@ const (
 )
 
 const (
-	reuseSessionCachePrefix = "sessionToken:reuse:"
+	reuseSessionCachePrefix = "sessiontoken:reuse:"
 )
 
 // ManagerOption 用于配置 Manager。
@@ -282,7 +282,7 @@ func (m *Manager) MarkTokenInvalid(ctx context.Context, flowID string, code stri
 
 // FindFlowBySessionToken 根据 session_token 查询对应的 Flow。
 func (m *Manager) FindFlowBySessionToken(ctx context.Context, token string) (*Flow, error) {
-	key := sessionTokenIndexKey(token)
+	key := sessiontokenIndexKey(token)
 	if key == "" {
 		return nil, ErrFlowNotFound
 	}
@@ -510,7 +510,7 @@ func (m *Manager) bindSessionTokenIndex(ctx context.Context, flow *Flow, token s
 	if m.cache == nil || flow == nil {
 		return
 	}
-	key := sessionTokenIndexKey(token)
+	key := sessiontokenIndexKey(token)
 	if key == "" || strings.TrimSpace(flow.FlowID) == "" {
 		return
 	}

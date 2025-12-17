@@ -1,4 +1,4 @@
-package sessionTokenClient
+package sessiontokenclient
 
 import (
 	"fmt"
@@ -7,8 +7,8 @@ import (
 	"strings"
 
 	"github.com/ArtisanCloud/MediaX/pkg/client/config"
-	sessiontoken "github.com/ArtisanCloud/MediaX/pkg/client/sessionToken"
-	v4 "github.com/ArtisanCloud/MediaX/pkg/client/zhihu/web/sessionTokenClient/v4"
+	sessiontoken "github.com/ArtisanCloud/MediaX/pkg/client/sessiontoken"
+	v4 "github.com/ArtisanCloud/MediaX/pkg/client/zhihu/web/sessiontokenclient/v4"
 	"github.com/ArtisanCloud/MediaXCore/pkg/logger"
 )
 

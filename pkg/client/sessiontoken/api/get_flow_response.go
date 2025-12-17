@@ -3,8 +3,8 @@ package api
 import (
 	"time"
 
-	sessiontoken "github.com/ArtisanCloud/MediaX/pkg/client/sessionToken"
-	"github.com/ArtisanCloud/MediaX/pkg/client/sessionToken/sanitizer"
+	sessiontoken "github.com/ArtisanCloud/MediaX/pkg/client/sessiontoken"
+	"github.com/ArtisanCloud/MediaX/pkg/client/sessiontoken/sanitizer"
 )
 
 // FlowDTO 表示对外暴露的 Flow 结构。

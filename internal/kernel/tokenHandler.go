@@ -258,19 +258,22 @@ func (tHandler *TokenHandler) GetToken(ctx context.Context, refresh bool, resTok
 
 	// 如果客户有中控的场景，可以由客户自己提供token的方法
 	if tHandler.GetCustomToken != nil {
-		resToken = tHandler.GetCustomToken(cacheKey, refresh)
-		return nil
+		customToken := tHandler.GetCustomToken(cacheKey, refresh)
+		if customToken == nil {
+			return fmt.Errorf("get access token error")
+		}
+		return assignTokenValue(resToken, customToken)
 	}
 
 	// get token from cache
-	exist, err := tHandler.Cache.Exists(ctx, cacheKey)
-	if err != nil {
-		return err
-	}
-	if !refresh && exist {
-		value, err := tHandler.Cache.Get(ctx, cacheKey)
-		if err == nil && value != nil {
-			return nil
+	if !refresh {
+		if exist, err := tHandler.Cache.Exists(ctx, cacheKey); err == nil && exist {
+			value, err := tHandler.Cache.Get(ctx, cacheKey)
+			if err == nil && len(value) > 0 {
+				if err := json.Unmarshal(value, resToken); err == nil {
+					return nil
+				}
+			}
 		}
 	}
 
@@ -279,9 +282,35 @@ func (tHandler *TokenHandler) GetToken(ctx context.Context, refresh bool, resTok
 	if err != nil {
 		return err
 	}
-	_, err = tHandler.SetToken(ctx, resToken, newToken.ExpiresIn)
+	if err := assignTokenValue(resToken, newToken); err != nil {
+		return err
+	}
+	_, err = tHandler.SetToken(ctx, newToken, newToken.ExpiresIn)
 
 	return err
+}
+
+func assignTokenValue(dst interface{}, src interface{}) error {
+	if dst == nil || src == nil {
+		return errors.New("invalid token container")
+	}
+	if out, ok := dst.(*response.AccessTokenRes); ok {
+		switch v := src.(type) {
+		case *response.AccessTokenRes:
+			*out = *v
+			return nil
+		case response.AccessTokenRes:
+			*out = v
+			return nil
+		case []byte:
+			return json.Unmarshal(v, out)
+		}
+	}
+	bytes, err := json.Marshal(src)
+	if err != nil {
+		return err
+	}
+	return json.Unmarshal(bytes, dst)
 }
 
 func (tHandler *TokenHandler) OverrideGetTokenQuery() {

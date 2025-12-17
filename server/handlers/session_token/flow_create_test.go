@@ -9,9 +9,9 @@ import (
 	"testing"
 	"time"
 
-	sessiontoken "github.com/ArtisanCloud/MediaX/pkg/client/sessionToken"
-	sessionapi "github.com/ArtisanCloud/MediaX/pkg/client/sessionToken/api"
-	callback "github.com/ArtisanCloud/MediaX/pkg/client/sessionToken/callback"
+	sessiontoken "github.com/ArtisanCloud/MediaX/pkg/client/sessiontoken"
+	sessionapi "github.com/ArtisanCloud/MediaX/pkg/client/sessiontoken/api"
+	callback "github.com/ArtisanCloud/MediaX/pkg/client/sessiontoken/callback"
 )
 
 type fakeManager struct {

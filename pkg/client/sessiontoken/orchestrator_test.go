@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ArtisanCloud/MediaX/pkg/client/sessionToken/callback"
+	"github.com/ArtisanCloud/MediaX/pkg/client/sessiontoken/callback"
 )
 
 type orchestratorManagerStub struct {
