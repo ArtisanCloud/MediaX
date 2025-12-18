@@ -89,7 +89,25 @@ func (cfg *ClientTokenProviderConfig) OfficialAccountConfig() *WeChatOfficialAcc
 	if cfg.WeChatOfficialAccountConfig == nil {
 		cfg.WeChatOfficialAccountConfig = &WeChatOfficialAccountConfig{}
 	}
-	return cfg.WeChatOfficialAccountConfig
+	oa := cfg.WeChatOfficialAccountConfig
+	if oa.ClientConfig == nil {
+		oa.ClientConfig = &ClientConfig{}
+	}
+	if oa.ClientConfig.BaseConfig == nil {
+		oa.ClientConfig.BaseConfig = &BaseConfig{}
+	}
+	if oa.ClientConfig.OAuthConfig == nil {
+		oa.ClientConfig.OAuthConfig = &OAuthConfig{}
+	}
+	if cred := cfg.Credentials(); cred != nil {
+		if v := cred.AppIDValue(); v != "" {
+			oa.ClientConfig.OAuthConfig.ClientID = v
+		}
+		if v := cred.AppSecretValue(); v != "" {
+			oa.ClientConfig.OAuthConfig.ClientSecret = v
+		}
+	}
+	return oa
 }
 
 // AppIDValue 返回凭证 AppID，若为空则退回 OAuth client_id

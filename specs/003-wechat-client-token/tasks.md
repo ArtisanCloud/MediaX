@@ -27,18 +27,18 @@
 
 **Goal**: 交付 `cmd/clienttoken/server` 主体，提供 REST API + Redis 缓存 + API Token 鉴权。
 
-- [ ] T201 [SRV] 新建 `cmd/clienttoken/server/main.go`（flag：config/port），引用 `run()`
-- [ ] T202 [SRV] `run()`：加载配置→初始化 Redis（失败直接退出）→ 初始化 Logger/MediaX client→注册 HTTP 路由
-- [ ] T203 [SRV] 实现 API Token 中间件（默认 `dev-clienttoken`，可配置环境变量覆盖）
-- [ ] T204 [SRV] Handlers：
+- [x] T201 [SRV] 新建 `cmd/clienttoken/server/main.go`（flag：config/port），引用 `run()`
+- [x] T202 [SRV] `run()`：加载配置→初始化 Redis（失败直接退出）→ 初始化 Logger/MediaX client→注册 HTTP 路由
+- [x] T203 [SRV] 实现 API Token 中间件（默认 `dev-clienttoken`，可配置环境变量覆盖）
+- [x] T204 [SRV] Handlers：
   - `POST /client-token/token`（刷新 token，写入 Redis + 内存缓存）
   - `GET /client-token/cache`（读取缓存并返回 TTL）
   - `POST /client-token/call`（通用 API 调用：action/method/query/body）
   - `POST /client-token/message/validate`（signature 验证，含 echostr 返回）
   - `POST /client-token/message/callback`（记录/可选 AES 解密）
   - `GET /healthz`
-- [ ] T205 [SRV] 缓存模块：封装 `clientToken:wechat:<appid>` key，包含 TTL、提前刷新逻辑；Redis 必须可用
-- [ ] T206 [SRV] 结构化日志 `clienttoken_metric`（action/provider/appid/status/latency/token_source），日志脱敏
+- [x] T205 [SRV] 缓存模块：封装 `clientToken:wechat:<appid>` key，包含 TTL、提前刷新逻辑；Redis 必须可用
+- [x] T206 [SRV] 结构化日志 `clienttoken_metric`（action/provider/appid/status/latency/token_source），日志脱敏
 
 ---
 
