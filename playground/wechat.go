@@ -8,7 +8,7 @@ import (
 )
 
 func PlayWechatOfficialAccount(localConfig *config.LocalConfig, mediaX *client.MediaX) {
-	cfg, err := localConfig.ClientTokenProviders.ResolveWechatOfficialAccount(
+	oaCfg, err := localConfig.ClientTokenProviders.ResolveWechatOfficialAccount(
 		"",
 		"",
 		"",
@@ -16,7 +16,8 @@ func PlayWechatOfficialAccount(localConfig *config.LocalConfig, mediaX *client.M
 	if err != nil {
 		panic(err)
 	}
-	wechatOAClient, err := mediaX.CreateWechatOfficialAccount(cfg)
+	wechatCfg := oaCfg.OfficialAccountConfig()
+	wechatOAClient, err := mediaX.CreateWechatOfficialAccount(wechatCfg)
 	if err != nil {
 		panic(err)
 	}

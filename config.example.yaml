@@ -123,8 +123,19 @@ client_token_providers:
                 oauth:
                   client_id: "your_wechat_app_id"
                   client_secret: "your_wechat_app_secret"
-                component_app_id: "your_component_app_id"
-                component_app_token: "your_component_app_token"
+                client_token:
+                  appid: "your_wechat_app_id"
+                  appsecret: "your_wechat_app_secret"
+                  message_token: "${WECHAT_OFFICIAL_MESSAGE_TOKEN}"
+                  message_aes_key: "${WECHAT_OFFICIAL_MESSAGE_AES_KEY}"
+                api_token: "${WECHAT_CLIENTTOKEN_API_TOKEN:-dev-clienttoken}"
+                cache:
+                  redis_key: "clientToken:wechat:your_wechat_app_id"
+                  ttl_seconds: 7000
+                  refresh_before_seconds: 600
+                redis:
+                  addr: "${WECHAT_CLIENTTOKEN_REDIS_ADDR:-127.0.0.1:6379}"
+                  db: "${WECHAT_CLIENTTOKEN_REDIS_DB:-0}"
 
 session_token_providers:
   providers:

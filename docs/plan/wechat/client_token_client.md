@@ -49,6 +49,13 @@ client_token_providers:
           ttl_seconds: 7000
 ```
 
+配置说明：
+- `client_token` 节点存放 AppID/AppSecret 及消息校验参数，可通过环境变量覆盖（推荐 `WECHAT_OFFICIAL_APP_ID`, `WECHAT_OFFICIAL_APP_SECRET` 等）。
+- `api_token`（若配置）会覆盖默认的 `dev-clienttoken`，用于浏览器/CLI 请求鉴权。
+- `cache.redis_key/ttl_seconds/refresh_before_seconds` 控制 Redis 缓存策略，未配置时默认使用 `clientToken:wechat:<appid>`、`7000/600` 秒。
+- `redis` 节点允许在不同环境指定独立的 Redis 连接（地址/DB/账号），未配置时回退到服务启动参数。
+- 配置解析顺序为：命令行 `-config` > `CLIENTTOKEN_CONFIG` 环境变量 > 默认 `config.yaml`；字段支持 `${ENV_NAME}` 形式的占位符，便于在 CI/本地之间切换。
+
 ## 6. 技术方案
 ### 6.1 Client 工厂
 - 在 `pkg/client/mediaX.go` 增加 `CreateWechatClientTokenClient(cfg *config.WechatOfficialAccountConfig)`，内部复用 `pkg/client/wechat/officialAccount/clientTokenClient`。
