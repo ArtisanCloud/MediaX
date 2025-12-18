@@ -21,9 +21,42 @@ else
   printf "[sessiontoken-bootstrap] 已存在 %s，跳过复制\\n" "$CONFIG_PATH"
 fi
 
-if grep -E '\${[A-Z0-9_]+}' "$CONFIG_PATH" >/dev/null; then
-  printf "[sessiontoken-bootstrap] 检测到未替换的占位符，请根据模板填充后再启动 SessionToken 服务\\n" >&2
+session_block="$(python3 - "$CONFIG_PATH" <<'PY'
+import sys
+from pathlib import Path
+
+path = Path(sys.argv[1])
+lines = path.read_text().splitlines()
+start = None
+for idx, line in enumerate(lines):
+    if line.startswith("session_token_providers:"):
+        start = idx
+        break
+
+if start is None:
+    sys.exit(1)
+
+end = len(lines)
+for idx in range(start + 1, len(lines)):
+    text = lines[idx]
+    stripped = text.strip()
+    if stripped == "":
+        continue
+    if not text.startswith(" "):
+        end = idx
+        break
+
+print("\n".join(lines[start:end]))
+PY
+)" || {
+  printf "[sessiontoken-bootstrap] 未在 %s 中找到 session_token_providers 段落，请确认配置文件\\n" "$CONFIG_PATH" >&2
+  exit 1
+}
+
+placeholder_lines="$(printf '%s\\n' "$session_block" | grep -En '\$\{[A-Z0-9_:-]+\}' || true)"
+if [ -n "$placeholder_lines" ]; then
+  printf "[sessiontoken-bootstrap] SessionToken 配置仍含占位符，请补齐以下字段：\\n%s\\n" "$placeholder_lines" >&2
   exit 1
 fi
 
-printf "[sessiontoken-bootstrap] 配置就绪：%s\\n" "$CONFIG_PATH"
+printf "[sessiontoken-bootstrap] SessionToken 配置就绪：%s\\n" "$CONFIG_PATH"

@@ -78,6 +78,14 @@ func (m *MediaX) CreateWechatOfficialAccount(cfg *config.WeChatOfficialAccountCo
 	return officialAccount.NewWeChatOfficialAccountCTClient(cfg, m.Logger, m.Cache)
 }
 
+// CreateWechatClientTokenClient 直接使用 ClientToken Provider 配置创建公众号客户端
+func (m *MediaX) CreateWechatClientTokenClient(cfg *config.ClientTokenProviderConfig) (*officialAccount.WeChatOfficialAccountCTClient, error) {
+	if cfg == nil {
+		return nil, errors.New("wechat.clienttoken: config is nil")
+	}
+	return m.CreateWechatOfficialAccount(cfg.OfficialAccountConfig())
+}
+
 // CreateGoogleYouTubeACClient 创建 YouTube 客户端
 //
 // 该方法使用 AccessToken 认证方式创建 YouTube 客户端。

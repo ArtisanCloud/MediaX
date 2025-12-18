@@ -3,7 +3,6 @@ package v4
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -47,6 +46,9 @@ func (c *Client) handleMeFollowings(w http.ResponseWriter, r *http.Request) {
 		c.logAPICall(r.Context(), apiMeFollowings, flow, status, code, 0, logErr)
 		return
 	}
+	c.log.InfoF("zhihu.followings: resolved account_id flow_id=%s account_id=%s query_override=%s",
+		safeFlowID(flow), accountID, strings.TrimSpace(rawQuery.Get("account_id")))
+
 	query := url.Values{}
 	limit := clampInt(parseQueryInt(rawQuery.Get("limit"), 20), 1, 40)
 	offset := parseQueryInt(rawQuery.Get("offset"), 0)
@@ -61,15 +63,30 @@ func (c *Client) handleMeFollowings(w http.ResponseWriter, r *http.Request) {
 	}
 	query.Set("include", include)
 	path := "/api/v4/members/" + url.PathEscape(accountID) + "/following-columns"
+	c.log.InfoF("zhihu.followings: forwarding request flow_id=%s account_id=%s path=%s limit=%d offset=%d",
+		safeFlowID(flow), accountID, path, limit, offset)
 	c.forward(w, r, apiMeFollowings, flow, sessiontoken, http.MethodGet, path, query, nil)
 }
 
 func (c *Client) resolveAccountID(ctx context.Context, flow *sessiontoken.Flow, sessiontoken string, query url.Values) (string, error) {
 	if candidate := queryAccountIDOverride(query); candidate != "" {
+		c.log.InfoF("zhihu.followings: using account_id from query override flow_id=%s account_id=%s",
+			safeFlowID(flow), candidate)
 		return candidate, nil
 	}
-	if candidate := accountIDFromFlow(flow); candidate != "" {
-		return candidate, nil
+	if flow != nil {
+		if candidate := accountIDFromMetadata(flow.Metadata); candidate != "" {
+			c.log.InfoF("zhihu.followings: using account_id from flow metadata flow_id=%s account_id=%s",
+				safeFlowID(flow), candidate)
+			return candidate, nil
+		}
+		if trimmed := sanitizeAccountID(flow.AccountID); trimmed != "" {
+			c.log.InfoF("zhihu.followings: using sanitized flow account_id flow_id=%s account_id=%s",
+				flow.FlowID, trimmed)
+			return trimmed, nil
+		}
+		c.log.WarnF("zhihu.followings: account_id missing in flow flow_id=%s metadata=%v account_id=%s",
+			flow.FlowID, flow.Metadata, flow.AccountID)
 	}
 	return c.fetchAccountIDFromProfile(ctx, sessiontoken)
 }
@@ -85,16 +102,6 @@ func queryAccountIDOverride(values url.Values) string {
 		}
 	}
 	return ""
-}
-
-func accountIDFromFlow(flow *sessiontoken.Flow) string {
-	if flow == nil {
-		return ""
-	}
-	if candidate := accountIDFromMetadata(flow.Metadata); candidate != "" {
-		return candidate
-	}
-	return sanitizeAccountID(flow.AccountID)
 }
 
 func accountIDFromMetadata(meta map[string]string) string {
@@ -130,6 +137,7 @@ func sanitizeAccountID(value string) string {
 }
 
 func (c *Client) fetchAccountIDFromProfile(ctx context.Context, sessiontoken string) (string, error) {
+	c.log.Info("zhihu.followings: fetching account_id via /api/v4/me")
 	status, body, upstream, err := c.callZhihu(ctx, http.MethodGet, "/api/v4/me", nil, nil, sessiontoken)
 	if err != nil {
 		return "", &accountIDError{
@@ -155,9 +163,11 @@ func (c *Client) fetchAccountIDFromProfile(ctx context.Context, sessiontoken str
 				status:  http.StatusBadRequest,
 				code:    codeBadRequest,
 				message: "account_id not found, please pass ?account_id=<url_token>",
-				logErr:  errors.New("profile missing url_token/id"),
+				logErr:  fmt.Errorf("profile missing url_token/id body=%s", truncateBody(body)),
 			}
 		}
+		c.log.InfoF("zhihu.followings: resolved account_id from profile url_token=%s id=%s",
+			profile.URLToken, profile.ID)
 		return accountID, nil
 	}
 	mappedStatus, code, _ := classifyStatus(status)
@@ -166,7 +176,7 @@ func (c *Client) fetchAccountIDFromProfile(ctx context.Context, sessiontoken str
 		status:  mappedStatus,
 		code:    code,
 		message: message,
-		logErr:  fmt.Errorf("resolve account_id via %s status=%d message=%s", upstream, status, message),
+		logErr:  fmt.Errorf("resolve account_id via %s status=%d message=%s body=%s", upstream, status, message, truncateBody(body)),
 	}
 }
 
@@ -188,4 +198,19 @@ func (e *accountIDError) Error() string {
 		return ""
 	}
 	return e.message
+}
+
+func safeFlowID(flow *sessiontoken.Flow) string {
+	if flow == nil {
+		return ""
+	}
+	return flow.FlowID
+}
+
+func truncateBody(body []byte) string {
+	max := 512
+	if len(body) <= max {
+		return string(body)
+	}
+	return string(body[:max]) + "...(truncated)"
 }

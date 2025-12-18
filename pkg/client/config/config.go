@@ -375,12 +375,12 @@ type ClientTokenProviderApp struct {
 
 // ClientTokenAuthMode 描述 ClientToken 授权模式
 type ClientTokenAuthMode struct {
-	Key                         string                       `yaml:"key" json:"key"`
-	Label                       string                       `yaml:"label,omitempty" json:"label,omitempty"`
-	ProviderCode                string                       `yaml:"provider_code,omitempty" json:"provider_code,omitempty"`
-	WechatOfficialAccountConfig *WeChatOfficialAccountConfig `yaml:"wechat_official_account_config,omitempty" json:"wechat_official_account_config,omitempty"`
-	CustomConfig                map[string]any               `yaml:"custom_config,omitempty" json:"custom_config,omitempty"`
-	Meta                        map[string]string            `yaml:"meta,omitempty" json:"meta,omitempty"`
+	Key                         string                     `yaml:"key" json:"key"`
+	Label                       string                     `yaml:"label,omitempty" json:"label,omitempty"`
+	ProviderCode                string                     `yaml:"provider_code,omitempty" json:"provider_code,omitempty"`
+	WechatOfficialAccountConfig *ClientTokenProviderConfig `yaml:"wechat_official_account_config,omitempty" json:"wechat_official_account_config,omitempty"`
+	CustomConfig                map[string]any             `yaml:"custom_config,omitempty" json:"custom_config,omitempty"`
+	Meta                        map[string]string          `yaml:"meta,omitempty" json:"meta,omitempty"`
 }
 
 // FirstSelection 返回默认 Provider/App/Mode
@@ -636,7 +636,7 @@ func (app *SessionTokenProviderApp) FindMode(key string) *SessionTokenAuthMode {
 }
 
 // ResolveWechatOfficialAccount 查找微信公众号配置
-func (cfg *ClientTokenProvidersConfig) ResolveWechatOfficialAccount(providerCode, appCode, modeKey string) (*WeChatOfficialAccountConfig, error) {
+func (cfg *ClientTokenProvidersConfig) ResolveWechatOfficialAccount(providerCode, appCode, modeKey string) (*ClientTokenProviderConfig, error) {
 	if cfg == nil {
 		return nil, fmt.Errorf("client_token_providers 未配置")
 	}

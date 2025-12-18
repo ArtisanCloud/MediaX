@@ -260,6 +260,19 @@ scripts/sessiontoken-debug.sh channels "$SESSION_TOKEN" zhihu_column_id 10 0
 scripts/sessiontoken-debug.sh sanity "$SESSION_TOKEN"
 ```
 其中 `SESSION_TOKEN` 取自 Flow metadata 或插件回调的 `metadata.session_token` 字段，脚本会自动读取 `POWERX_SESSION_TOKEN_BASE_URL` 及 API Token，并在安装 `jq` 时输出格式化 JSON。需要复用已有 Flow 时，可在本地执行 `redis-cli --raw keys 'sessionToken:flow:*'` 列出 key，再用 `redis-cli --raw GET "sessionToken:flow:<id>" | jq '.'` 查看 metadata，然后把 Flow ID 粘回 `/debug` 调试。
+
+### ClientToken Server 调试
+
+- ClientToken 模式使用 `cmd/clienttoken/server`，启动命令与其他服务保持一致：`go run ./cmd/clienttoken/server -config config.yaml`。默认监听 `:7072`，调试页访问 `http://127.0.0.1:7072/debug`，若 Redis 连接失败会立即退出，请确保 `CLIENTTOKEN_REDIS_ADDR` 等环境变量正确。
+- 详细配置、调试步骤与常见问题记录在 `docs/develop/wechat/client_token.md`，涵盖 `client_token_providers` 配置、调试页交互以及 `/client-token/*` API 列表。
+- 项目附带 `scripts/clienttoken-debug.sh`，可通过 `CLIENTTOKEN_*` 环境变量覆盖 Provider/App/Mode，快速执行刷新/缓存/API/验签操作：
+  ```bash
+  scripts/clienttoken-debug.sh token
+  scripts/clienttoken-debug.sh cache
+  scripts/clienttoken-debug.sh call cgi-bin/getcallbackip
+  scripts/clienttoken-debug.sh validate "<signature>" "$(date +%s)" "$RANDOM"
+  ```
+  该脚本默认携带 `Authorization: Bearer dev-clienttoken` 并使用 `config.yaml` 的首个 Provider 配置，适合 QA 或 CI 场景直接引用。
    }
 
 
