@@ -10,7 +10,7 @@
 1. 扩展配置体系：在 `config.yaml` 中新增 `client_token_providers`，提供 appid/appsecret/消息 token/aes key/API token 等字段，并更新 `config.example.yaml`。
 2. 新建 `cmd/clienttoken/server`：加载配置 → 初始化 Redis/Logger/MediaX 客户端 → 注册 HTTP 路由（`/debug` 页面、`/client-token/token`、`/client-token/cache`、`/client-token/call`、`/client-token/message/*`、`/healthz` 等）。
 3. 构建调试页 HTML/JS，沿用 SessionToken/AccessToken 的风格，支持配置切换、token 刷新、API 调试、消息验证及回调日志查看。
-4. 提供 CLI/脚本示例（`make clienttoken ARGS='...'` 或 `scripts/clienttoken-refresh.sh`），确保本地可以通过 `go run ./cmd/clienttoken/server -config config.yaml` 启动并调试。
+4. 提供 CLI/脚本示例（`scripts/clienttoken-debug.sh` 或 `make clienttoken`），确保本地可以通过 `go run ./cmd/clienttoken/server -config config.yaml` 启动并调试。
 
 ## Technical Context
 
@@ -74,7 +74,7 @@ specs/003-wechat-client-token/      # Spec/Plan/Tasks
 ### Phase 3 – 调试页 & CLI（约 2 天）
 1. **调试页模板**（`debug_page.go`）：提供配置列表、Token 卡片、API 调试表单、消息验证区域、回调日志展示，交互逻辑用原生 JS（复用 SessionToken 页面模式）。
 2. **回调日志存储**：参考 `cmd/accesstoken/server/callback_store.go`，记录最近 N 条消息（时间/Query/Headers/Body）。
-3. **CLI/脚本示例**：新增 `make clienttoken`（调用 `scripts/clienttoken-refresh.sh`）或直接文档示例；说明如何刷新 token/调用接口。
+3. **CLI/脚本示例**：新增 `scripts/clienttoken-debug.sh`（可由 `make clienttoken` 调用）并在文档中示例刷新 token/查看缓存/调用接口/验签。
 4. **文档**：`docs/develop/wechat/client_token.md` 记录配置、启动命令 `go run ./cmd/clienttoken/server -config config.yaml`、调试步骤与常见问题。
 
 ### Phase 4 – 验收与打磨（约 1 天）
@@ -106,4 +106,3 @@ specs/003-wechat-client-token/      # Spec/Plan/Tasks
 3. 调试页 HTML/JS + 回调日志组件。
 4. CLI/脚本示例、开发文档 `docs/develop/wechat/client_token.md`。
 5. Spec/Plan/Tasks 文档（`specs/003-wechat-client-token/`）。
-

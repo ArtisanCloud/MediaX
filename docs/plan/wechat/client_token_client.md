@@ -22,7 +22,7 @@
 ## 4. 功能范围
 | 模块 | 内容 |
 | --- | --- |
-| 配置 | 独立的 `clienttoken.yaml`（或 `config.yaml` 的 `client_token_providers`）中新增 `provider_code=wechat_official_account`，app 节点包含 `appid/appsecret/messagetoken/messageaeskey` 等字段。 |
+| 配置 | 在统一的 `config.yaml`（`client_token_providers`）中定义 `provider_code=wechat_official_account`，app 节点包含 `appid/appsecret/message_token/message_aes_key` 等字段，可通过环境变量覆盖。 |
 | SDK | 在 `client/providers.go` 增加“创建 Wechat ClientToken Client”的工厂，使用 `pkg/client/wechat/officialAccount/clientTokenClient`。 |
 | 服务层 | 新建 `cmd/clienttoken` 服务，提供 `POST /client-token/token`（主动刷新）、`GET /client-token/cache`（查看缓存）、`POST /client-token/call`（调试公众号 API）、`POST /client-token/message/validate` 等接口。 |
 | 缓存 | Redis key 规范：`clientToken:wechat:<appid>` 保存 token 与过期时间；支持缓存时长 > 2 小时，提前 10 分钟刷新。 |
@@ -81,7 +81,7 @@ client_token_providers:
 - 调用接口均携带 `Authorization: Bearer <api_token>`，复用现有 `apiBase`。
 
 ### 6.4 CLI/脚本
-- 提供 `make clienttoken ARGS='...'` 或 `scripts/clienttoken-refresh.sh`：读取 `config.yaml` 主动刷新 token、打印 TTL；支持 `--call cgi-bin/user/get` 等一键调用示例（命令默认引用 `go run ./cmd/clienttoken/server -config config.yaml` 同一配置）。
+- 提供 `scripts/clienttoken-debug.sh`（可挂载 `make clienttoken`）：读取 `config.yaml` 主动刷新 token、查看缓存、调用 `cgi-bin/*`、验证消息签名或清理回调日志。脚本沿用服务端默认 API Token/Provider 设置，可通过 `CLIENTTOKEN_*` 环境变量覆盖。
 
 ### 6.5 安全与观测
 - Token 刷新、API 调用均打印结构化日志 `clienttoken_metric`：
@@ -91,12 +91,11 @@ client_token_providers:
 - 错误日志脱敏：`token=wx***a2a`。
 
 ### 6.6 启动与调试
-- 开发阶段推荐直接使用 `go run` 启动：
+- 开发阶段推荐直接使用 `go run` 启动，命令需与其他服务保持一致：
   ```bash
   go run ./cmd/clienttoken/server -config config.yaml
   ```
-  默认监听 `:7072`，调试页访问 `http://127.0.0.1:7072/debug`。
-  如需编译二进制，可执行 `go build -o bin/clienttoken ./cmd/clienttoken/server` 后运行 `./bin/clienttoken -config config.yaml`。
+  默认监听 `:7072`（可由 `CLIENTTOKEN_LISTEN_ADDR` / `-port` 调整），调试页地址固定为 `http://127.0.0.1:7072/debug`。如需编译二进制，可执行 `go build -o bin/clienttoken-server ./cmd/clienttoken/server` 再运行 `./bin/clienttoken-server -config config.yaml`。
 
 ## 7. 交付项
 1. **配置**：`config.example.yaml` 中新增 `client_token_providers` 示例。

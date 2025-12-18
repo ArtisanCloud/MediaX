@@ -7,6 +7,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
+	"net/http"
+	"strings"
+	"time"
+
 	request2 "github.com/ArtisanCloud/MediaX/internal/kernel/request"
 	"github.com/ArtisanCloud/MediaX/internal/kernel/response"
 	response2 "github.com/ArtisanCloud/MediaX/internal/kernel/response"
@@ -16,9 +21,6 @@ import (
 	"github.com/ArtisanCloud/MediaXCore/pkg/http/helper"
 	"github.com/ArtisanCloud/MediaXCore/pkg/logger"
 	"github.com/ArtisanCloud/MediaXCore/utils/object"
-	"net/http"
-	"strings"
-	"time"
 )
 
 type TokenHandler struct {
@@ -174,7 +176,7 @@ func (tHandler *TokenHandler) Refresh(ctx context.Context) *TokenHandler {
 	return tHandler
 }
 
-func (tHandler *TokenHandler) sendRequest(ctx context.Context, credential *object.StringMap) (*response.AccessTokenRes, error) {
+func (tHandler *TokenHandler) sendRequest(ctx context.Context, credential *object.StringMap) ([]byte, error) {
 	key := "json"
 	if tHandler.RequestMethod == http.MethodGet {
 		key = "query"
@@ -182,8 +184,6 @@ func (tHandler *TokenHandler) sendRequest(ctx context.Context, credential *objec
 	options := &object.HashMap{
 		key: credential,
 	}
-
-	res := &response.AccessTokenRes{}
 
 	strEndpoint, err := tHandler.GetEndpoint()
 	if err != nil {
@@ -216,11 +216,12 @@ func (tHandler *TokenHandler) sendRequest(ctx context.Context, credential *objec
 	if err != nil {
 		return nil, err
 	}
-
-	// security schema body to outBody
-	err = tHandler.HttpHelper.ParseResponseBodyContent(rs, res)
-
-	return res, err
+	defer rs.Body.Close()
+	bodyBytes, err := io.ReadAll(rs.Body)
+	if err != nil {
+		return nil, err
+	}
+	return bodyBytes, nil
 }
 
 func (tHandler *TokenHandler) SetToken(ctx context.Context, token interface{}, expiresIn float64) (acToken *TokenHandler, err error) {
@@ -278,14 +279,21 @@ func (tHandler *TokenHandler) GetToken(ctx context.Context, refresh bool, resTok
 	}
 
 	// request token from provider auth token api
-	newToken, err := tHandler.sendRequest(ctx, tHandler.GetCredentials())
+	payload, err := tHandler.sendRequest(ctx, tHandler.GetCredentials())
 	if err != nil {
 		return err
 	}
-	if err := assignTokenValue(resToken, newToken); err != nil {
+	if err := assignTokenValue(resToken, payload); err != nil {
 		return err
 	}
-	_, err = tHandler.SetToken(ctx, newToken, newToken.ExpiresIn)
+	var baseToken response.AccessTokenRes
+	if err := json.Unmarshal(payload, &baseToken); err != nil {
+		return err
+	}
+	if strings.TrimSpace(baseToken.AccessToken) == "" {
+		return fmt.Errorf("access token empty: %s", strings.TrimSpace(string(payload)))
+	}
+	_, err = tHandler.SetToken(ctx, &baseToken, baseToken.ExpiresIn)
 
 	return err
 }
@@ -293,6 +301,9 @@ func (tHandler *TokenHandler) GetToken(ctx context.Context, refresh bool, resTok
 func assignTokenValue(dst interface{}, src interface{}) error {
 	if dst == nil || src == nil {
 		return errors.New("invalid token container")
+	}
+	if raw, ok := src.([]byte); ok {
+		return json.Unmarshal(raw, dst)
 	}
 	if out, ok := dst.(*response.AccessTokenRes); ok {
 		switch v := src.(type) {

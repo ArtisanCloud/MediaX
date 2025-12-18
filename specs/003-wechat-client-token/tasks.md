@@ -46,15 +46,15 @@
 
 **Goal**: 提供与 SessionToken/AccessToken 相同体验的 `/debug` 页面。
 
-- [ ] T301 [UI] `cmd/clienttoken/server/debug_page.go`（Go 模板）实现：
+- [x] T301 [UI] `cmd/clienttoken/server/debug_page.go`（Go 模板）实现：
   - 配置选择（Provider/App）
   - Token 卡片（来源/TTL/刷新按钮）
   - API 调试表单（action/method/query/body）
   - 消息验证/回调区域
   - 回调日志列表
-- [ ] T302 [UI] `callback_store` 实现（复用 AccessToken 结构）：记录最近 50 条消息（时间/Query/Headers/Body）
-- [ ] T303 [UI] 前端 JS 调用 `/client-token/token`、`/client-token/cache`、`/client-token/call`、`/client-token/message/*`，携带 API Token
-- [ ] T304 [UI] 生成 `http://127.0.0.1:7072/debug` 页面，确保跨浏览器可用
+- [x] T302 [UI] `callback_store` 实现（复用 AccessToken 结构）：记录最近 50 条消息（时间/Query/Headers/Body）
+- [x] T303 [UI] 前端 JS 调用 `/client-token/token`、`/client-token/cache`、`/client-token/call`、`/client-token/message/*`，携带 API Token
+- [x] T304 [UI] 生成 `http://127.0.0.1:7072/debug` 页面，确保跨浏览器可用
 
 ---
 
@@ -62,19 +62,19 @@
 
 **Goal**: 一键启动/调试体验；提供脚本/QS 文档。
 
-- [ ] T401 [DOC] 在 `docs/develop/wechat/client_token.md` 编写 Quickstart（配置→`go run ./cmd/clienttoken/server -config config.yaml`→调试步骤）
-- [ ] T402 [DOC] 更新 `docs/plan/wechat/client_token_client.md`、`specs/003-.../plan.md` 的交付/流程图
-- [ ] T403 [CLI] 提供 `make clienttoken` 或 `scripts/clienttoken-refresh.sh`：示例刷新 token/调用 API
-- [ ] T404 [DOC] 在 README/根目录文档中说明 ClientToken Server 的作用与启动命令
+- [x] T401 [DOC] 在 `docs/develop/wechat/client_token.md` 编写 Quickstart（配置→`go run ./cmd/clienttoken/server -config config.yaml`→调试步骤）
+- [x] T402 [DOC] 更新 `docs/plan/wechat/client_token_client.md`、`specs/003-.../plan.md` 的交付/流程图
+- [x] T403 [CLI] 提供 `scripts/clienttoken-debug.sh`（或 `make clienttoken`）：示例刷新 token/调用 API
+- [x] T404 [DOC] 在 README/根目录文档中说明 ClientToken Server 的作用与启动命令
 
 ---
 
 ## Phase 5: 验收 & 测试 (P1)
 
-- [ ] T501 [TEST] `go test ./cmd/clienttoken/...`（配置加载/缓存 helper/消息验证算法）
-- [ ] T502 [MANUAL] 启动服务 + 浏览器访问 `/debug`，完成 token 刷新、`cgi-bin/user/get` 调用、消息验证流程，附截图/日志
-- [ ] T503 [QA] 使用 `curl` 验证 `/client-token/token`、`/client-token/cache`、`/client-token/call`、`/client-token/message/validate`、`/client-token/message/callback`
-- [ ] T504 [DOC REVIEW] 校对 spec/plan/quickstart，确保命令与配置一致（`go run ./cmd/clienttoken/server -config config.yaml`）
+- [x] T501 [TEST] `go test ./cmd/clienttoken/...`（配置加载/缓存 helper/消息验证算法）
+- [x] T502 [MANUAL] 启动服务 + 浏览器访问 `/debug`，完成 token 刷新、`cgi-bin/user/get` 调用、消息验证流程，附截图/日志
+- [x] T503 [QA] 使用 `curl` 验证 `/client-token/token`、`/client-token/cache`、`/client-token/call`、`/client-token/message/validate`、`/client-token/message/callback`
+- [x] T504 [DOC REVIEW] 校对 spec/plan/quickstart，确保命令与配置一致（`go run ./cmd/clienttoken/server -config config.yaml`）
 
 ---
 

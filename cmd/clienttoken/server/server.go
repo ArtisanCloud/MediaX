@@ -7,7 +7,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"html/template"
 	"io"
 	"net/http"
 	"net/url"
@@ -20,6 +19,7 @@ import (
 
 	"github.com/ArtisanCloud/MediaX/pkg/client"
 	"github.com/ArtisanCloud/MediaX/pkg/client/config"
+	wechatresponse "github.com/ArtisanCloud/MediaX/pkg/client/wechat/core/response"
 	"github.com/ArtisanCloud/MediaX/pkg/utils"
 	"github.com/ArtisanCloud/MediaXCore/pkg/cache"
 	"github.com/ArtisanCloud/MediaXCore/pkg/logger"
@@ -103,6 +103,7 @@ func (s *clientTokenServer) routes() http.Handler {
 	mux.Handle("/client-token/call", s.requireAPIToken(http.HandlerFunc(s.handleCall)))
 	mux.Handle("/client-token/message/validate", s.requireAPIToken(http.HandlerFunc(s.handleMessageValidate)))
 	mux.Handle("/client-token/message/callback", s.requireAPIToken(http.HandlerFunc(s.handleMessageCallback)))
+	mux.Handle("/client-token/message/callbacks", s.requireAPIToken(http.HandlerFunc(s.handleCallbacks)))
 	return mux
 }
 
@@ -481,6 +482,21 @@ func (s *clientTokenServer) handleMessageCallback(w http.ResponseWriter, r *http
 	s.logMetric("message.callback", "", "", "success", "", start, nil)
 }
 
+func (s *clientTokenServer) handleCallbacks(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case http.MethodGet:
+		records := s.callbackStore.list()
+		s.writeJSON(w, http.StatusOK, map[string]any{
+			"records": records,
+		})
+	case http.MethodDelete:
+		s.callbackStore.clear()
+		s.writeJSON(w, http.StatusOK, map[string]any{"status": "cleared"})
+	default:
+		w.WriteHeader(http.StatusMethodNotAllowed)
+	}
+}
+
 func sanitizeHeaders(headers http.Header) map[string]string {
 	if headers == nil {
 		return nil
@@ -494,27 +510,13 @@ func sanitizeHeaders(headers http.Header) map[string]string {
 	return copied
 }
 
-func (s *clientTokenServer) handleDebugPage(w http.ResponseWriter, _ *http.Request) {
-	page := `
-<!DOCTYPE html>
-<html lang="zh-CN">
-<head><meta charset="utf-8"><title>ClientToken Debug</title></head>
-<body>
-<h1>ClientToken Server</h1>
-<p>服务已启动，访问 API 请使用开发工具或浏览器脚本。</p>
-<p>待 Phase3 完成后将提供图形界面。</p>
-</body>
-</html>`
-	tpl := template.Must(template.New("debug").Parse(page))
-	_ = tpl.Execute(w, nil)
-}
-
 func (s *clientTokenServer) refreshToken(ctx context.Context, meta *providerContext) (*tokenCacheRecord, error) {
 	wechatClient, err := s.mediaX.CreateWechatClientTokenClient(meta.Config)
 	if err != nil {
 		return nil, err
 	}
-	tokenRes, err := wechatClient.AccessTokenHandler.ClientTokenHandler.GetRefreshedToken()
+	tokenRes := &wechatresponse.WeChatAccessTokenRes{}
+	err = wechatClient.AccessTokenHandler.ClientTokenHandler.GetToken(ctx, true, tokenRes)
 	if err != nil {
 		return nil, err
 	}
@@ -532,6 +534,11 @@ func (s *clientTokenServer) refreshToken(ctx context.Context, meta *providerCont
 		StoredAt:    now,
 		ExpireAt:    now.Add(time.Duration(ttl) * time.Second),
 		Source:      "refresh",
+		ErrorCode:   tokenRes.ErrCode,
+		ErrorMsg:    strings.TrimSpace(tokenRes.ErrMsg),
+	}
+	if tokenRes.ErrCode != 0 {
+		return record, fmt.Errorf("wechat token error: errcode=%d errmsg=%s", tokenRes.ErrCode, record.ErrorMsg)
 	}
 	if err := s.tokenStore.save(ctx, meta.CacheKey, record, time.Duration(ttl)*time.Second); err != nil {
 		return nil, err
@@ -560,6 +567,7 @@ func (s *clientTokenServer) ensureToken(ctx context.Context, meta *providerConte
 }
 
 func (s *clientTokenServer) writeError(w http.ResponseWriter, status int, format string, args ...interface{}) {
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
 	resp := map[string]any{
 		"error": fmt.Sprintf(format, args...),

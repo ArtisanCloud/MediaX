@@ -15,6 +15,8 @@ type tokenCacheRecord struct {
 	StoredAt    time.Time `json:"stored_at"`
 	ExpireAt    time.Time `json:"expire_at"`
 	Source      string    `json:"source"`
+	ErrorCode   int       `json:"error_code,omitempty"`
+	ErrorMsg    string    `json:"error_msg,omitempty"`
 }
 
 type tokenCacheStore struct {
