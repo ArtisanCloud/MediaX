@@ -12,6 +12,10 @@ type debugPageData struct {
 	DefaultApp      string
 	DefaultMode     string
 	DefaultCallback string
+	StorageBackend  string
+	ListenAddr      string
+	FlowTTLSeconds  int
+	PublicListen    bool
 }
 
 var debugPageTemplate = template.Must(template.New("accesstoken_debug").Parse(`<!DOCTYPE html>
@@ -44,11 +48,30 @@ var debugPageTemplate = template.Must(template.New("accesstoken_debug").Parse(`<
     .inline-input input { flex:1; }
     .inline-input button { flex:0 0 auto; white-space:nowrap; }
     .checkbox-inline { display:flex; align-items:center; gap:6px; margin-top:8px; }
+    .top-bar { display:flex; justify-content:space-between; align-items:center; background:#0b2545; color:#fff; padding:12px 20px; border-radius:10px; margin-bottom:20px; }
+    .top-bar .meta { font-size:13px; color:#c0d3ea; margin-left:8px; }
+    .top-actions { display:flex; align-items:center; gap:10px; }
+    .token-chip { background:#09213a; border:1px solid #1f4c7a; padding:6px 10px; border-radius:999px; font-size:13px; }
+    .banner { padding:10px 14px; border-radius:8px; margin-bottom:18px; font-size:13px; display:none; }
+    .banner.warning { background:#fff4e5; color:#8a5100; border:1px solid #f5c97a; }
+    .banner.danger { background:#fdecea; color:#a61b1b; border:1px solid #f5a3a3; }
   </style>
 </head>
-<body data-api-token="{{.APIToken}}" data-default-provider="{{.DefaultProvider}}" data-default-app="{{.DefaultApp}}" data-default-mode="{{.DefaultMode}}" data-default-callback="{{.DefaultCallback}}">
+<body data-api-token="{{.APIToken}}" data-default-provider="{{.DefaultProvider}}" data-default-app="{{.DefaultApp}}" data-default-mode="{{.DefaultMode}}" data-default-callback="{{.DefaultCallback}}" data-storage-backend="{{.StorageBackend}}" data-flow-ttl="{{.FlowTTLSeconds}}" data-listen-addr="{{.ListenAddr}}" data-public-listen="{{if .PublicListen}}true{{else}}false{{end}}">
+  <div class="top-bar">
+    <div>
+      <strong>AccessToken 调试台</strong>
+      <span class="meta">监听 {{.ListenAddr}} · Flow TTL {{.FlowTTLSeconds}} 秒 · 存储 {{.StorageBackend}}</span>
+    </div>
+    <div class="top-actions">
+      <span id="tokenChip" class="token-chip">Token: -</span>
+      <button type="button" class="secondary" onclick="openTokenDialog()">更新 API Token</button>
+    </div>
+  </div>
+  <div id="storageBanner" class="banner warning"></div>
+  <div id="publicBanner" class="banner danger"></div>
   <h1>AccessToken 调试台</h1>
-  <p>该页面复用了 SessionToken 调试模式，可在浏览器内选择 Provider/App，直接调用当前服务的 AccessToken API，并观察 <code>/debug/callback</code>。</p>
+  <p>该页面复用了 SessionToken 调试模式，可在浏览器内选择 Provider/App，直接调用当前服务的 AccessToken API，并观察 <code>/debug/callback</code>。建议首次访问时通过 URL 附带 <code>?api_token=&lt;值&gt;</code> 或点击右上角按钮写入浏览器存储，后续请求会自动携带。</p>
   <div id="flashMessage" class="flash"></div>
 
   <section>
@@ -118,7 +141,7 @@ var debugPageTemplate = template.Must(template.New("accesstoken_debug").Parse(`<
     </div>
     <table id="tokenTable">
       <thead>
-        <tr><th>Flow ID</th><th>Token Source</th><th>有效期</th><th>操作</th></tr>
+        <tr><th>Flow ID</th><th>状态</th><th>有效期</th><th>操作</th></tr>
       </thead>
       <tbody></tbody>
     </table>
@@ -192,16 +215,22 @@ var debugPageTemplate = template.Must(template.New("accesstoken_debug").Parse(`<
   </section>
 
   <script>
-    const apiToken = document.body.dataset.apiToken;
+    const TOKEN_STORAGE_KEY = 'accesstoken_api_token';
     const defaultProvider = document.body.dataset.defaultProvider || '';
     const defaultApp = document.body.dataset.defaultApp || '';
     const defaultMode = document.body.dataset.defaultMode || '';
+    const storageBackend = document.body.dataset.storageBackend || 'memory';
+    const isPublicListen = (document.body.dataset.publicListen || '').toLowerCase() === 'true';
+    const flowTTLSeconds = parseInt(document.body.dataset.flowTtl || '0', 10) || 0;
+    const listenAddr = document.body.dataset.listenAddr || '';
     const providers = {{.ProvidersJSON}};
     const state = {
       provider: defaultProvider || (providers[0]?.code || ''),
       app: defaultApp || (providers[0]?.apps?.[0]?.code || ''),
-      mode: defaultMode || (providers[0]?.apps?.[0]?.modes?.[0]?.key || '')
+      mode: defaultMode || (providers[0]?.apps?.[0]?.modes?.[0]?.key || ''),
+      flowCursor: ''
     };
+    let apiToken = '';
 
     const providerSelect = document.getElementById('providerSelect');
     const appSelect = document.getElementById('providerAppSelect');
@@ -220,8 +249,91 @@ var debugPageTemplate = template.Must(template.New("accesstoken_debug").Parse(`<
     const callMaxResultsInput = document.getElementById('callMaxResultsInput');
     const callMineCheckbox = document.getElementById('callMineCheckbox');
     const callSearchMineCheckbox = document.getElementById('callSearchMineCheckbox');
+    const storageBanner = document.getElementById('storageBanner');
+    const publicBanner = document.getElementById('publicBanner');
+    const tokenChip = document.getElementById('tokenChip');
     let tokenCache = [];
     let flashTimer = null;
+
+    function maskToken(token) {
+      token = (token || '').trim();
+      if (!token) return '-';
+      if (token.length <= 4) return '***';
+      return token.slice(0, 2) + '***' + token.slice(-2);
+    }
+
+    function updateTokenChip() {
+      if (!tokenChip) return;
+      tokenChip.textContent = 'Token: ' + (apiToken ? maskToken(apiToken) : '未设置');
+    }
+
+    function initAPIToken() {
+      const stored = (window.localStorage.getItem(TOKEN_STORAGE_KEY) || '').trim();
+      const params = new URLSearchParams(window.location.search);
+      const queryToken = (params.get('api_token') || '').trim();
+      if (queryToken) {
+        apiToken = queryToken;
+        window.localStorage.setItem(TOKEN_STORAGE_KEY, apiToken);
+        params.delete('api_token');
+        const next = params.toString();
+        const nextURL = window.location.pathname + (next ? '?' + next : '') + window.location.hash;
+        window.history.replaceState({}, '', nextURL);
+      } else if (stored) {
+        apiToken = stored;
+      } else {
+        apiToken = (document.body.dataset.apiToken || '').trim();
+      }
+      updateTokenChip();
+    }
+
+    function openTokenDialog() {
+      const next = prompt('请输入与 ACCESSTOKEN_API_TOKEN 一致的 Token', apiToken);
+      if (next === null) {
+        return;
+      }
+      apiToken = next.trim();
+      if (apiToken) {
+        window.localStorage.setItem(TOKEN_STORAGE_KEY, apiToken);
+        showFlash('API Token 已更新，后续请求会自动携带。', false);
+      } else {
+        window.localStorage.removeItem(TOKEN_STORAGE_KEY);
+        showFlash('已清空 API Token，请重新设置后再发起请求。', true);
+      }
+      updateTokenChip();
+    }
+
+    function ensureAPIToken() {
+      if (!apiToken) {
+        throw new Error('缺少 API Token：请点击右上角“更新 API Token”输入，或在 URL 附带 ?api_token=...');
+      }
+      return apiToken;
+    }
+
+    function authHeaders() {
+      return { 'Authorization': 'Bearer ' + ensureAPIToken() };
+    }
+
+    function authorizedFetch(url, init = {}) {
+      try {
+        const headers = Object.assign({}, init.headers || {}, authHeaders());
+        return fetch(url, Object.assign({}, init, { headers }));
+      } catch (err) {
+        return Promise.reject(err);
+      }
+    }
+
+    function setupEnvBanners() {
+      if (storageBackend !== 'redis' && storageBanner) {
+        storageBanner.innerHTML = 'Flow 数据当前存储在内存中（storage_backend=memory），服务重启将清空。请配置 <code>ACCESSTOKEN_REDIS_*</code> 以启用持久化。' +
+          (flowTTLSeconds ? '<br/>Flow TTL 默认 ' + flowTTLSeconds + ' 秒，可通过 <code>ACCESSTOKEN_FLOW_TTL_SECONDS</code> 覆盖。' : '');
+        storageBanner.style.display = 'block';
+      }
+      if (isPublicListen && publicBanner) {
+        const addrLabel = listenAddr || '(unknown)';
+        publicBanner.innerHTML = '监听地址 <code>' + addrLabel + '</code> 对公网开放，请确保仅在受控网络使用或设置 <code>ACCESSTOKEN_LISTEN_ADDR=127.0.0.1:7071</code>。';
+        publicBanner.style.display = 'block';
+      }
+    }
 
     const apiActionPresets = {
       'videos.list': {
@@ -340,6 +452,7 @@ var debugPageTemplate = template.Must(template.New("accesstoken_debug").Parse(`<
       oauthKeyInput.value = mode?.oauth_key || app?.oauth_key || '';
       apiVersionInput.value = app?.api_version || apiVersionInput.value || 'v1';
       applyTemplate();
+      state.flowCursor = '';
       loadTokens(false);
     }
 
@@ -390,12 +503,9 @@ var debugPageTemplate = template.Must(template.New("accesstoken_debug").Parse(`<
           provider_auth_mode: modeKey,
           config_path: configPath
         };
-        const res = await fetch('/api/oauth/start', {
+        const res = await authorizedFetch('/accesstoken/oauth/start', {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': 'Bearer ' + apiToken
-          },
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload)
         });
         if (!res.ok) {
@@ -406,10 +516,10 @@ var debugPageTemplate = template.Must(template.New("accesstoken_debug").Parse(`<
         if (data.auth_url) {
           window.open(data.auth_url, '_blank', 'noopener,noreferrer');
         } else {
-          alert('接口未返回授权地址');
+          showFlash('接口未返回授权地址', true);
         }
       } catch (err) {
-        alert('发起授权失败: ' + err);
+        showFlash('发起授权失败: ' + err.message, true);
       }
     }
 
@@ -429,27 +539,24 @@ var debugPageTemplate = template.Must(template.New("accesstoken_debug").Parse(`<
           provider_app: appCode,
           provider_auth_mode: modeKey
         });
-        const res = await fetch('/api/oauth/tokens?' + params.toString(), {
-          headers: {
-            'Authorization': 'Bearer ' + apiToken
-          }
-        });
+        const res = await authorizedFetch('/accesstoken/flows?' + params.toString());
         if (!res.ok) {
           if (force) {
             const text = await res.text();
-            alert('加载授权记录失败: ' + text);
+            showFlash('加载授权记录失败: ' + text, true);
           }
           return;
         }
         const data = await res.json();
-        tokenCache = data.tokens || [];
+        tokenCache = data.flows || [];
+        state.flowCursor = data.next_cursor || '';
         renderTokenTable();
         if (force && tokenCache.length === 0) {
           showFlash('未找到授权记录，请先完成 OAuth 或使用 Flow ID 回填。', true);
         }
       } catch (err) {
         if (force) {
-          alert('加载授权记录失败: ' + err);
+          showFlash('加载授权记录失败: ' + err.message, true);
         }
       }
     }
@@ -469,45 +576,47 @@ var debugPageTemplate = template.Must(template.New("accesstoken_debug").Parse(`<
       tokenCache.forEach((token) => {
         const tr = document.createElement('tr');
         const expireText = token.expire_at ? new Date(token.expire_at).toLocaleString() : '-';
+        const statusText = (token.status || token.source || '-');
+        const maskedAccount = token.masked_account ? ' · ' + token.masked_account : '';
         tr.innerHTML = '<td>' + (token.flow_id || '-') + '</td>' +
-                       '<td>' + (token.source || token.token_type || '-') + '</td>' +
+                       '<td>' + statusText + maskedAccount + '</td>' +
                        '<td>' + expireText + '</td>';
         const actionTd = document.createElement('td');
         const btn = document.createElement('button');
         btn.textContent = '填充';
         btn.type = 'button';
-        btn.onclick = () => applyTokenRecord(token);
+        btn.onclick = () => fillFlowToken(token.flow_id);
         actionTd.appendChild(btn);
         tr.appendChild(actionTd);
         tbody.appendChild(tr);
       });
     }
 
-    function applyTokenRecord(token, silent) {
-      if (!token || !token.access_token) {
-        alert('记录中缺少 AccessToken');
+    function applyTokenRecord(flowPayload, silent) {
+      if (!flowPayload || !flowPayload.access_token) {
+        showFlash('记录中缺少 AccessToken', true);
         return;
       }
       try {
         const tokenArea = document.getElementById('tokenPayload');
         const payload = JSON.parse(tokenArea.value || '{}');
-        payload.access_token = token.access_token;
-        if (token.expires_in) {
-          payload.access_token_ttl = token.expires_in;
+        payload.access_token = flowPayload.access_token;
+        if (flowPayload.expires_in) {
+          payload.access_token_ttl = flowPayload.expires_in;
         }
         tokenArea.value = JSON.stringify(payload, null, 2);
 
         const callArea = document.getElementById('callPayload');
         const callPayload = JSON.parse(callArea.value || '{}');
-        callPayload.access_token = token.access_token;
+        callPayload.access_token = flowPayload.access_token;
         callArea.value = JSON.stringify(callPayload, null, 2);
         if (silent) {
           showFlash('已自动填充最新 AccessToken，可直接解析/调用 API。', false);
         } else {
-          alert('已填充最新 AccessToken，可直接调用接口。');
+          showFlash('已填充最新 AccessToken，可直接调用接口。', false);
         }
       } catch (err) {
-        alert('填充 AccessToken 失败: ' + err);
+        showFlash('填充 AccessToken 失败: ' + err.message, true);
       }
     }
 
@@ -570,55 +679,85 @@ var debugPageTemplate = template.Must(template.New("accesstoken_debug").Parse(`<
       syncCallPayloadFromForm();
     }
 
-    async function loadTokenByFlow() {
-      const flowId = (flowIdInput?.value || '').trim();
+    async function replayFlow(flowId) {
+      const res = await authorizedFetch('/accesstoken/flow/replay', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ flow_id: flowId })
+      });
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error(text || 'flow replay failed');
+      }
+      return res.json();
+    }
+
+    async function fillFlowToken(flowId, silent) {
       if (!flowId) {
-        alert('请输入 Flow ID');
+        showFlash('Flow ID 缺失', true);
         return;
       }
       try {
-        const params = new URLSearchParams({ flow_id: flowId });
-        const res = await fetch('/api/oauth/tokens?' + params.toString(), {
-          headers: { 'Authorization': 'Bearer ' + apiToken }
-        });
-        if (!res.ok) {
-          const text = await res.text();
-          throw new Error(text);
-        }
-        const data = await res.json();
-        tokenCache = data.tokens || [];
-        renderTokenTable();
-        if (!tokenCache.length) {
-          showFlash('未找到 Flow ID 对应的授权记录，请确认是否仍在有效期。', true);
-        } else {
-          showFlash('已加载 Flow ID 对应的授权记录，可点击“填充”复用。', false);
-          applyTokenRecord(tokenCache[0], true);
-        }
+        const replay = await replayFlow(flowId);
+        applyTokenRecord(replay.payload || {}, silent);
       } catch (err) {
-        showFlash('加载 Flow ID 失败: ' + err, true);
+        showFlash('加载 Flow 失败: ' + err.message, true);
+      }
+    }
+
+    async function loadTokenByFlow() {
+      const flowId = (flowIdInput?.value || '').trim();
+      if (!flowId) {
+        showFlash('请输入 Flow ID', true);
+        return;
+      }
+      try {
+        const replay = await replayFlow(flowId);
+        const payload = replay.payload || {};
+        tokenCache = [{
+          flow_id: replay.flow_id,
+          status: replay.status,
+          expire_at: payload.flow_expire_at || payload.expire_at,
+          masked_account: payload.provider_code ? payload.provider_code + '/' + (payload.provider_app || '-') : '',
+          storage_backend: replay.storage_backend
+        }];
+        renderTokenTable();
+        applyTokenRecord(payload, true);
+        showFlash('已加载 Flow ID 对应的授权记录，可点击“填充”复用。', false);
+      } catch (err) {
+        showFlash('加载 Flow ID 失败: ' + err.message, true);
       }
     }
 
     async function loadFlowIndexList() {
       try {
         const params = new URLSearchParams({ limit: '100' });
-        const res = await fetch('/api/oauth/flow-indexes?' + params.toString(), {
-          headers: { 'Authorization': 'Bearer ' + apiToken }
-        });
+        if (state.flowCursor) {
+          params.set('cursor', state.flowCursor);
+        }
+        const currentApp = getCurrentApp();
+        const providerCode = currentApp?.provider_code || state.provider || '';
+        const appCode = currentApp?.code || state.app || '';
+        const modeKey = state.mode || getCurrentMode()?.key || '';
+        if (providerCode) params.set('provider_code', providerCode);
+        if (appCode) params.set('provider_app', appCode);
+        if (modeKey) params.set('provider_auth_mode', modeKey);
+        const res = await authorizedFetch('/accesstoken/flows?' + params.toString());
         if (!res.ok) {
           const text = await res.text();
           throw new Error(text);
         }
         const data = await res.json();
-        tokenCache = data.tokens || [];
+        tokenCache = data.flows || [];
+        state.flowCursor = data.next_cursor || '';
         renderTokenTable();
         if (!tokenCache.length) {
           showFlash('Redis 中暂未找到 Flow 记录，可先完成 OAuth。', true);
         } else {
-          showFlash('已从 Redis 加载 Flow 列表，可直接点击“填充”复用 Token。', false);
+          showFlash('已从 Flow 列表加载最新记录，可直接点击“填充”复用 Token。', false);
         }
       } catch (err) {
-        showFlash('加载 Redis Flow 列表失败: ' + err, true);
+        showFlash('加载 Redis Flow 列表失败: ' + err.message, true);
       }
     }
 
@@ -627,44 +766,44 @@ var debugPageTemplate = template.Must(template.New("accesstoken_debug").Parse(`<
       const output = document.getElementById(outputId);
       try {
         const payload = JSON.parse(textarea.value || '{}');
-        const res = await fetch(endpoint, {
+        const res = await authorizedFetch(endpoint, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': 'Bearer ' + apiToken
-          },
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload)
         });
         const text = await res.text();
         output.textContent = text;
       } catch (err) {
-        output.textContent = '提交失败: ' + err;
+        output.textContent = '提交失败: ' + err.message;
       }
     }
 
     async function loadCallbacks() {
-      const res = await fetch('/api/callbacks', {
-        headers: { 'Authorization': 'Bearer ' + apiToken }
-      });
-      const data = await res.json();
-      const tbody = document.querySelector('#callbackTable tbody');
-      tbody.innerHTML = '';
-      (data.records || []).forEach((item) => {
-        const tr = document.createElement('tr');
-        tr.innerHTML = '<td>' + new Date(item.timestamp).toISOString() + '</td>' +
-                       '<td>' + (item.method || '-') + '</td>' +
-                       '<td>' + (item.query || '-') + '</td>' +
-                       '<td><pre>' + (item.body || '-') + '</pre></td>';
-        tbody.appendChild(tr);
-      });
+      try {
+        const res = await authorizedFetch('/api/callbacks');
+        const data = await res.json();
+        const tbody = document.querySelector('#callbackTable tbody');
+        tbody.innerHTML = '';
+        (data.records || []).forEach((item) => {
+          const tr = document.createElement('tr');
+          tr.innerHTML = '<td>' + new Date(item.timestamp).toISOString() + '</td>' +
+                         '<td>' + (item.method || '-') + '</td>' +
+                         '<td>' + (item.query || '-') + '</td>' +
+                         '<td><pre>' + (item.body || '-') + '</pre></td>';
+          tbody.appendChild(tr);
+        });
+      } catch (err) {
+        showFlash('加载回调失败: ' + err.message, true);
+      }
     }
 
     async function clearCallbacks() {
-      await fetch('/api/callbacks/clear', {
-        method: 'POST',
-        headers: { 'Authorization': 'Bearer ' + apiToken }
-      });
-      loadCallbacks();
+      try {
+        await authorizedFetch('/api/callbacks/clear', { method: 'POST' });
+        loadCallbacks();
+      } catch (err) {
+        showFlash('清空回调失败: ' + err.message, true);
+      }
     }
 
     function showFlash(message, isError) {
@@ -704,6 +843,8 @@ var debugPageTemplate = template.Must(template.New("accesstoken_debug").Parse(`<
     }
 
     function init() {
+      initAPIToken();
+      setupEnvBanners();
       populateProviderSelect();
       callbackInput.value = document.body.dataset.defaultCallback || '';
       loadCallbacks();
@@ -717,13 +858,21 @@ var debugPageTemplate = template.Must(template.New("accesstoken_debug").Parse(`<
 </html>`))
 
 func (s *accessTokenServer) handleDebugPage(w http.ResponseWriter, r *http.Request) {
+	token := s.extractAPIToken(r)
+	if token == "" {
+		token = s.apiToken
+	}
 	data := debugPageData{
-		APIToken:        s.apiToken,
+		APIToken:        token,
 		ProvidersJSON:   s.providersJSON,
 		DefaultProvider: s.defaultProviderUI,
 		DefaultApp:      s.defaultApp,
 		DefaultMode:     s.defaultMode,
 		DefaultCallback: s.defaultCallbackURL,
+		StorageBackend:  s.storageBackend,
+		ListenAddr:      s.listenAddr,
+		FlowTTLSeconds:  s.flowTTLSeconds,
+		PublicListen:    s.listenAddrPublic,
 	}
 	if err := debugPageTemplate.Execute(w, data); err != nil {
 		s.logger.ErrorF("accesstoken-server: render debug page failed: %v", err)

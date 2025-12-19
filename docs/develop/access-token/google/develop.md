@@ -69,7 +69,7 @@ access_token_providers:
         - code: "youtube"
           name: "Google YouTube"
           provider_code: "google_youtube"
-          api_version: "v4"
+          api_version: "v3"
           auth_modes:
             - key: "default"
               label: "默认 OAuth"
@@ -207,7 +207,7 @@ Playground 默认调用 `videos.list`（可通过 `PLAYGROUND_YOUTUBE_VIDEO_IDS/
    - 缓存：默认内存，若设置 `ACCESSTOKEN_REDIS_ADDR=127.0.0.1:6379` 会自动切换到 Redis（并支持 `ACCESSTOKEN_REDIS_DB/USERNAME/PASSWORD`）。
 
 2. **页面入口**
-   - 访问 `http://127.0.0.1:7071/debug`（或 `/debug/accesstoken`），顶部的“基础配置”区会列出当前 `config.yaml` 中启用的所有 AccessToken Provider（Google YouTube / Google Blogger / 字节抖音 / 小红书聚光 / 哔哩哔哩等），并展示 `config_path`、`oauth_key`、默认回调地址；API 版本输入框会随 Provider 自动填入（YouTube=`v4`、Blogger=`v3` 等），便于未来做版本切换。
+   - 访问 `http://127.0.0.1:7071/debug`（或 `/debug/accesstoken`），顶部的“基础配置”区会列出当前 `config.yaml` 中启用的所有 AccessToken Provider（Google YouTube / Google Blogger / 字节抖音 / 小红书聚光 / 哔哩哔哩等），并展示 `config_path`、`oauth_key`、默认回调地址；API 版本输入框会随 Provider 自动填入（YouTube=`v3`、Blogger=`v3` 等），便于未来做版本切换。
    - **AccessToken 解析**：JSON 模板随 Provider 自动更新，点击“解析 AccessToken”即可调用 `POST /accesstoken/token`。后端会按“请求体 → Provider 对应的环境变量 → `oauth.access_token`”顺序解析，并返回 token 来源/脱敏值/TTL/http_debug。
    - **API 调用**：JSON 同样包含 `provider_code/provider_app/config_path`。目前仅对 `google_youtube` Provider 开放 `POST /accesstoken/call`（复用 CLI 的 `videos.list/search.list/playlists.list`），其余 Provider 会提示“暂未开放 API 调试”，为后续扩展预留空间。
    - **OAuth 回调日志**：所有命中 `/debug/callback` 的请求（默认 `http://127.0.0.1:7071/debug/callback`）都会记录最近 50 条，可随时刷新/清空，用来排查 `redirect_uri`。

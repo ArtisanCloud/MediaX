@@ -51,3 +51,18 @@ func (s *callbackLogStore) clear() {
 	defer s.mu.Unlock()
 	s.records = nil
 }
+
+func cloneCallbackRecord(src *callbackRecord) *callbackRecord {
+	if src == nil {
+		return nil
+	}
+	clone := *src
+	if len(src.Headers) > 0 {
+		headers := make(map[string]string, len(src.Headers))
+		for k, v := range src.Headers {
+			headers[k] = v
+		}
+		clone.Headers = headers
+	}
+	return &clone
+}

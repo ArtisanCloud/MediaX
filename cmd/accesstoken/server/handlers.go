@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -11,6 +12,7 @@ import (
 	"time"
 
 	app "github.com/ArtisanCloud/MediaX/cmd/accesstoken/internal/app"
+	mask "github.com/ArtisanCloud/MediaX/internal/accesstoken/handler"
 	"github.com/ArtisanCloud/MediaXCore/utils/object"
 )
 
@@ -34,6 +36,18 @@ type oauthStartRequest struct {
 	ConfigPath       string `json:"config_path"`
 }
 
+type providerSelectionRequest struct {
+	ProviderCode     string `json:"provider_code"`
+	ProviderApp      string `json:"provider_app"`
+	ProviderAuthMode string `json:"provider_auth_mode"`
+	ConfigPath       string `json:"config_path"`
+}
+
+type flowReplayRequest struct {
+	FlowID            string                    `json:"flow_id"`
+	ProviderSelection *providerSelectionRequest `json:"provider_fallback"`
+}
+
 func (s *accessTokenServer) handleToken(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		w.WriteHeader(http.StatusMethodNotAllowed)
@@ -50,7 +64,7 @@ func (s *accessTokenServer) handleToken(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	token, source, storedRec := s.resolveAccessTokenValue(ctx, req.AccessToken)
+	token, source, sourceDetail, storedRec := s.resolveAccessTokenValue(ctx, req.AccessToken)
 	if token == "" {
 		s.writeError(w, http.StatusBadRequest, "missing access token for provider %s: provide access_token or configure env/config token", ctx.displayName())
 		return
@@ -72,21 +86,30 @@ func (s *accessTokenServer) handleToken(w http.ResponseWriter, r *http.Request) 
 	oauthKey := extractOauthKey(ctx.Mode)
 
 	resp := map[string]any{
-		"access_token":       token,
-		"masked_token":       app.MaskToken(token),
-		"token_source":       source,
-		"access_token_ttl":   ttl,
-		"oauth_key":          oauthKey,
-		"config_path":        ctx.ConfigPath,
-		"provider":           ctx.displayName(),
-		"provider_code":      ctx.ProviderCode,
-		"provider_app":       ctx.AppCode,
-		"provider_auth_mode": ctx.ModeKey,
-		"http_debug":         httpDebug,
+		"access_token":        token,
+		"masked_token":        app.MaskToken(token),
+		"token_source":        source,
+		"access_token_ttl":    ttl,
+		"oauth_key":           oauthKey,
+		"config_path":         ctx.ConfigPath,
+		"provider":            ctx.displayName(),
+		"provider_code":       ctx.ProviderCode,
+		"provider_app":        ctx.AppCode,
+		"provider_auth_mode":  ctx.ModeKey,
+		"http_debug":          httpDebug,
+		"storage_backend":     s.storageBackend,
+		"token_source_detail": sourceDetail,
 	}
 	if storedRec != nil {
+		s.enrichFlowMetadata(storedRec)
 		resp["flow_id"] = storedRec.FlowID
-		resp["flow_expire_at"] = storedRec.ExpireAt
+		resp["flow_expire_at"] = storedRec.FlowExpireAt
+		resp["flow_ttl_seconds"] = storedRec.FlowTTLSeconds
+		resp["storage_backend"] = storedRec.StorageBackend
+		flowID := storedRec.FlowID
+		s.logFlowAction("token.resolve", ctx, flowID, source, sourceDetail)
+	} else {
+		s.logFlowAction("token.resolve", ctx, "", source, sourceDetail)
 	}
 	s.writeJSON(w, http.StatusOK, resp)
 }
@@ -117,13 +140,13 @@ func (s *accessTokenServer) handleCall(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	token, source, storedRec := s.resolveAccessTokenValue(ctx, opts.AccessToken)
+	token, source, sourceDetail, storedRec := s.resolveAccessTokenValue(ctx, opts.AccessToken)
 	if token == "" {
 		s.writeError(w, http.StatusBadRequest, "missing access token: provide access_token 或配置 GOOGLE_YOUTUBE_ACCESS_TOKEN / oauth.access_token")
 		return
 	}
 	opts.AccessToken = token
-	opts.TokenSource = source
+	opts.TokenSource = sourceDetail
 	if storedRec != nil && storedRec.ExpiresIn > 0 {
 		opts.AccessTokenTTL = storedRec.ExpiresIn
 	} else if opts.AccessTokenTTL <= 0 {
@@ -158,24 +181,34 @@ func (s *accessTokenServer) handleCall(w http.ResponseWriter, r *http.Request) {
 	}
 
 	resp := map[string]any{
-		"result":             data,
-		"token_source":       opts.TokenSource,
-		"masked_token":       app.MaskToken(opts.AccessToken),
-		"oauth_key":          cfg.OauthKey,
-		"config_path":        configPath,
-		"provider":           ctx.displayName(),
-		"provider_code":      ctx.ProviderCode,
-		"provider_app":       ctx.AppCode,
-		"provider_auth_mode": ctx.ModeKey,
-		"access_token_ttl":   opts.AccessTokenTTL,
-		"action":             opts.Action,
-		"part":               opts.Part,
-		"request_timestamp":  time.Now().UTC(),
+		"result":              data,
+		"token_source":        source,
+		"token_source_detail": sourceDetail,
+		"masked_token":        app.MaskToken(opts.AccessToken),
+		"oauth_key":           cfg.OauthKey,
+		"config_path":         configPath,
+		"provider":            ctx.displayName(),
+		"provider_code":       ctx.ProviderCode,
+		"provider_app":        ctx.AppCode,
+		"provider_auth_mode":  ctx.ModeKey,
+		"access_token_ttl":    opts.AccessTokenTTL,
+		"storage_backend":     s.storageBackend,
+		"action":              opts.Action,
+		"part":                opts.Part,
+		"request_timestamp":   time.Now().UTC(),
 	}
 	if storedRec != nil {
+		s.enrichFlowMetadata(storedRec)
 		resp["flow_id"] = storedRec.FlowID
-		resp["flow_expire_at"] = storedRec.ExpireAt
+		resp["flow_expire_at"] = storedRec.FlowExpireAt
+		resp["flow_ttl_seconds"] = storedRec.FlowTTLSeconds
 	}
+	flowID := ""
+	if storedRec != nil {
+		flowID = storedRec.FlowID
+		resp["storage_backend"] = storedRec.StorageBackend
+	}
+	s.logFlowAction("token.call", ctx, flowID, source, sourceDetail)
 	s.writeJSON(w, http.StatusOK, resp)
 }
 func (s *accessTokenServer) handleOAuthStart(w http.ResponseWriter, r *http.Request) {
@@ -185,41 +218,157 @@ func (s *accessTokenServer) handleOAuthStart(w http.ResponseWriter, r *http.Requ
 	}
 	var req oauthStartRequest
 	if err := decodeJSON(r.Body, &req); err != nil {
+		s.logFlowAction("oauth.start.error", nil, "", "invalid_json", err.Error())
 		s.writeError(w, http.StatusBadRequest, "invalid json: %v", err)
+		return
+	}
+	if strings.TrimSpace(req.ProviderCode) == "" || strings.TrimSpace(req.ProviderApp) == "" || strings.TrimSpace(req.ProviderAuthMode) == "" || strings.TrimSpace(req.ConfigPath) == "" {
+		s.logFlowAction("oauth.start.error", nil, "", "invalid_request", "provider_code/provider_app/provider_auth_mode/config_path 不能为空")
+		s.writeError(w, http.StatusBadRequest, "provider_code/provider_app/provider_auth_mode/config_path 不能为空")
 		return
 	}
 	ctx, err := s.resolveProviderConfig(req.ProviderCode, req.ProviderApp, req.ProviderAuthMode, req.ConfigPath)
 	if err != nil {
+		s.logFlowAction("oauth.start.error", ctx, "", "resolve_provider", err.Error())
 		s.writeError(w, http.StatusBadRequest, err.Error())
 		return
 	}
-	authURL, _, err := s.buildOAuthAuthorizeURL(ctx)
+	authURL, state, err := s.buildOAuthAuthorizeURL(ctx)
 	if err != nil {
+		s.logFlowAction("oauth.start.error", ctx, "", "build_authorize_url", err.Error())
 		s.writeError(w, http.StatusBadRequest, err.Error())
 		return
 	}
-	s.writeJSON(w, http.StatusOK, map[string]any{
-		"auth_url": authURL,
-	})
+	flowID := fmt.Sprintf("oauth-%s", state)
+	oauthKey := extractOauthKey(ctx.Mode)
+	expiresIn := s.flowTTLSeconds
+	expireAt := time.Now().UTC().Add(time.Duration(expiresIn) * time.Second)
+	response := map[string]any{
+		"flow_id":         flowID,
+		"state":           state,
+		"authorize_url":   authURL,
+		"auth_url":        authURL,
+		"expires_in":      expiresIn,
+		"expire_at":       expireAt,
+		"listen_addr":     s.listenAddr,
+		"storage_backend": s.storageBackend,
+		"oauth_key":       oauthKey,
+		"config_path":     ctx.ConfigPath,
+		"provider": map[string]string{
+			"code":      ctx.ProviderCode,
+			"app":       ctx.AppCode,
+			"auth_mode": ctx.ModeKey,
+		},
+	}
+	s.logFlowAction("oauth.start", ctx, flowID, "pending", state)
+	s.writeJSON(w, http.StatusOK, response)
 }
 
-func (s *accessTokenServer) handleListOAuthTokens(w http.ResponseWriter, r *http.Request) {
+func (s *accessTokenServer) handleListFlows(w http.ResponseWriter, r *http.Request) {
 	provider := strings.TrimSpace(r.URL.Query().Get("provider_code"))
 	appCode := strings.TrimSpace(r.URL.Query().Get("provider_app"))
 	mode := strings.TrimSpace(r.URL.Query().Get("provider_auth_mode"))
 	flowID := strings.TrimSpace(r.URL.Query().Get("flow_id"))
-	var tokens []*oauthTokenRecord
+	limit := 20
+	if v := strings.TrimSpace(r.URL.Query().Get("limit")); v != "" {
+		if parsed, err := strconv.Atoi(v); err == nil && parsed > 0 {
+			if parsed > 200 {
+				parsed = 200
+			}
+			limit = parsed
+		}
+	}
+	cursor := strings.TrimSpace(r.URL.Query().Get("cursor"))
+	var (
+		records    []*oauthTokenRecord
+		nextCursor string
+		err        error
+	)
 	if flowID != "" {
-		if rec := s.fetchTokenByFlowID(flowID); rec != nil {
-			tokens = []*oauthTokenRecord{rec}
+		rec, lookupErr := s.lookupFlowByID(flowID)
+		if lookupErr == nil && s.matchesProvider(rec, provider, appCode, mode) {
+			records = []*oauthTokenRecord{rec}
 		} else {
-			tokens = []*oauthTokenRecord{}
+			records = []*oauthTokenRecord{}
+		}
+	} else if s.redis != nil {
+		records, nextCursor, err = s.scanFlowRecords(r.Context(), provider, appCode, mode, limit, cursor)
+		if err != nil {
+			s.writeError(w, http.StatusInternalServerError, "scan flow indexes failed: %v", err)
+			return
+		}
+		if len(records) == 0 {
+			records = s.listOAuthTokenRecords(provider, appCode, mode)
 		}
 	} else {
-		tokens = s.listOAuthTokenRecords(provider, appCode, mode)
+		records = s.listOAuthTokenRecords(provider, appCode, mode)
 	}
+	if len(records) > 1 {
+		sort.Slice(records, func(i, j int) bool {
+			if records[i].StoredAt.Equal(records[j].StoredAt) {
+				return records[i].FlowID > records[j].FlowID
+			}
+			return records[i].StoredAt.After(records[j].StoredAt)
+		})
+	}
+	if len(records) > limit {
+		records = records[:limit]
+	}
+	items := make([]map[string]any, 0, len(records))
+	for _, rec := range records {
+		if rec == nil {
+			continue
+		}
+		items = append(items, s.buildFlowSummary(rec))
+	}
+	resp := map[string]any{
+		"flows": items,
+	}
+	if nextCursor != "" {
+		resp["next_cursor"] = nextCursor
+	}
+	s.writeJSON(w, http.StatusOK, resp)
+}
+
+func (s *accessTokenServer) handleFlowReplay(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		return
+	}
+	var req flowReplayRequest
+	if err := decodeJSON(r.Body, &req); err != nil {
+		s.writeError(w, http.StatusBadRequest, "invalid json: %v", err)
+		return
+	}
+	flowID := strings.TrimSpace(req.FlowID)
+	if flowID == "" {
+		s.writeError(w, http.StatusBadRequest, "flow_id required")
+		return
+	}
+	rec, err := s.lookupFlowByID(flowID)
+	if err != nil {
+		switch {
+		case errors.Is(err, errFlowExpired):
+			s.writeJSON(w, http.StatusNotFound, map[string]any{
+				"error":   "FLOW_EXPIRED",
+				"message": "Flow 已过期，请重新授权。",
+			})
+		case errors.Is(err, errFlowNotFound):
+			s.writeJSON(w, http.StatusNotFound, map[string]any{
+				"error":   "FLOW_NOT_FOUND",
+				"message": "Flow 不存在或已被清理。",
+			})
+		default:
+			s.writeError(w, http.StatusInternalServerError, "load flow failed: %v", err)
+		}
+		return
+	}
+	payload := s.buildFlowPayload(rec)
 	s.writeJSON(w, http.StatusOK, map[string]any{
-		"tokens": tokens,
+		"flow_id":         rec.FlowID,
+		"status":          s.flowStatus(rec),
+		"storage_backend": rec.StorageBackend,
+		"payload":         payload,
 	})
 }
 
@@ -282,22 +431,30 @@ func (s *accessTokenServer) handleListFlowIndexes(w http.ResponseWriter, r *http
 
 func (s *accessTokenServer) handleDebugCallback(w http.ResponseWriter, r *http.Request) {
 	body, _ := io.ReadAll(io.LimitReader(r.Body, 1<<20))
+	queryValues := r.URL.Query()
+	code := strings.TrimSpace(queryValues.Get("code"))
+	state := strings.TrimSpace(queryValues.Get("state"))
+	queryValues.Del("code")
+	queryValues.Del("state")
+	maskedQuery := mask.MaskSensitiveQuery(r.URL.RawQuery)
 	record := callbackRecord{
 		Timestamp:    time.Now(),
 		Method:       r.Method,
-		Query:        r.URL.RawQuery,
+		Query:        maskedQuery,
 		Headers:      flattenHeaders(r.Header),
-		Body:         string(body),
-		ProviderCode: r.URL.Query().Get("provider"),
-		FlowID:       r.URL.Query().Get("flow_id"),
-		State:        r.URL.Query().Get("state"),
+		Body:         mask.MaskCallbackBody(string(body), r.Header.Get("Content-Type")),
+		ProviderCode: queryValues.Get("provider"),
+		FlowID:       queryValues.Get("flow_id"),
+		State:        state,
+	}
+	if record.FlowID == "" && state != "" {
+		record.FlowID = fmt.Sprintf("oauth-%s", state)
 	}
 	s.callbackStore.append(record)
-	code := strings.TrimSpace(r.URL.Query().Get("code"))
-	state := strings.TrimSpace(r.URL.Query().Get("state"))
 	var message string
 	if code != "" && state != "" {
-		if tokenRec, err := s.completeOAuthFlow(r.Context(), state, code); err != nil {
+		payload := record
+		if tokenRec, err := s.completeOAuthFlow(r.Context(), state, code, &payload); err != nil {
 			message = fmt.Sprintf("授权失败: %v", err)
 		} else if tokenRec != nil {
 			message = fmt.Sprintf("授权成功，flow_id=%s，可在调试页刷新授权记录后复用该 Token。", tokenRec.FlowID)
@@ -358,7 +515,7 @@ func flattenHeaders(h http.Header) map[string]string {
 	}
 	out := make(map[string]string, len(h))
 	for k, vals := range h {
-		out[k] = strings.Join(vals, ",")
+		out[k] = mask.MaskHeaderValue(k, strings.Join(vals, ","))
 	}
 	return out
 }

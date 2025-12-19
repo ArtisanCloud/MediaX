@@ -6,9 +6,9 @@ import (
 	"fmt"
 
 	"github.com/ArtisanCloud/MediaX/pkg/client/google/youtube/accessTokenClient"
-	playlistsSchema "github.com/ArtisanCloud/MediaX/pkg/client/google/youtube/accessTokenClient/v4/playlists/schema"
-	searchSchema "github.com/ArtisanCloud/MediaX/pkg/client/google/youtube/accessTokenClient/v4/search/schema"
-	videoSchema "github.com/ArtisanCloud/MediaX/pkg/client/google/youtube/accessTokenClient/v4/video/schema"
+	playlistsSchema "github.com/ArtisanCloud/MediaX/pkg/client/google/youtube/accessTokenClient/v3/playlists/schema"
+	searchSchema "github.com/ArtisanCloud/MediaX/pkg/client/google/youtube/accessTokenClient/v3/search/schema"
+	videoSchema "github.com/ArtisanCloud/MediaX/pkg/client/google/youtube/accessTokenClient/v3/video/schema"
 	"github.com/ArtisanCloud/MediaXCore/pkg/logger"
 )
 

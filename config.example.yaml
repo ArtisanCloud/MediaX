@@ -6,7 +6,7 @@ access_token_providers:
         - code: "youtube"
           name: "Google YouTube"
           provider_code: "google_youtube"
-          api_version: "v4"
+          api_version: "v3"
           auth_modes:
             - key: "default"
               label: "默认 OAuth"

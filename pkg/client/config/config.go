@@ -106,7 +106,16 @@ type ClientConfig struct {
 
 // AccessTokenProvidersConfig 表示 AccessToken 调试相关的 Provider/App 列表
 type AccessTokenProvidersConfig struct {
-	Providers []*AccessTokenProvider `yaml:"providers" json:"providers"`
+	Redis     *AccessTokenRedisConfig `yaml:"redis,omitempty" json:"redis,omitempty"`
+	Providers []*AccessTokenProvider  `yaml:"providers" json:"providers"`
+}
+
+// AccessTokenRedisConfig 定义调试服务使用的 Redis 连接
+type AccessTokenRedisConfig struct {
+	Addr     string `yaml:"addr,omitempty" json:"addr,omitempty"`
+	DB       int    `yaml:"db,omitempty" json:"db,omitempty"`
+	Username string `yaml:"username,omitempty" json:"username,omitempty"`
+	Password string `yaml:"password,omitempty" json:"password,omitempty"`
 }
 
 // AccessTokenProvider 代表 Provider 分组（例如 Google、字节跳动）
@@ -134,7 +143,8 @@ type AccessTokenAuthMode struct {
 	GoogleBloggerConfig   *GoogleBloggerConfig   `yaml:"google_blogger_config,omitempty" json:"google_blogger_config,omitempty"`
 	ByteDanceDouYinConfig *ByteDanceDouYinConfig `yaml:"byte_dance_douyin_config,omitempty" json:"byte_dance_douyin_config,omitempty"`
 	RedBookJuGuangConfig  *RedBookJuGuangConfig  `yaml:"redbook_juguang_config,omitempty" json:"redbook_juguang_config,omitempty"`
-	BiliBiliConfig        *BiliBiliConfig        `yaml:"bilbili_config,omitempty" json:"bilbili_config,omitempty"`
+	BiliBiliConfig        *BiliBiliConfig        `yaml:"bilibili_config,omitempty" json:"bilibili_config,omitempty"`
+	LegacyBiliBiliConfig  *BiliBiliConfig        `yaml:"bilbili_config,omitempty" json:"-"`
 	CustomConfig          map[string]any         `yaml:"custom_config,omitempty" json:"custom_config,omitempty"`
 	Meta                  map[string]string      `yaml:"meta,omitempty" json:"meta,omitempty"`
 }
@@ -295,7 +305,7 @@ func (mode *AccessTokenAuthMode) ConfigKind() string {
 		return "byte_dance_douyin"
 	case mode.RedBookJuGuangConfig != nil:
 		return "redbook_juguang"
-	case mode.BiliBiliConfig != nil:
+	case mode.BiliConfig() != nil:
 		return "bilbili"
 	default:
 		return ""
@@ -317,7 +327,7 @@ func (mode *AccessTokenAuthMode) ConfigObject() any {
 	case "redbook_juguang":
 		return mode.RedBookJuGuangConfig
 	case "bilbili":
-		return mode.BiliBiliConfig
+		return mode.BiliConfig()
 	default:
 		return nil
 	}
@@ -346,11 +356,21 @@ func (mode *AccessTokenAuthMode) ClientConfig() *ClientConfig {
 			return mode.RedBookJuGuangConfig.ClientConfig
 		}
 	case "bilbili":
-		if mode.BiliBiliConfig != nil {
-			return mode.BiliBiliConfig.ClientConfig
+		if cfg := mode.BiliConfig(); cfg != nil {
+			return cfg.ClientConfig
 		}
 	}
 	return nil
+}
+
+func (mode *AccessTokenAuthMode) BiliConfig() *BiliBiliConfig {
+	if mode == nil {
+		return nil
+	}
+	if mode.BiliBiliConfig != nil {
+		return mode.BiliBiliConfig
+	}
+	return mode.LegacyBiliBiliConfig
 }
 
 // ClientTokenProvidersConfig 描述 ClientToken Provider（例如微信）配置

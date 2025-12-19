@@ -15,28 +15,36 @@ import (
 	app "github.com/ArtisanCloud/MediaX/cmd/accesstoken/internal/app"
 )
 
-const defaultListenAddr = ":7071"
+const (
+	defaultListenHost = "127.0.0.1"
+	defaultListenPort = "7071"
+	defaultListenAddr = defaultListenHost + ":" + defaultListenPort
+)
 
 func main() {
 	configFlag := flag.String("config", "", "Path to config.yaml (defaults to MEDIA_X_CONFIG or config.yaml)")
-	portFlag := flag.String("port", "", "Listen port or address, e.g. 7071 or :7071")
+	listenAddrFlag := flag.String("listen-addr", "", "Full listen address host:port (overrides ACCESSTOKEN_LISTEN_ADDR)")
+	portFlag := flag.String("port", "", "Listen port or address, e.g. 7071 or :7071 (overrides only the port component)")
 	flag.Parse()
 
-	if err := run(*configFlag, *portFlag); err != nil {
+	if err := run(*configFlag, *listenAddrFlag, *portFlag); err != nil {
 		log.Fatalf("accesstoken-server: %v", err)
 	}
 }
 
-func run(configFlag, portFlag string) error {
+func run(configFlag, listenAddrFlag, portFlag string) error {
 	defaultConfigPath := app.ResolveConfigPath(configFlag)
 
-	listenAddr := resolveListenAddr(portFlag)
+	listenAddr := resolveListenAddr(listenAddrFlag, portFlag)
 
 	server, cleanup, err := newAccessTokenServer(defaultConfigPath, listenAddr)
 	if err != nil {
 		return err
 	}
 	defer cleanup()
+	if err := server.validateListenAddr(); err != nil {
+		return err
+	}
 
 	httpServer := &http.Server{
 		Addr:         listenAddr,
@@ -58,7 +66,13 @@ func run(configFlag, portFlag string) error {
 		}
 	}()
 
-	server.logger.InfoF("accesstoken-server: listening addr=%s api_token=%s config=%s", listenAddr, app.MaskToken(server.apiToken), defaultConfigPath)
+	server.logServerEvent("listening", map[string]any{
+		"api_token":          app.MaskToken(server.apiToken),
+		"config":             defaultConfigPath,
+		"flow_ttl_seconds":   server.flowTTLSeconds,
+		"redis_available":    server.storageBackend == storageBackendRedis,
+		"warning_public_net": server.listenAddrPublic,
+	})
 	if err := httpServer.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 		return fmt.Errorf("listen and serve: %w", err)
 	}
