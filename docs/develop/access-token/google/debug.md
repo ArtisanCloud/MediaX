@@ -6,16 +6,19 @@
 
 - Go 1.18+、Redis（可选，用于缓存授权记录，默认连接 `127.0.0.1:6379`）。
 - 仓库路径：`/private/var/www/html/ArtisanCloud/X/MediaX/core/MediaX`。
-- `config.yaml` 已按照 `access_token_providers -> provider -> apps -> auth_modes` 的层级维护配置。示例：
+- `config.yaml` 已按照 `access_token_providers -> provider -> apps -> auth_modes` 的层级维护配置，如需固定 Redis，可在 `access_token_providers.redis` 里写明 `addr/db/username/password`（未设置时默认尝试 `127.0.0.1:6379`，设置 `addr: memory` 则强制内存模式）。示例：
 
   ```yaml
   access_token_providers:
+    redis:
+      addr: "127.0.0.1:6379"
+      db: 0
     - code: google
       name: Google
       apps:
         - code: youtube
           name: YouTube
-          api_version: v4
+          api_version: v3
           auth_modes:
             - code: sandbox
               name: 沙盒默认
@@ -66,7 +69,7 @@ make accesstoken-serve ARGS='-port 8080 -config ./configs/google.yaml'
 ## 3. 调试台操作流程（http://127.0.0.1:7071/debug）
 
 1. **选择 Provider**：左上角“Provider”下拉会列出所有在配置中启用的提供商。例如 `Google` 下含 `YouTube`、`Blogger`，`字节跳动` 下含 `抖音` 等。
-2. **选择 Provider App**：第二个下拉列出该 Provider 下的所有 App。默认选中 `google/youtube`，并自动展示 API 版本（如 `v4`）、配置路径与 OAuth Key。
+2. **选择 Provider App**：第二个下拉列出该 Provider 下的所有 App。默认选中 `google/youtube`，并自动展示 API 版本（如 `v3`）、配置路径与 OAuth Key。
 3. **选择授权模式 + 同步模板**：第三个下拉对应 `auth_modes`，用于区分不同租户/环境。切换完成后点击“同步模板”即可把最新 Provider/App/Mode 写入“AccessToken 解析 / API 调用”两个 JSON，保持和 CLI 入参一致。
 4. **AccessToken 解析**：在真正调用 API 之前先点“解析 AccessToken”（`POST /accesstoken/token`），系统会按“payload → 环境变量（`GOOGLE_YOUTUBE_ACCESS_TOKEN` / `ACCESSTOKEN_ACCESS_TOKEN` 等）→ config.yaml → 最近授权记录（Flow ID）”的优先级自动注入 token，并输出来源、脱敏值、TTL、`oauth_key`、`http_debug`，用来排查 401/配置差异。
 5. **发起授权**：
@@ -159,7 +162,7 @@ export ACCESSTOKEN_REDIS_PASS=''
 | 页面只有 Google/YouTube，没有 Blogger | `config.yaml` 中缺少 `apps: [{code: blogger, ...}]` 或该 App 未启用授权模式，补齐后重启即可 |
 | “发起授权” 跳回 404 | `oauth.redirect_url` 未更新为 `http://localhost:7071/debug/callback` |
 | 授权记录刷新后消失 | 未配置 Redis，进程重启即丢失；或 `ACCESSTOKEN_API_TOKEN` 不匹配导致接口 401 |
-| “调试 API” 返回 `暂未开放` | 该 Provider/App 还没实现后端调用逻辑，目前只有 `google/youtube v4` 支持 |
+| “调试 API” 返回 `暂未开放` | 该 Provider/App 还没实现后端调用逻辑，目前只有 `google/youtube v3` 支持 |
 | 仍想使用旧入口 `go run ./main.go` | 仍然支持，但推荐统一在 Web 沙盒调好参数后，再复制 JSON 到 CLI/Playground，避免重复配置 |
 
 > 结论：访问 `http://127.0.0.1:7071/debug`，选择 Provider → App → 授权模式 → 发起授权 → 回调 → 复用 token → 调试 API，即可完整模拟外部应用接入 AccessToken 客户端，操作路径与 SessionToken 调试台保持一致。

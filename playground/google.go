@@ -8,7 +8,7 @@ import (
 
 	"github.com/ArtisanCloud/MediaX/pkg/client"
 	"github.com/ArtisanCloud/MediaX/pkg/client/config"
-	videoSchema "github.com/ArtisanCloud/MediaX/pkg/client/google/youtube/accessTokenClient/v4/video/schema"
+	videoSchema "github.com/ArtisanCloud/MediaX/pkg/client/google/youtube/accessTokenClient/v3/video/schema"
 	"github.com/ArtisanCloud/MediaXCore/utils/fmt"
 	"github.com/ArtisanCloud/MediaXCore/utils/object"
 )

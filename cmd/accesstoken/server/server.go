@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"html/template"
 	"io"
+	"log"
 	"net/http"
 	"net/url"
 	"os"
@@ -52,6 +53,17 @@ const (
 	providerRedBookJuGuang  = "redbook_juguang"
 	providerBilibili        = "bilbili"
 	flowIndexPrefix         = "accesstoken:oauth:flow:"
+
+	storageBackendRedis  = "redis"
+	storageBackendMemory = "memory"
+
+	defaultFlowTTLSeconds = 24 * 60 * 60
+	maxCallbackBodyLen    = 4096
+)
+
+var (
+	errFlowNotFound = errors.New("flow_not_found")
+	errFlowExpired  = errors.New("flow_expired")
 )
 
 type providerContext struct {
@@ -88,18 +100,24 @@ type oauthState struct {
 }
 
 type oauthTokenRecord struct {
-	ProviderCode string    `json:"provider_code"`
-	ProviderApp  string    `json:"provider_app"`
-	AuthMode     string    `json:"provider_auth_mode"`
-	FlowID       string    `json:"flow_id"`
-	AccessToken  string    `json:"access_token"`
-	RefreshToken string    `json:"refresh_token,omitempty"`
-	TokenType    string    `json:"token_type,omitempty"`
-	Scope        string    `json:"scope,omitempty"`
-	ExpiresIn    int       `json:"expires_in"`
-	StoredAt     time.Time `json:"stored_at"`
-	ExpireAt     time.Time `json:"expire_at"`
-	Source       string    `json:"source"`
+	ProviderCode   string          `json:"provider_code"`
+	ProviderApp    string          `json:"provider_app"`
+	AuthMode       string          `json:"provider_auth_mode"`
+	ConfigPath     string          `json:"config_path,omitempty"`
+	FlowID         string          `json:"flow_id"`
+	AccessToken    string          `json:"access_token"`
+	RefreshToken   string          `json:"refresh_token,omitempty"`
+	TokenType      string          `json:"token_type,omitempty"`
+	Scope          string          `json:"scope,omitempty"`
+	ExpiresIn      int             `json:"expires_in"`
+	StoredAt       time.Time       `json:"stored_at"`
+	ExpireAt       time.Time       `json:"expire_at"`
+	Source         string          `json:"source"`
+	TokenExpireAt  time.Time       `json:"token_expire_at"`
+	FlowTTLSeconds int             `json:"flow_ttl_seconds"`
+	FlowExpireAt   time.Time       `json:"flow_expire_at"`
+	StorageBackend string          `json:"storage_backend"`
+	Callback       *callbackRecord `json:"callback,omitempty"`
 }
 
 type accessTokenServer struct {
@@ -122,15 +140,24 @@ type accessTokenServer struct {
 	oauthTokens         map[string]*oauthTokenRecord
 	oauthTokenMu        sync.RWMutex
 	providersJSON       template.JS
+	storageBackend      string
+	flowTTLSeconds      int
+	flowTTL             time.Duration
+	listenAddrPublic    bool
 }
 
 func newAccessTokenServer(defaultConfigPath, listenAddr string) (*accessTokenServer, cacheCloser, error) {
 	logCfg := app.BuildFileLogConfig(resolveLogLevel(), "logs/accesstoken-server-info.log", "logs/accesstoken-server-error.log")
-	cacheStore, redisClient, closer, err := buildCacheStore()
+	redisCfg := loadAccessTokenRedisConfig(defaultConfigPath)
+	cacheStore, redisClient, closer, backend, err := buildCacheStore(redisCfg)
 	if err != nil {
 		return nil, nil, err
 	}
 	mediaX := client.NewMediaX(&config.MediaXConfig{Logger: logCfg}, cacheStore)
+	flowTTLSeconds := resolveFlowTTLSeconds()
+	if flowTTLSeconds <= 0 {
+		flowTTLSeconds = defaultFlowTTLSeconds
+	}
 	server := &accessTokenServer{
 		logger:            mediaX.Logger,
 		mediaX:            mediaX,
@@ -142,6 +169,12 @@ func newAccessTokenServer(defaultConfigPath, listenAddr string) (*accessTokenSer
 		listenAddr:        listenAddr,
 		oauthStates:       make(map[string]*oauthState),
 		oauthTokens:       make(map[string]*oauthTokenRecord),
+		storageBackend:    backend,
+		flowTTLSeconds:    flowTTLSeconds,
+		flowTTL:           time.Duration(flowTTLSeconds) * time.Second,
+	}
+	if backend == storageBackendMemory && server.logger != nil {
+		server.logger.WarnF("accesstoken-server: redis disabled, Flow 数据将存储在内存中，服务重启后会被清理")
 	}
 	server.defaultCallbackURL = server.buildDefaultCallbackURL()
 	if err := server.initProviders(); err != nil {
@@ -152,14 +185,21 @@ func newAccessTokenServer(defaultConfigPath, listenAddr string) (*accessTokenSer
 
 func (s *accessTokenServer) routes() http.Handler {
 	mux := http.NewServeMux()
-	mux.HandleFunc("/debug/accesstoken", s.handleDebugPage)
-	mux.HandleFunc("/debug", s.handleDebugPage)
+	pageHandler := http.HandlerFunc(s.handleDebugPage)
+	mux.Handle("/debug/accesstoken", pageHandler)
+	mux.Handle("/debug", pageHandler)
 	mux.Handle("/debug/callback", http.HandlerFunc(s.handleDebugCallback))
 	mux.Handle("/api/callbacks", s.requireAPIToken(http.HandlerFunc(s.handleListCallbacks)))
 	mux.Handle("/api/callbacks/clear", s.requireAPIToken(http.HandlerFunc(s.handleClearCallbacks)))
+	mux.Handle("/debug/static/", http.StripPrefix("/debug/static/", s.staticFileHandler()))
 	mux.Handle("/api/oauth/flow-indexes", s.requireAPIToken(http.HandlerFunc(s.handleListFlowIndexes)))
-	mux.Handle("/api/oauth/start", s.requireAPIToken(http.HandlerFunc(s.handleOAuthStart)))
-	mux.Handle("/api/oauth/tokens", s.requireAPIToken(http.HandlerFunc(s.handleListOAuthTokens)))
+	oauthStart := s.requireAPIToken(http.HandlerFunc(s.handleOAuthStart))
+	mux.Handle("/api/oauth/start", oauthStart)
+	mux.Handle("/accesstoken/oauth/start", oauthStart)
+	flowList := s.requireAPIToken(http.HandlerFunc(s.handleListFlows))
+	mux.Handle("/api/oauth/tokens", flowList)
+	mux.Handle("/accesstoken/flows", flowList)
+	mux.Handle("/accesstoken/flow/replay", s.requireAPIToken(http.HandlerFunc(s.handleFlowReplay)))
 	mux.Handle("/accesstoken/token", s.requireAPIToken(http.HandlerFunc(s.handleToken)))
 	mux.Handle("/accesstoken/call", s.requireAPIToken(http.HandlerFunc(s.handleCall)))
 	mux.HandleFunc("/healthz", func(w http.ResponseWriter, _ *http.Request) {
@@ -169,10 +209,16 @@ func (s *accessTokenServer) routes() http.Handler {
 	return mux
 }
 
-func buildCacheStore() (cache.ICache, redis.Cmdable, cacheCloser, error) {
+func buildCacheStore(redisCfg *config.AccessTokenRedisConfig) (cache.ICache, redis.Cmdable, cacheCloser, string, error) {
 	addr := strings.TrimSpace(os.Getenv("ACCESSTOKEN_REDIS_ADDR"))
+	if addr == "" && redisCfg != nil {
+		addr = strings.TrimSpace(redisCfg.Addr)
+	}
 	if addr == "" {
 		addr = "127.0.0.1:6379"
+	}
+	if strings.EqualFold(addr, "memory") {
+		return cache.NewMemoryCache(), nil, func() {}, storageBackendMemory, nil
 	}
 
 	db := 0
@@ -180,32 +226,56 @@ func buildCacheStore() (cache.ICache, redis.Cmdable, cacheCloser, error) {
 		if n, err := strconv.Atoi(v); err == nil {
 			db = n
 		}
+	} else if redisCfg != nil && redisCfg.DB >= 0 {
+		db = redisCfg.DB
+	}
+	username := strings.TrimSpace(os.Getenv("ACCESSTOKEN_REDIS_USERNAME"))
+	if username == "" && redisCfg != nil {
+		username = strings.TrimSpace(redisCfg.Username)
+	}
+	password := strings.TrimSpace(os.Getenv("ACCESSTOKEN_REDIS_PASSWORD"))
+	if password == "" && redisCfg != nil {
+		password = strings.TrimSpace(redisCfg.Password)
 	}
 	opts := &redis.Options{
 		Addr:     addr,
 		DB:       db,
-		Username: strings.TrimSpace(os.Getenv("ACCESSTOKEN_REDIS_USERNAME")),
-		Password: strings.TrimSpace(os.Getenv("ACCESSTOKEN_REDIS_PASSWORD")),
+		Username: username,
+		Password: password,
 	}
 	client := redis.NewClient(opts)
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	if err := client.Ping(ctx).Err(); err != nil {
 		client.Close()
-		return nil, nil, func() {}, fmt.Errorf("ping redis %s: %w", addr, err)
+		log.Printf("accesstoken-server: ping redis %s failed: %v, fallback to in-memory cache", addr, err)
+		return cache.NewMemoryCache(), nil, func() {}, storageBackendMemory, nil
 	}
-	return cache.NewRedisCache(client), client, func() { _ = client.Close() }, nil
+	return cache.NewRedisCache(client), client, func() { _ = client.Close() }, storageBackendRedis, nil
 }
 
-func resolveListenAddr(flagPort string) string {
-	if trimmed := strings.TrimSpace(flagPort); trimmed != "" {
-		if strings.HasPrefix(trimmed, ":") {
-			return trimmed
+func resolveListenAddr(flagListen, flagPort string) string {
+	normalize := func(val string) string {
+		val = strings.TrimSpace(val)
+		if val == "" {
+			return val
 		}
-		return ":" + trimmed
+		if strings.HasPrefix(val, ":") || strings.Contains(val, ":") {
+			return val
+		}
+		if _, err := strconv.Atoi(val); err == nil {
+			return defaultListenHost + ":" + val
+		}
+		return val
+	}
+	if trimmed := normalize(flagListen); trimmed != "" {
+		return trimmed
+	}
+	if trimmed := normalize(flagPort); trimmed != "" {
+		return trimmed
 	}
 	if env := strings.TrimSpace(os.Getenv("ACCESSTOKEN_LISTEN_ADDR")); env != "" {
-		return env
+		return normalize(env)
 	}
 	return defaultListenAddr
 }
@@ -222,6 +292,15 @@ func resolveAPIToken() string {
 		return env
 	}
 	return "dev-accesstoken"
+}
+
+func resolveFlowTTLSeconds() int {
+	if env := strings.TrimSpace(os.Getenv("ACCESSTOKEN_FLOW_TTL_SECONDS")); env != "" {
+		if v, err := strconv.Atoi(env); err == nil && v > 0 {
+			return v
+		}
+	}
+	return defaultFlowTTLSeconds
 }
 
 func (s *accessTokenServer) buildDefaultCallbackURL() string {
@@ -361,14 +440,7 @@ func (s *accessTokenServer) requireAPIToken(next http.Handler) http.Handler {
 			next.ServeHTTP(w, r)
 			return
 		}
-		token := strings.TrimSpace(r.Header.Get("Authorization"))
-		if strings.HasPrefix(strings.ToLower(token), "bearer ") {
-			token = strings.TrimSpace(token[7:])
-		} else if header := strings.TrimSpace(r.Header.Get("X-API-Token")); header != "" {
-			token = header
-		} else if query := strings.TrimSpace(r.URL.Query().Get("api_token")); query != "" {
-			token = query
-		}
+		token := s.extractAPIToken(r)
 		if token == "" || token != s.apiToken {
 			w.WriteHeader(http.StatusUnauthorized)
 			_, _ = w.Write([]byte("unauthorized"))
@@ -376,6 +448,18 @@ func (s *accessTokenServer) requireAPIToken(next http.Handler) http.Handler {
 		}
 		next.ServeHTTP(w, r)
 	})
+}
+
+func (s *accessTokenServer) extractAPIToken(r *http.Request) string {
+	token := strings.TrimSpace(r.Header.Get("Authorization"))
+	if strings.HasPrefix(strings.ToLower(token), "bearer ") {
+		token = strings.TrimSpace(token[7:])
+	} else if header := strings.TrimSpace(r.Header.Get("X-API-Token")); header != "" {
+		token = header
+	} else if query := strings.TrimSpace(r.URL.Query().Get("api_token")); query != "" {
+		token = query
+	}
+	return token
 }
 
 func (s *accessTokenServer) loadLocalConfig(override string) (*config.LocalConfig, string, error) {
@@ -459,10 +543,10 @@ func (s *accessTokenServer) resolveProviderConfig(providerCode, providerApp, mod
 		}
 		ctx.RedBook = mode.RedBookJuGuangConfig
 	case providerBilibili:
-		if mode.BiliBiliConfig == nil {
+		if mode.BiliConfig() == nil {
 			return nil, fmt.Errorf("provider %s app %s 缺少 bilibili_config", provider.Code, app.Code)
 		}
-		ctx.Bilibili = mode.BiliBiliConfig
+		ctx.Bilibili = mode.BiliConfig()
 	default:
 		return nil, fmt.Errorf("unsupported provider %s", mode.ConfigKind())
 	}
@@ -494,38 +578,35 @@ func (ctx *providerContext) displayName() string {
 	return "-"
 }
 
-func (s *accessTokenServer) resolveAccessTokenValue(ctx *providerContext, explicit string) (string, string, *oauthTokenRecord) {
+func (s *accessTokenServer) resolveAccessTokenValue(ctx *providerContext, explicit string) (string, string, string, *oauthTokenRecord) {
 	if ctx == nil {
-		return "", "", nil
+		return "", "", "", nil
 	}
 	if token := strings.TrimSpace(explicit); token != "" {
-		return token, "payload", nil
+		return token, "request", "payload", nil
 	}
 	if keys := app.EnvKeysForProvider(ctx.ProviderCode); len(keys) > 0 {
 		for _, key := range keys {
 			if val := strings.TrimSpace(os.Getenv(key)); val != "" {
-				return val, "env:" + key, nil
+				return val, "env", key, nil
 			}
 		}
 	}
 	if cfg := ctx.clientConfig(); cfg != nil && cfg.OAuthConfig != nil {
 		if token := strings.TrimSpace(cfg.OAuthConfig.AccessToken); token != "" {
-			return token, "config", nil
+			return token, "config", "config", nil
 		}
 	}
 	if rec := s.latestOAuthToken(ctx.ProviderCode, ctx.AppCode, ctx.ModeKey); rec != nil {
 		if token := strings.TrimSpace(rec.AccessToken); token != "" {
-			source := strings.TrimSpace(rec.Source)
-			if rec.FlowID != "" {
-				source = fmt.Sprintf("flow:%s", rec.FlowID)
+			detail := rec.FlowID
+			if detail == "" {
+				detail = "oauth_cache"
 			}
-			if source == "" {
-				source = "oauth_cache"
-			}
-			return token, source, rec
+			return token, "flow", detail, rec
 		}
 	}
-	return "", "", nil
+	return "", "", "", nil
 }
 
 func (s *accessTokenServer) buildOAuthAuthorizeURL(ctx *providerContext) (string, string, error) {
@@ -549,8 +630,11 @@ func (s *accessTokenServer) buildOAuthAuthorizeURL(ctx *providerContext) (string
 		return "", "", errors.New("OAuth scope 未配置")
 	}
 	authEndpoint := strings.TrimSpace(oauthCfg.OAuthUrl)
-	if authEndpoint == "" {
+	if authEndpoint == "" && ctx.Mode.ConfigKind() == providerGoogleYouTube {
 		authEndpoint = "https://accounts.google.com/o/oauth2/v2/auth"
+	}
+	if authEndpoint == "" {
+		return "", "", errors.New("OAuth oauth_url 未配置")
 	}
 	state := s.registerOAuthState(ctx, ctx.ConfigPath)
 	query := url.Values{}
@@ -559,10 +643,13 @@ func (s *accessTokenServer) buildOAuthAuthorizeURL(ctx *providerContext) (string
 	query.Set("redirect_uri", redirect)
 	query.Set("scope", scope)
 	query.Set("state", state)
-	query.Set("access_type", "offline")
-	query.Set("include_granted_scopes", "true")
-	if strings.Contains(scope, "youtube") {
-		query.Set("prompt", "consent")
+	switch ctx.Mode.ConfigKind() {
+	case providerGoogleYouTube, providerGoogleBlogger:
+		query.Set("access_type", "offline")
+		query.Set("include_granted_scopes", "true")
+		if strings.Contains(scope, "youtube") {
+			query.Set("prompt", "consent")
+		}
 	}
 	return fmt.Sprintf("%s?%s", authEndpoint, query.Encode()), state, nil
 }
@@ -610,7 +697,7 @@ func (s *accessTokenServer) popOAuthState(state string) *oauthState {
 	return payload
 }
 
-func (s *accessTokenServer) completeOAuthFlow(ctx context.Context, state, code string) (*oauthTokenRecord, error) {
+func (s *accessTokenServer) completeOAuthFlow(ctx context.Context, state, code string, callback *callbackRecord) (*oauthTokenRecord, error) {
 	payload := s.popOAuthState(state)
 	if payload == nil {
 		return nil, errors.New("state 无效或已过期，请重新发起授权")
@@ -627,6 +714,7 @@ func (s *accessTokenServer) completeOAuthFlow(ctx context.Context, state, code s
 		ProviderCode: providerCtx.ProviderCode,
 		ProviderApp:  providerCtx.AppCode,
 		AuthMode:     providerCtx.ModeKey,
+		ConfigPath:   providerCtx.ConfigPath,
 		FlowID:       fmt.Sprintf("oauth-%s", state),
 		AccessToken:  exchange.AccessToken,
 		RefreshToken: exchange.RefreshToken,
@@ -635,14 +723,21 @@ func (s *accessTokenServer) completeOAuthFlow(ctx context.Context, state, code s
 		ExpiresIn:    exchange.ExpiresIn,
 		StoredAt:     time.Now().UTC(),
 		Source:       "authorization_code",
+		Callback:     cloneCallbackRecord(callback),
 	}
 	if record.ExpiresIn <= 0 {
 		record.ExpiresIn = app.DefaultAccessTokenTTLSeconds
 	}
-	record.ExpireAt = record.StoredAt.Add(time.Duration(record.ExpiresIn) * time.Second)
+	record.TokenExpireAt = record.StoredAt.Add(time.Duration(record.ExpiresIn) * time.Second)
+	record.FlowTTLSeconds = s.flowTTLSeconds
+	if record.FlowTTLSeconds <= 0 {
+		record.FlowTTLSeconds = defaultFlowTTLSeconds
+	}
+	record.FlowExpireAt = record.StoredAt.Add(time.Duration(record.FlowTTLSeconds) * time.Second)
 	if err := s.saveOAuthTokenRecord(record); err != nil {
 		s.logger.ErrorF("accesstoken-server: 保存授权 token 失败: %v", err)
 	}
+	s.logFlowAction("oauth.complete", providerCtx, record.FlowID, "authorization_code", "")
 	return record, nil
 }
 
@@ -732,6 +827,10 @@ func (s *accessTokenServer) saveOAuthTokenRecord(rec *oauthTokenRecord) error {
 	if rec == nil {
 		return nil
 	}
+	if rec.StorageBackend == "" {
+		rec.StorageBackend = s.storageBackend
+	}
+	s.enrichFlowMetadata(rec)
 	key := s.cacheKeyForToken(rec)
 	s.oauthTokenMu.Lock()
 	if key != "" {
@@ -741,16 +840,19 @@ func (s *accessTokenServer) saveOAuthTokenRecord(rec *oauthTokenRecord) error {
 	if s.cache != nil {
 		data, err := json.Marshal(rec)
 		if err == nil {
-			expiration := time.Duration(rec.ExpiresIn) * time.Second
+			expiration := s.flowTTL
 			if expiration <= 0 {
-				expiration = time.Hour
+				expiration = time.Duration(rec.FlowTTLSeconds) * time.Second
+			}
+			if expiration <= 0 {
+				expiration = time.Hour * 24
 			}
 			ctx := context.Background()
 			if key != "" {
 				_ = s.cache.Set(ctx, key, data, expiration)
 			}
 			if flowKey := s.flowIndexKey(rec.FlowID); flowKey != "" && key != "" {
-				_ = s.cache.Set(ctx, flowKey, key, expiration)
+				_ = s.cache.Set(ctx, flowKey, []byte(key), expiration)
 			}
 		}
 	}
@@ -769,7 +871,8 @@ func (s *accessTokenServer) listOAuthTokenRecords(providerCode, appCode, mode st
 		if rec == nil {
 			continue
 		}
-		if rec.ExpireAt.Before(now) {
+		s.enrichFlowMetadata(rec)
+		if rec.FlowExpireAt.Before(now) {
 			continue
 		}
 		if providerCode != "" && !strings.EqualFold(rec.ProviderCode, providerCode) {
@@ -824,7 +927,8 @@ func (s *accessTokenServer) fetchTokenFromCache(providerCode, appCode, mode stri
 	if err := json.Unmarshal(raw, rec); err != nil {
 		return nil
 	}
-	if rec.ExpireAt.Before(time.Now().UTC()) {
+	s.enrichFlowMetadata(rec)
+	if rec.FlowExpireAt.Before(time.Now().UTC()) {
 		return nil
 	}
 	s.oauthTokenMu.Lock()
@@ -834,9 +938,17 @@ func (s *accessTokenServer) fetchTokenFromCache(providerCode, appCode, mode stri
 }
 
 func (s *accessTokenServer) fetchTokenByFlowID(flowID string) *oauthTokenRecord {
+	rec, err := s.lookupFlowByID(flowID)
+	if err != nil {
+		return nil
+	}
+	return rec
+}
+
+func (s *accessTokenServer) lookupFlowByID(flowID string) (*oauthTokenRecord, error) {
 	flowID = strings.TrimSpace(flowID)
 	if flowID == "" {
-		return nil
+		return nil, errFlowNotFound
 	}
 	now := time.Now().UTC()
 	s.oauthTokenMu.RLock()
@@ -844,35 +956,47 @@ func (s *accessTokenServer) fetchTokenByFlowID(flowID string) *oauthTokenRecord 
 		if rec == nil {
 			continue
 		}
-		if strings.EqualFold(rec.FlowID, flowID) && rec.ExpireAt.After(now) {
+		s.enrichFlowMetadata(rec)
+		if strings.EqualFold(rec.FlowID, flowID) {
+			if rec.FlowExpireAt.Before(now) {
+				s.oauthTokenMu.RUnlock()
+				return nil, errFlowExpired
+			}
 			s.oauthTokenMu.RUnlock()
-			return rec
+			return rec, nil
 		}
 	}
 	s.oauthTokenMu.RUnlock()
 	indexKey := s.flowIndexKey(flowID)
 	if indexKey == "" {
-		return nil
+		return nil, errFlowNotFound
 	}
 	keyBytes, err := s.cachedGet(context.Background(), indexKey)
-	if err != nil || len(keyBytes) == 0 {
-		return nil
+	if err != nil {
+		return nil, err
+	}
+	if len(keyBytes) == 0 {
+		return nil, errFlowNotFound
 	}
 	raw, err := s.cachedGet(context.Background(), string(keyBytes))
-	if err != nil || len(raw) == 0 {
-		return nil
+	if err != nil {
+		return nil, err
+	}
+	if len(raw) == 0 {
+		return nil, errFlowNotFound
 	}
 	rec := &oauthTokenRecord{}
 	if err := json.Unmarshal(raw, rec); err != nil {
-		return nil
+		return nil, err
 	}
-	if rec.ExpireAt.Before(now) {
-		return nil
+	s.enrichFlowMetadata(rec)
+	if rec.FlowExpireAt.Before(now) {
+		return nil, errFlowExpired
 	}
 	s.oauthTokenMu.Lock()
 	s.oauthTokens[string(keyBytes)] = rec
 	s.oauthTokenMu.Unlock()
-	return rec
+	return rec, nil
 }
 
 func (s *accessTokenServer) cachedGet(ctx context.Context, key string) ([]byte, error) {
@@ -896,4 +1020,228 @@ func (s *accessTokenServer) cachedGet(ctx context.Context, key string) ([]byte, 
 		return data, err
 	}
 	return nil, nil
+}
+
+func (s *accessTokenServer) scanFlowRecords(ctx context.Context, provider, appCode, mode string, limit int, cursor string) ([]*oauthTokenRecord, string, error) {
+	if s.redis == nil {
+		return nil, "", nil
+	}
+	var start uint64
+	if cursor != "" {
+		if parsed, err := strconv.ParseUint(cursor, 10, 64); err == nil {
+			start = parsed
+		}
+	}
+	records := make([]*oauthTokenRecord, 0, limit)
+	seen := make(map[string]struct{}, limit*2)
+	nextCursor := start
+	for len(records) < limit {
+		keys, newCursor, err := s.redis.Scan(ctx, nextCursor, flowIndexPrefix+"*", int64(limit*4)).Result()
+		if err != nil {
+			return nil, "", err
+		}
+		nextCursor = newCursor
+		for _, key := range keys {
+			if !strings.HasPrefix(key, flowIndexPrefix) {
+				continue
+			}
+			flowID := strings.TrimPrefix(key, flowIndexPrefix)
+			if flowID == "" {
+				continue
+			}
+			if _, ok := seen[flowID]; ok {
+				continue
+			}
+			seen[flowID] = struct{}{}
+			rec, err := s.lookupFlowByID(flowID)
+			if err != nil {
+				if errors.Is(err, errFlowExpired) || errors.Is(err, errFlowNotFound) {
+					continue
+				}
+				continue
+			}
+			if !s.matchesProvider(rec, provider, appCode, mode) {
+				continue
+			}
+			records = append(records, rec)
+			if len(records) >= limit {
+				break
+			}
+		}
+		if nextCursor == 0 {
+			break
+		}
+	}
+	var next string
+	if nextCursor != 0 {
+		next = strconv.FormatUint(nextCursor, 10)
+	}
+	return records, next, nil
+}
+
+func (s *accessTokenServer) matchesProvider(rec *oauthTokenRecord, provider, appCode, mode string) bool {
+	if rec == nil {
+		return false
+	}
+	if provider != "" && !strings.EqualFold(rec.ProviderCode, provider) {
+		return false
+	}
+	if appCode != "" && !strings.EqualFold(rec.ProviderApp, appCode) {
+		return false
+	}
+	if mode != "" && !strings.EqualFold(rec.AuthMode, mode) {
+		return false
+	}
+	return true
+}
+
+func (s *accessTokenServer) buildFlowSummary(rec *oauthTokenRecord) map[string]any {
+	if rec == nil {
+		return map[string]any{}
+	}
+	s.enrichFlowMetadata(rec)
+	summary := map[string]any{
+		"flow_id":            rec.FlowID,
+		"provider_code":      rec.ProviderCode,
+		"provider_app":       rec.ProviderApp,
+		"provider_auth_mode": rec.AuthMode,
+		"storage_backend":    rec.StorageBackend,
+		"expire_at":          rec.FlowExpireAt,
+		"flow_ttl_seconds":   rec.FlowTTLSeconds,
+		"status":             s.flowStatus(rec),
+		"masked_token":       app.MaskToken(rec.AccessToken),
+		"masked_account":     s.maskAccount(rec),
+		"source":             rec.Source,
+		"config_path":        rec.ConfigPath,
+		"token_type":         rec.TokenType,
+		"expires_in":         rec.ExpiresIn,
+	}
+	if rec.Callback != nil && rec.Callback.State != "" {
+		summary["flow_state"] = rec.Callback.State
+	}
+	return summary
+}
+
+func (s *accessTokenServer) flowStatus(rec *oauthTokenRecord) string {
+	if rec == nil {
+		return "invalid"
+	}
+	now := time.Now().UTC()
+	if rec.FlowExpireAt.Before(now) {
+		return "expired"
+	}
+	if strings.TrimSpace(rec.AccessToken) == "" {
+		return "pending"
+	}
+	return "authorized"
+}
+
+func (s *accessTokenServer) buildFlowPayload(rec *oauthTokenRecord) map[string]any {
+	if rec == nil {
+		return nil
+	}
+	s.enrichFlowMetadata(rec)
+	payload := map[string]any{
+		"flow_id":            rec.FlowID,
+		"provider_code":      rec.ProviderCode,
+		"provider_app":       rec.ProviderApp,
+		"provider_auth_mode": rec.AuthMode,
+		"config_path":        rec.ConfigPath,
+		"access_token":       rec.AccessToken,
+		"masked_token":       app.MaskToken(rec.AccessToken),
+		"refresh_token":      rec.RefreshToken,
+		"token_type":         rec.TokenType,
+		"scope":              rec.Scope,
+		"expires_in":         rec.ExpiresIn,
+		"expire_at":          rec.ExpireAt,
+		"flow_expire_at":     rec.FlowExpireAt,
+		"flow_ttl_seconds":   rec.FlowTTLSeconds,
+		"storage_backend":    rec.StorageBackend,
+		"token_source":       rec.Source,
+	}
+	if rec.Callback != nil {
+		payload["callback"] = rec.Callback
+	}
+	return payload
+}
+
+func (s *accessTokenServer) maskAccount(rec *oauthTokenRecord) string {
+	if rec == nil {
+		return "-"
+	}
+	parts := []string{safeValue(rec.ProviderCode), safeValue(rec.ProviderApp), safeValue(rec.AuthMode)}
+	return strings.Join(parts, "/")
+}
+
+func (s *accessTokenServer) enrichFlowMetadata(rec *oauthTokenRecord) {
+	if rec == nil {
+		return
+	}
+	if rec.FlowTTLSeconds <= 0 {
+		rec.FlowTTLSeconds = s.flowTTLSeconds
+		if rec.FlowTTLSeconds <= 0 {
+			rec.FlowTTLSeconds = defaultFlowTTLSeconds
+		}
+	}
+	if rec.FlowExpireAt.IsZero() {
+		if !rec.StoredAt.IsZero() {
+			rec.FlowExpireAt = rec.StoredAt.Add(time.Duration(rec.FlowTTLSeconds) * time.Second)
+		} else if !rec.ExpireAt.IsZero() {
+			rec.FlowExpireAt = rec.ExpireAt
+		}
+	}
+	if rec.TokenExpireAt.IsZero() && rec.ExpiresIn > 0 {
+		rec.TokenExpireAt = rec.StoredAt.Add(time.Duration(rec.ExpiresIn) * time.Second)
+	}
+	if rec.ExpireAt.IsZero() && !rec.FlowExpireAt.IsZero() {
+		rec.ExpireAt = rec.FlowExpireAt
+	}
+	if rec.StorageBackend == "" {
+		rec.StorageBackend = s.storageBackend
+	}
+}
+
+func (s *accessTokenServer) validateListenAddr() error {
+	host := listenHostFromAddr(s.listenAddr)
+	lower := strings.ToLower(host)
+	s.listenAddrPublic = host == "" || lower == "0.0.0.0" || lower == "::"
+	if s.listenAddrPublic && s.logger != nil {
+		s.logger.WarnF("accesstoken-server: listen_addr=%s is publicly reachable; override ACCESSTOKEN_LISTEN_ADDR to restrict to 127.0.0.1 if needed", s.listenAddr)
+	}
+	return nil
+}
+
+func listenHostFromAddr(addr string) string {
+	addr = strings.TrimSpace(addr)
+	if addr == "" {
+		return ""
+	}
+	if strings.HasPrefix(addr, "[") {
+		if idx := strings.Index(addr, "]"); idx != -1 {
+			return strings.TrimSpace(addr[1:idx])
+		}
+	}
+	if strings.HasPrefix(addr, ":") {
+		return ""
+	}
+	if strings.Contains(addr, ":") {
+		host, _, _ := strings.Cut(addr, ":")
+		return strings.TrimSpace(host)
+	}
+	return addr
+}
+
+func loadAccessTokenRedisConfig(configPath string) *config.AccessTokenRedisConfig {
+	path := strings.TrimSpace(configPath)
+	if path == "" {
+		return nil
+	}
+	localCfg := &config.LocalConfig{}
+	if err := utils.LoadYAML(path, localCfg); err != nil {
+		return nil
+	}
+	if localCfg.AccessTokenProviders == nil {
+		return nil
+	}
+	return localCfg.AccessTokenProviders.Redis
 }

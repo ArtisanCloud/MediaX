@@ -29,6 +29,10 @@ ArisanCloud 团队已经成功维护了 [PowerWechat](https://powerwechat.artisa
 
 - OAuth2.0 授权流程，可以参考[理解 OAuth 2.0](https://www.ruanyifeng.com/blog/2014/05/oauth_2_0.html)文章
 
+### AccessToken 调试
+
+- 想快速体验 BiliBili AccessToken 调试/回填流程，可参考 [BiliBili AccessToken Debug Quickstart](specs/004-bilibili-access-token/quickstart.md)。
+
 ### 安装
 
 1. 初始化项目并下载 MediaX：

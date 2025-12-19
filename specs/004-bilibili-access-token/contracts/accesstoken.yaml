@@ -1,0 +1,259 @@
+openapi: 3.0.3
+tags:
+  - name: AccessTokenDebug
+info:
+  title: MediaX BiliBili AccessToken Debug API
+  version: "1.0.0"
+servers:
+  - url: http://127.0.0.1:7071
+    description: Local debug server (default listen addr)
+security:
+  - AccessTokenDebugToken: []
+paths:
+  /accesstoken/token:
+    post:
+      tags: [AccessTokenDebug]
+      summary: Resolve/mask an access token for the selected provider/app/mode.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: #/components/schemas/TokenRequest
+      responses:
+        200:
+          description: Token metadata resolved successfully
+          content:
+            application/json:
+              schema:
+                $ref: #/components/schemas/TokenResponse
+        400:
+          description: Missing selection/config or Flow unavailable
+          content:
+            application/json:
+              schema:
+                $ref: #/components/schemas/ErrorResponse
+  /accesstoken/oauth/start:
+    post:
+      tags: [AccessTokenDebug]
+      summary: Start a BiliBili OAuth flow for the selected provider/app/mode.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: #/components/schemas/OAuthStartRequest
+      responses:
+        200:
+          description: Returns authorize URL + Flow metadata
+          content:
+            application/json:
+              schema:
+                $ref: #/components/schemas/OAuthStartResponse
+        400:
+          description: Configuration missing or redirect mismatch
+          content:
+            application/json:
+              schema:
+                $ref: #/components/schemas/ErrorResponse
+  /accesstoken/flow/replay:
+    post:
+      tags: [AccessTokenDebug]
+      summary: Rehydrate a Flow record from Redis or memory cache.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: #/components/schemas/FlowReplayRequest
+      responses:
+        200:
+          description: Flow loaded and debug payloads filled
+          content:
+            application/json:
+              schema:
+                $ref: #/components/schemas/FlowReplayResponse
+        404:
+          description: Flow missing or expired (24h TTL enforced)
+          content:
+            application/json:
+              schema:
+                $ref: #/components/schemas/ErrorResponse
+  /accesstoken/flows:
+    get:
+      tags: [AccessTokenDebug]
+      summary: List Flow headers for the current provider/app/mode.
+      parameters:
+        - in: query
+          name: provider_code
+          schema:
+            type: string
+          required: true
+        - in: query
+          name: provider_app
+          schema:
+            type: string
+          required: true
+        - in: query
+          name: provider_auth_mode
+          schema:
+            type: string
+          required: true
+      responses:
+        200:
+          description: Paginated Flow headers
+          content:
+            application/json:
+              schema:
+                $ref: #/components/schemas/FlowListResponse
+        400:
+          description: Invalid selection
+          content:
+            application/json:
+              schema:
+                $ref: #/components/schemas/ErrorResponse
+  /debug:
+    get:
+      tags: [AccessTokenDebug]
+      summary: Serve the HTML/JS debug console (requires browser token).
+      responses:
+        200:
+          description: HTML UI served
+          content:
+            text/html:
+              schema:
+                type: string
+
+components:
+  securitySchemes:
+    AccessTokenDebugToken:
+      type: http
+      scheme: bearer
+      bearerFormat: AccessToken API token
+  schemas:
+    ProviderSelection:
+      type: object
+      required: [provider_code, provider_app, provider_auth_mode, config_path]
+      properties:
+        provider_code:
+          type: string
+          example: bilibili
+        provider_app:
+          type: string
+          example: content_center
+        provider_auth_mode:
+          type: string
+          example: default
+        config_path:
+          type: string
+          example: config.yaml
+    TokenRequest:
+      allOf:
+        - $ref: #/components/schemas/ProviderSelection
+        - type: object
+          properties:
+            access_token:
+              type: string
+              description: Optional override token; otherwise env/Flow/Redis resolution order is used.
+    TokenResponse:
+      type: object
+      required: [flow_id, masked_token, token_source, access_token_ttl, storage_backend]
+      properties:
+        flow_id:
+          type: string
+          example: oauth-1234abcd
+        masked_token:
+          type: string
+          example: bil-****-abcd
+        token_source:
+          type: string
+          enum: [flow, env, config, request]
+        access_token_ttl:
+          type: integer
+          example: 3600
+        storage_backend:
+          type: string
+          enum: [memory, redis]
+        config_path:
+          type: string
+        provider:
+          type: object
+          properties:
+            code:
+              type: string
+            app:
+              type: string
+            auth_mode:
+              type: string
+    OAuthStartRequest:
+      $ref: #/components/schemas/ProviderSelection
+    OAuthStartResponse:
+      type: object
+      required: [flow_id, authorize_url, expires_in, listen_addr]
+      properties:
+        flow_id:
+          type: string
+        authorize_url:
+          type: string
+        expires_in:
+          type: integer
+          description: TTL suggested by provider
+        listen_addr:
+          type: string
+          example: 127.0.0.1:7071
+    FlowReplayRequest:
+      type: object
+      required: [flow_id]
+      properties:
+        flow_id:
+          type: string
+        provider_fallback:
+          $ref: #/components/schemas/ProviderSelection
+          description: Optional selection used when redis pointer missing.
+    FlowReplayResponse:
+      type: object
+      required: [flow_id, status, storage_backend, payload]
+      properties:
+        flow_id:
+          type: string
+        status:
+          type: string
+          enum: [pending, authorized, invalid, expired]
+        storage_backend:
+          type: string
+        payload:
+          type: object
+          description: Full Flow record stored in redis/memory (callback payload masked).
+    FlowListResponse:
+      type: object
+      properties:
+        flows:
+          type: array
+          items:
+            type: object
+            properties:
+              flow_id:
+                type: string
+              expire_at:
+                type: string
+                format: date-time
+              storage_backend:
+                type: string
+              masked_account:
+                type: string
+        next_cursor:
+          type: string
+          nullable: true
+    ErrorResponse:
+      type: object
+      required: [error, message]
+      properties:
+        error:
+          type: string
+          example: FLOW_NOT_FOUND
+        message:
+          type: string
+          example: Flow expired; please re-authorize.
+        detail:
+          type: object
+          additionalProperties: true
