@@ -32,6 +32,7 @@ ArisanCloud 团队已经成功维护了 [PowerWechat](https://powerwechat.artisa
 ### AccessToken 调试
 
 - 想快速体验 BiliBili AccessToken 调试/回填流程，可参考 [BiliBili AccessToken Debug Quickstart](specs/004-bilibili-access-token/quickstart.md)。
+- 小红书聚光的 OAuth + API 调试示例，请查看 [RedBook AccessToken Quickstart](specs/005-redbook-access-token/quickstart.md) 以及配套的 [调试文档](docs/develop/access-token/redbook/debug.md)。
 
 ### 安装
 

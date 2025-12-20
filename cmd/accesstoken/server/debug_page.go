@@ -55,6 +55,16 @@ var debugPageTemplate = template.Must(template.New("accesstoken_debug").Parse(`<
     .banner { padding:10px 14px; border-radius:8px; margin-bottom:18px; font-size:13px; display:none; }
     .banner.warning { background:#fff4e5; color:#8a5100; border:1px solid #f5c97a; }
     .banner.danger { background:#fdecea; color:#a61b1b; border:1px solid #f5a3a3; }
+    .provider-card { margin-top:16px; border:1px solid #dbe3f0; border-radius:10px; padding:12px 16px; background:#f8fbff; }
+    .provider-card-header { display:flex; justify-content:space-between; align-items:flex-start; gap:12px; }
+    .provider-card-title { font-size:16px; font-weight:600; }
+    .provider-card-subtitle { font-size:12px; color:#4a6b9c; margin-top:2px; }
+    .provider-card-tags { display:flex; gap:8px; flex-wrap:wrap; }
+    .provider-card-tags span { background:#e3e9f4; color:#2c3e68; padding:4px 8px; border-radius:999px; font-size:12px; }
+    .provider-card-body { display:flex; gap:12px; flex-wrap:wrap; margin:12px 0 8px; }
+    .provider-card-body div { flex:1; min-width:160px; font-size:12px; color:#4a5568; }
+    .provider-card-body code { display:block; margin-top:4px; background:#fff; border:1px solid #dbe3f0; padding:4px 6px; border-radius:6px; }
+    .provider-card pre { background:#0b2545; color:#d6f0ff; min-height:80px; }
   </style>
 </head>
 <body data-api-token="{{.APIToken}}" data-default-provider="{{.DefaultProvider}}" data-default-app="{{.DefaultApp}}" data-default-mode="{{.DefaultMode}}" data-default-callback="{{.DefaultCallback}}" data-storage-backend="{{.StorageBackend}}" data-flow-ttl="{{.FlowTTLSeconds}}" data-listen-addr="{{.ListenAddr}}" data-public-listen="{{if .PublicListen}}true{{else}}false{{end}}">
@@ -103,6 +113,34 @@ var debugPageTemplate = template.Must(template.New("accesstoken_debug").Parse(`<
         <label>OAuth Key</label>
         <input id="oauthKeyInput" type="text" readonly />
       </div>
+    </div>
+    <div class="provider-card" id="providerCard">
+      <div class="provider-card-header">
+        <div>
+          <div class="provider-card-title" id="providerCardTitle">-</div>
+          <div class="provider-card-subtitle" id="providerCardVersion">API v-</div>
+        </div>
+        <div class="provider-card-tags">
+          <span id="providerCardModeTag">模式：-</span>
+          <span id="providerCardOAuthKeyTag">OAuth Key：-</span>
+        </div>
+      </div>
+      <div class="provider-card-body">
+        <div>
+          Provider Code
+          <code id="providerCardProviderCode">-</code>
+        </div>
+        <div>
+          App Code
+          <code id="providerCardAppCode">-</code>
+        </div>
+        <div>
+          Config Path
+          <code id="providerCardConfigPath">config.yaml</code>
+        </div>
+      </div>
+      <label>默认模板</label>
+      <pre id="providerCardTemplate">{}</pre>
     </div>
     <label>Callback URL</label>
     <input id="callbackInput" type="text" />
@@ -196,7 +234,7 @@ var debugPageTemplate = template.Must(template.New("accesstoken_debug").Parse(`<
     </div>
     <textarea id="callPayload"></textarea>
     <div class="actions">
-      <button type="button" onclick="invoke('/accesstoken/call', 'callPayload', 'callOutput')">执行 API</button>
+      <button type="button" onclick="executeAPICall()">执行 API</button>
       <button type="button" class="secondary" onclick="loadCallbacks()">刷新回调记录</button>
       <button type="button" class="secondary" onclick="clearCallbacks()">清空回调</button>
     </div>
@@ -252,6 +290,15 @@ var debugPageTemplate = template.Must(template.New("accesstoken_debug").Parse(`<
     const storageBanner = document.getElementById('storageBanner');
     const publicBanner = document.getElementById('publicBanner');
     const tokenChip = document.getElementById('tokenChip');
+    const providerCard = document.getElementById('providerCard');
+    const providerCardTitle = document.getElementById('providerCardTitle');
+    const providerCardVersion = document.getElementById('providerCardVersion');
+    const providerCardModeTag = document.getElementById('providerCardModeTag');
+    const providerCardOAuthKeyTag = document.getElementById('providerCardOAuthKeyTag');
+    const providerCardProviderCode = document.getElementById('providerCardProviderCode');
+    const providerCardAppCode = document.getElementById('providerCardAppCode');
+    const providerCardConfigPath = document.getElementById('providerCardConfigPath');
+    const providerCardTemplate = document.getElementById('providerCardTemplate');
     let tokenCache = [];
     let flashTimer = null;
 
@@ -260,6 +307,16 @@ var debugPageTemplate = template.Must(template.New("accesstoken_debug").Parse(`<
       if (!token) return '-';
       if (token.length <= 4) return '***';
       return token.slice(0, 2) + '***' + token.slice(-2);
+    }
+
+    function isRedbookProvider() {
+      const currentApp = getCurrentApp();
+      const providerCode = (currentApp?.provider_code || state.provider || '').toLowerCase();
+      return providerCode === 'redbook_juguang';
+    }
+
+    function executeAPICall() {
+      invoke('/accesstoken/call', 'callPayload', 'callOutput');
     }
 
     function updateTokenChip() {
@@ -368,6 +425,10 @@ var debugPageTemplate = template.Must(template.New("accesstoken_debug").Parse(`<
       }
     };
 
+    if (configPathInput && providerCard) {
+      configPathInput.addEventListener('input', () => renderProviderCard());
+    }
+
     function getCurrentProvider() {
       return providers.find(p => p.code === state.provider);
     }
@@ -456,12 +517,47 @@ var debugPageTemplate = template.Must(template.New("accesstoken_debug").Parse(`<
       loadTokens(false);
     }
 
-    function applyTemplate() {
+    function selectionSnapshot() {
+      const app = getCurrentApp();
+      const mode = getCurrentMode();
       const configPath = configPathInput.value.trim();
-      const currentApp = getCurrentApp();
-      const providerCode = currentApp?.provider_code || state.provider || '';
-      const appCode = currentApp?.app_key || currentApp?.code || state.app || '';
-      const modeKey = state.mode || getCurrentMode()?.key || '';
+      const providerCode = app?.provider_code || state.provider || '';
+      const appCode = app?.app_key || app?.code || state.app || '';
+      const modeKey = state.mode || mode?.key || '';
+      return { app, mode, configPath, providerCode, appCode, modeKey };
+    }
+
+    function renderProviderCard(preview) {
+      if (!providerCard) return;
+      const snapshot = selectionSnapshot();
+      const provider = getCurrentProvider();
+      const { app, mode, providerCode, appCode, configPath, modeKey } = snapshot;
+      const providerName = provider?.name || provider?.code || '-';
+      const appName = app?.name || app?.code || '-';
+      providerCardTitle.textContent = providerName && appName ? providerName + ' / ' + appName : providerName || appName || '-';
+      providerCardVersion.textContent = 'API ' + (app?.api_version || 'v1');
+      providerCardModeTag.textContent = '模式：' + (mode?.label || mode?.key || '-');
+      const oauthKey = (mode?.oauth_key || app?.oauth_key || '').trim();
+      providerCardOAuthKeyTag.textContent = 'OAuth Key：' + (oauthKey || '未配置');
+      providerCardProviderCode.textContent = providerCode || '-';
+      providerCardAppCode.textContent = app?.code || appCode || '-';
+      providerCardConfigPath.textContent = configPath || app?.config_path || '';
+      const templateData = preview || {
+        provider_code: providerCode,
+        provider_app: appCode,
+        provider_auth_mode: modeKey,
+        config_path: configPath,
+        api_version: app?.api_version || '',
+        oauth_key: oauthKey
+      };
+      if (providerCardTemplate) {
+        providerCardTemplate.textContent = JSON.stringify(templateData, null, 2);
+      }
+    }
+
+    function applyTemplate() {
+      const snapshot = selectionSnapshot();
+      const { providerCode, appCode, modeKey, configPath, app, mode } = snapshot;
       const token = {
         provider_code: providerCode,
         provider_app: appCode,
@@ -483,6 +579,14 @@ var debugPageTemplate = template.Must(template.New("accesstoken_debug").Parse(`<
       document.getElementById('tokenPayload').value = JSON.stringify(token, null, 2);
       setCallFormValues(call);
       syncCallPayloadFromForm();
+      renderProviderCard({
+        provider_code: providerCode,
+        provider_app: appCode,
+        provider_auth_mode: modeKey,
+        config_path: configPath,
+        api_version: app?.api_version || '',
+        oauth_key: (mode?.oauth_key || app?.oauth_key || '').trim()
+      });
       showFlash('已根据当前 Provider/App 同步 JSON 模板。', false);
     }
 
@@ -645,12 +749,13 @@ var debugPageTemplate = template.Must(template.New("accesstoken_debug").Parse(`<
       const modeKey = state.mode || getCurrentMode()?.key || '';
       const idsValue = callIdsInput.value.trim();
       const chartValue = idsValue ? '' : 'mostPopular';
+      const action = apiActionSelect.value;
       return {
         provider_code: providerCode,
         provider_app: appCode,
         provider_auth_mode: modeKey,
         config_path: configPath,
-        action: apiActionSelect.value,
+        action: action,
         part: callPartInput.value.trim(),
         ids: idsValue,
         chart: chartValue,
@@ -826,12 +931,19 @@ var debugPageTemplate = template.Must(template.New("accesstoken_debug").Parse(`<
     }
 
     function attachCallFormListeners() {
-      if (!apiActionSelect) {
-        return;
-      }
-      apiActionSelect.addEventListener('change', () => {
-        applyActionPreset(apiActionSelect.value);
+    if (!apiActionSelect) {
+      return;
+    }
+    apiActionSelect.addEventListener('change', () => {
+      applyActionPreset(apiActionSelect.value);
+    });
+    if (redbookAdvertiserInput) {
+      redbookAdvertiserInput.addEventListener('input', () => {
+        if (isRedbookAction(apiActionSelect.value)) {
+          syncCallPayloadFromForm();
+        }
       });
+    }
       [callPartInput, callIdsInput, callQueryInput, callChannelInput, callMaxResultsInput].forEach((el) => {
         if (!el) return;
         el.addEventListener('input', () => syncCallPayloadFromForm());
@@ -849,7 +961,7 @@ var debugPageTemplate = template.Must(template.New("accesstoken_debug").Parse(`<
       callbackInput.value = document.body.dataset.defaultCallback || '';
       loadCallbacks();
       attachCallFormListeners();
-      applyActionPreset(apiActionSelect.value);
+    applyActionPreset(apiActionSelect.value);
     }
 
     init();

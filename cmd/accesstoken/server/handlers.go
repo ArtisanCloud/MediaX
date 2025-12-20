@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -13,6 +14,8 @@ import (
 
 	app "github.com/ArtisanCloud/MediaX/cmd/accesstoken/internal/app"
 	mask "github.com/ArtisanCloud/MediaX/internal/accesstoken/handler"
+	redbookClient "github.com/ArtisanCloud/MediaX/pkg/client/redBook/juGuang/accessTokenClient"
+	redbookAccountBalanceSchema "github.com/ArtisanCloud/MediaX/pkg/client/redBook/juGuang/accessTokenClient/account/schema"
 	"github.com/ArtisanCloud/MediaXCore/utils/object"
 )
 
@@ -27,6 +30,7 @@ type tokenRequest struct {
 
 type callRequest struct {
 	app.Options
+	Payload map[string]any `json:"payload"`
 }
 
 type oauthStartRequest struct {
@@ -125,24 +129,24 @@ func (s *accessTokenServer) handleCall(w http.ResponseWriter, r *http.Request) {
 	}
 	opts := &request.Options
 	opts.Normalize()
-	if err := opts.Validate(); err != nil {
-		s.writeError(w, http.StatusBadRequest, err.Error())
+	if strings.TrimSpace(opts.Action) == "" {
+		s.writeError(w, http.StatusBadRequest, "missing required field: action")
 		return
 	}
-
 	ctx, err := s.resolveProviderConfig(opts.ProviderCode, opts.ProviderApp, opts.AuthMode, opts.ConfigPath)
 	if err != nil {
 		s.writeError(w, http.StatusBadRequest, err.Error())
 		return
 	}
-	if ctx.ProviderCode != providerGoogleYouTube {
-		s.writeError(w, http.StatusBadRequest, "provider %s 暂未开放 API 调试，仅支持 Google YouTube", ctx.displayName())
-		return
+	opts.ProviderCode = ctx.ProviderCode
+	opts.ProviderApp = ctx.AppCode
+	if opts.AuthMode == "" {
+		opts.AuthMode = ctx.ModeKey
 	}
 
 	token, source, sourceDetail, storedRec := s.resolveAccessTokenValue(ctx, opts.AccessToken)
 	if token == "" {
-		s.writeError(w, http.StatusBadRequest, "missing access token: provide access_token 或配置 GOOGLE_YOUTUBE_ACCESS_TOKEN / oauth.access_token")
+		s.writeError(w, http.StatusBadRequest, "missing access token: 请在 payload.access_token / 环境变量 / Flow 中提供 AccessToken")
 		return
 	}
 	opts.AccessToken = token
@@ -153,23 +157,34 @@ func (s *accessTokenServer) handleCall(w http.ResponseWriter, r *http.Request) {
 		opts.AccessTokenTTL = app.DefaultAccessTokenTTLSeconds
 	}
 
-	cfg := ctx.Youtube
-	configPath := ctx.ConfigPath
-	cfg.GetOAuthToken = func(key string, refresh bool) object.HashMap {
+	switch ctx.ProviderCode {
+	case providerGoogleYouTube:
+		if err := opts.Validate(); err != nil {
+			s.writeError(w, http.StatusBadRequest, err.Error())
+			return
+		}
+		s.executeYouTubeCall(w, r, ctx, opts, source, sourceDetail, storedRec)
+	case providerRedBookJuGuang:
+		s.executeRedbookCall(r.Context(), w, ctx, opts, request.Payload, source, sourceDetail, storedRec)
+	default:
+		s.writeError(w, http.StatusBadRequest, "provider %s 暂未开放 API 调试", ctx.displayName())
+	}
+}
+
+func (s *accessTokenServer) executeYouTubeCall(w http.ResponseWriter, r *http.Request, ctx *providerContext, opts *app.Options, source, sourceDetail string, storedRec *oauthTokenRecord) {
+	if ctx == nil || ctx.Youtube == nil {
+		s.writeError(w, http.StatusBadRequest, "provider %s 缺少 youtube 配置", ctx.displayName())
+		return
+	}
+	cfgCopy := *ctx.Youtube
+	cfgCopy.GetOAuthToken = func(key string, refresh bool) object.HashMap {
 		return object.HashMap{
-			"access_token": token,
+			"access_token": opts.AccessToken,
 			"expires_in":   float64(opts.AccessTokenTTL),
 		}
 	}
-
-	opts.ProviderCode = ctx.ProviderCode
-	opts.ProviderApp = ctx.AppCode
-	if opts.AuthMode == "" {
-		opts.AuthMode = ctx.ModeKey
-	}
-
-	app.LogInvocation(s.logger, opts, cfg.OauthKey)
-	ytClient, err := s.mediaX.CreateGoogleYouTubeACClient(cfg)
+	app.LogInvocation(s.logger, opts, cfgCopy.OauthKey)
+	ytClient, err := s.mediaX.CreateGoogleYouTubeACClient(&cfgCopy)
 	if err != nil {
 		s.writeError(w, http.StatusInternalServerError, "create youtube client: %v", err)
 		return
@@ -179,14 +194,13 @@ func (s *accessTokenServer) handleCall(w http.ResponseWriter, r *http.Request) {
 		s.writeError(w, http.StatusBadGateway, err.Error())
 		return
 	}
-
 	resp := map[string]any{
 		"result":              data,
 		"token_source":        source,
 		"token_source_detail": sourceDetail,
 		"masked_token":        app.MaskToken(opts.AccessToken),
-		"oauth_key":           cfg.OauthKey,
-		"config_path":         configPath,
+		"oauth_key":           cfgCopy.OauthKey,
+		"config_path":         ctx.ConfigPath,
 		"provider":            ctx.displayName(),
 		"provider_code":       ctx.ProviderCode,
 		"provider_app":        ctx.AppCode,
@@ -202,14 +216,171 @@ func (s *accessTokenServer) handleCall(w http.ResponseWriter, r *http.Request) {
 		resp["flow_id"] = storedRec.FlowID
 		resp["flow_expire_at"] = storedRec.FlowExpireAt
 		resp["flow_ttl_seconds"] = storedRec.FlowTTLSeconds
+		resp["storage_backend"] = storedRec.StorageBackend
 	}
 	flowID := ""
 	if storedRec != nil {
 		flowID = storedRec.FlowID
-		resp["storage_backend"] = storedRec.StorageBackend
 	}
 	s.logFlowAction("token.call", ctx, flowID, source, sourceDetail)
 	s.writeJSON(w, http.StatusOK, resp)
+}
+
+func (s *accessTokenServer) executeRedbookCall(ctx context.Context, w http.ResponseWriter, pctx *providerContext, opts *app.Options, payload map[string]any, source, sourceDetail string, storedRec *oauthTokenRecord) {
+	if pctx == nil || pctx.RedBook == nil {
+		s.writeError(w, http.StatusBadRequest, "redbook_juguang_config 缺失")
+		return
+	}
+	client, err := s.buildRedbookClient(pctx, opts.AccessToken, opts.AccessTokenTTL)
+	if err != nil {
+		s.writeError(w, http.StatusInternalServerError, "create redbook client: %v", err)
+		return
+	}
+	if payload == nil {
+		payload = map[string]any{}
+	}
+	var (
+		result   any
+		meta     map[string]any
+		status   = http.StatusOK
+		action   = strings.ToLower(opts.Action)
+		actionErr error
+	)
+	switch action {
+	case "redbook.account.balance":
+		result, meta, status, actionErr = s.callRedbookAccountBalance(ctx, client, payload)
+	default:
+		s.writeError(w, http.StatusBadRequest, fmt.Sprintf("redbook action %s 暂未开放", opts.Action))
+		return
+	}
+	if actionErr != nil {
+		s.writeError(w, status, actionErr.Error())
+		return
+	}
+	resp := map[string]any{
+		"result":              result,
+		"token_source":        source,
+		"token_source_detail": sourceDetail,
+		"masked_token":        app.MaskToken(opts.AccessToken),
+		"oauth_key":           extractOauthKey(pctx.Mode),
+		"config_path":         pctx.ConfigPath,
+		"provider":            pctx.displayName(),
+		"provider_code":       pctx.ProviderCode,
+		"provider_app":        pctx.AppCode,
+		"provider_auth_mode":  pctx.ModeKey,
+		"access_token_ttl":    opts.AccessTokenTTL,
+		"storage_backend":     s.storageBackend,
+		"action":              opts.Action,
+		"request_timestamp":   time.Now().UTC(),
+	}
+	if meta != nil {
+		if req := meta["request"]; req != nil {
+			resp["request"] = req
+		}
+		if data := meta["data"]; data != nil {
+			resp["data"] = data
+		}
+	}
+	flowID := ""
+	if storedRec != nil {
+		s.enrichFlowMetadata(storedRec)
+		flowID = storedRec.FlowID
+		resp["flow_id"] = storedRec.FlowID
+		resp["flow_expire_at"] = storedRec.FlowExpireAt
+		resp["flow_ttl_seconds"] = storedRec.FlowTTLSeconds
+		resp["storage_backend"] = storedRec.StorageBackend
+	}
+	s.logFlowAction("token.call", pctx, flowID, source, sourceDetail)
+	s.writeJSON(w, http.StatusOK, resp)
+}
+
+func (s *accessTokenServer) buildRedbookClient(pctx *providerContext, token string, ttl int) (*redbookClient.RedBookJuGuangACClient, error) {
+	if pctx.RedBook == nil {
+		return nil, errors.New("redbook_juguang_config 缺失")
+	}
+	if ttl <= 0 {
+		ttl = app.DefaultAccessTokenTTLSeconds
+	}
+	cfgCopy := *pctx.RedBook
+	cfgCopy.GetOAuthToken = func(key string, refresh bool) object.HashMap {
+		return object.HashMap{
+			"access_token": token,
+			"expires_in":   float64(ttl),
+		}
+	}
+	return s.mediaX.CreateRedBookJuGuangACClient(&cfgCopy)
+}
+
+func (s *accessTokenServer) callRedbookAccountBalance(ctx context.Context, client *redbookClient.RedBookJuGuangACClient, payload map[string]any) (any, map[string]any, int, error) {
+	advertiserID, err := parseRedbookAdvertiserID(payload)
+	if err != nil {
+		return nil, nil, http.StatusBadRequest, err
+	}
+	balanceReq := &redbookAccountBalanceSchema.JuGuangAccountGetAccountBalanceReq{
+		AdvertiserId: advertiserID,
+	}
+	result, err := client.GetAccountClient().GetAccountBalance(ctx, balanceReq)
+	if err != nil {
+		return nil, nil, http.StatusBadGateway, fmt.Errorf("调用聚光账户余额接口失败: %w", err)
+	}
+	meta := map[string]any{
+		"request": map[string]any{"advertiser_id": advertiserID},
+		"data":    result.Data,
+	}
+	return result, meta, http.StatusOK, nil
+}
+
+func parseRedbookAdvertiserID(payload map[string]any) (int64, error) {
+	if payload == nil {
+		return 0, errors.New("payload.advertiser_id 必填")
+	}
+	if id, ok := payload["advertiser_id"]; ok {
+		return coercePositiveInt64(id)
+	}
+	if id, ok := payload["advertiserId"]; ok {
+		return coercePositiveInt64(id)
+	}
+	return 0, errors.New("payload.advertiser_id 必填")
+}
+
+func coercePositiveInt64(val any) (int64, error) {
+	switch v := val.(type) {
+	case json.Number:
+		n, err := v.Int64()
+		if err != nil {
+			return 0, errors.New("advertiser_id 必须为正整数")
+		}
+		return validatePositiveInt64(n)
+	case float64:
+		return validatePositiveInt64(int64(v))
+	case float32:
+		return validatePositiveInt64(int64(v))
+	case int:
+		return validatePositiveInt64(int64(v))
+	case int64:
+		return validatePositiveInt64(v)
+	case uint64:
+		return validatePositiveInt64(int64(v))
+	case string:
+		trimmed := strings.TrimSpace(v)
+		if trimmed == "" {
+			return 0, errors.New("payload.advertiser_id 必填")
+		}
+		parsed, err := strconv.ParseInt(trimmed, 10, 64)
+		if err != nil {
+			return 0, errors.New("advertiser_id 必须为正整数")
+		}
+		return validatePositiveInt64(parsed)
+	default:
+		return 0, errors.New("advertiser_id 必须为正整数")
+	}
+}
+
+func validatePositiveInt64(n int64) (int64, error) {
+	if n <= 0 {
+		return 0, errors.New("advertiser_id 必须为正整数")
+	}
+	return n, nil
 }
 func (s *accessTokenServer) handleOAuthStart(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
@@ -505,6 +676,7 @@ func (s *accessTokenServer) writeError(w http.ResponseWriter, status int, format
 
 func decodeJSON(r io.Reader, dst any) error {
 	dec := json.NewDecoder(io.LimitReader(r, 1<<20))
+	dec.UseNumber()
 	dec.DisallowUnknownFields()
 	return dec.Decode(dst)
 }

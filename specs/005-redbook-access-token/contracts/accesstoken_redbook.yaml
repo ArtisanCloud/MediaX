@@ -1,0 +1,61 @@
+openapi: 3.0.3
+info:
+  title: AccessToken Server - RedBook JuGuang Extensions
+  version: "0.1.0"
+paths:
+  /accesstoken/redbook/account/balance:
+    post:
+      summary: 调用聚光账户余额接口并返回脱敏结果
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [provider_code, provider_app, provider_auth_mode, config_path, payload]
+              properties:
+                provider_code:
+                  type: string
+                  enum: [redbook_juguang]
+                provider_app:
+                  type: string
+                  example: juguang
+                provider_auth_mode:
+                  type: string
+                  example: default
+                config_path:
+                  type: string
+                  example: config.yaml
+                payload:
+                  type: object
+                  required: [advertiser_id]
+                  properties:
+                    advertiser_id:
+                      type: string
+                      description: 聚光广告主 ID
+      responses:
+        '200':
+          description: 账户余额 JSON，字段与 JuGuangAccountGetAccountBalanceRes 对齐
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  flow_id:
+                    type: string
+                  provider_code:
+                    type: string
+                  data:
+                    type: object
+        '400':
+          description: 参数或配置错误
+        '401':
+          description: API token 缺失/错误
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
