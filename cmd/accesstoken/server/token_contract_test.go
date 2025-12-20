@@ -41,6 +41,29 @@ access_token_providers:
                   redirect_url: "http://localhost:7071/debug/callback"
                   scope: "arc_base"
                   access_token: "config-access-token"
+    - code: "redbook"
+      name: "RedBook"
+      apps:
+        - code: "juguang"
+          name: "JuGuang"
+          provider_code: "redbook_juguang"
+          api_version: "v1"
+          auth_modes:
+            - key: "default"
+              label: "默认"
+              redbook_juguang_config:
+                api_url: "https://adapi.xiaohongshu.com"
+                proxy_api_url: ""
+                timeout: 5
+                http_debug: false
+                oauth:
+                  oauth_url: "https://ad.xiaohongshu.com/oauth2/authorize"
+                  access_token_url: "https://ad.xiaohongshu.com/oauth2/token"
+                  client_id: "redbook-client"
+                  client_secret: "redbook-secret"
+                  redirect_url: "http://localhost:7071/debug/callback"
+                  scope: "notes.read,notes.write"
+                oauth_key: "redbook-default"
 `
 
 const testAccessTokenConfigNoDefault = `
@@ -72,6 +95,10 @@ access_token_providers:
 
 func testAccessTokenConfigWithTokenURL(tokenURL string) string {
 	return strings.Replace(testAccessTokenConfig, "https://member.bilibili.com/oauth2/token", tokenURL, 1)
+}
+
+func testAccessTokenConfigWithRedbookTokenURL(tokenURL string) string {
+	return strings.Replace(testAccessTokenConfig, "https://ad.xiaohongshu.com/oauth2/token", tokenURL, 1)
 }
 
 type tokenAPIResponse struct {
@@ -231,7 +258,7 @@ func TestHandleTokenFallsBackToStoredFlow(t *testing.T) {
 
 func newTestAccessTokenServer(t *testing.T, configYAML string) *accessTokenServer {
 	t.Helper()
-	t.Setenv("ACCESSTOKEN_REDIS_ADDR", "")
+	t.Setenv("ACCESSTOKEN_REDIS_ADDR", "memory")
 	dir := t.TempDir()
 	configPath := filepath.Join(dir, "config.yaml")
 	if err := os.WriteFile(configPath, []byte(configYAML), 0o644); err != nil {

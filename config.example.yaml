@@ -78,13 +78,18 @@ access_token_providers:
             - key: "default"
               label: "默认 OAuth"
               redbook_juguang_config:
-                api_url: "https://www.xiaohongshu.com"
+                api_url: "https://adapi.xiaohongshu.com"
                 proxy_api_url: ""
                 timeout: 5.0
                 http_debug: false
                 oauth:
-                  client_id: "your_redbook_app_id"
-                  client_secret: "your_redbook_app_secret"
+                  oauth_url: "${REDBOOK_JUGUANG_OAUTH_URL:-https://ad.xiaohongshu.com/oauth2/authorize}"
+                  access_token_url: "${REDBOOK_JUGUANG_ACCESS_TOKEN_URL:-https://ad.xiaohongshu.com/oauth2/access_token}"
+                  client_id: "${REDBOOK_JUGUANG_CLIENT_ID}"             # 建议均由环境变量注入
+                  client_secret: "${REDBOOK_JUGUANG_CLIENT_SECRET}"
+                  redirect_url: "${REDBOOK_JUGUANG_REDIRECT_URL:-http://127.0.0.1:7071/debug/callback}"
+                  scope: "${REDBOOK_JUGUANG_SCOPE:-notes.read,notes.write}"
+                oauth_key: "${REDBOOK_JUGUANG_OAUTH_KEY:-default}"
     - code: "bilibili"
       name: "哔哩哔哩"
       apps:

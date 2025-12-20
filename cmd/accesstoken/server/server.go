@@ -430,6 +430,10 @@ func extractOauthKey(mode *config.AccessTokenAuthMode) string {
 		if mode.GoogleBloggerConfig != nil {
 			return strings.TrimSpace(mode.GoogleBloggerConfig.OauthKey)
 		}
+	case providerRedBookJuGuang:
+		if mode.RedBookJuGuangConfig != nil {
+			return strings.TrimSpace(mode.RedBookJuGuangConfig.OauthKey)
+		}
 	}
 	return ""
 }
@@ -625,7 +629,7 @@ func (s *accessTokenServer) buildOAuthAuthorizeURL(ctx *providerContext) (string
 	if strings.TrimSpace(oauthCfg.ClientID) == "" {
 		return "", "", errors.New("OAuth client_id 未配置")
 	}
-	scope := strings.TrimSpace(oauthCfg.Scope)
+	scope := normalizeOAuthScope(oauthCfg.Scope)
 	if scope == "" {
 		return "", "", errors.New("OAuth scope 未配置")
 	}
@@ -795,7 +799,22 @@ func (s *accessTokenServer) exchangeAuthorizationCode(ctx context.Context, pctx 
 	if strings.TrimSpace(payload.AccessToken) == "" {
 		return nil, errors.New("token 响应缺少 access_token")
 	}
+	scope := normalizeOAuthScope(payload.Scope)
+	if scope == "" {
+		scope = normalizeOAuthScope(oauthCfg.Scope)
+	}
+	payload.Scope = scope
 	return payload, nil
+}
+
+func normalizeOAuthScope(raw string) string {
+	raw = strings.TrimSpace(raw)
+	if raw == "" {
+		return ""
+	}
+	normalized := strings.NewReplacer(",", " ").Replace(raw)
+	fields := strings.Fields(normalized)
+	return strings.Join(fields, " ")
 }
 
 func (s *accessTokenServer) cacheKey(providerCode, appCode, mode string) string {

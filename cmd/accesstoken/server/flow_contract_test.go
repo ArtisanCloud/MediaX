@@ -131,3 +131,52 @@ func TestHandleFlowReplayReturnsPayload(t *testing.T) {
 		t.Fatalf("callback missing in payload")
 	}
 }
+
+func TestHandleListFlowsFiltersByProvider(t *testing.T) {
+	server := newTestAccessTokenServer(t, testAccessTokenConfig)
+	now := time.Now().UTC()
+	bili := &oauthTokenRecord{
+		ProviderCode: "bilbili",
+		ProviderApp:  "content_center",
+		AuthMode:     "default",
+		ConfigPath:   server.defaultConfigPath,
+		FlowID:       "oauth-bili",
+		AccessToken:  "bili-token",
+		StoredAt:     now,
+	}
+	redbook := &oauthTokenRecord{
+		ProviderCode: "redbook_juguang",
+		ProviderApp:  "juguang",
+		AuthMode:     "default",
+		ConfigPath:   server.defaultConfigPath,
+		FlowID:       "oauth-redbook",
+		AccessToken:  "redbook-token",
+		StoredAt:     now.Add(time.Minute),
+	}
+	if err := server.saveOAuthTokenRecord(bili); err != nil {
+		t.Fatalf("save bili flow: %v", err)
+	}
+	if err := server.saveOAuthTokenRecord(redbook); err != nil {
+		t.Fatalf("save redbook flow: %v", err)
+	}
+
+	req := httptest.NewRequest(http.MethodGet, "/accesstoken/flows?provider_code=redbook_juguang", nil)
+	recorder := httptest.NewRecorder()
+	server.handleListFlows(recorder, req)
+
+	res := recorder.Result()
+	defer res.Body.Close()
+	if res.StatusCode != http.StatusOK {
+		t.Fatalf("status=%d", res.StatusCode)
+	}
+	var resp flowListAPIResponse
+	if err := json.NewDecoder(res.Body).Decode(&resp); err != nil {
+		t.Fatalf("decode response: %v", err)
+	}
+	if len(resp.Flows) != 1 {
+		t.Fatalf("flows len=%d want 1", len(resp.Flows))
+	}
+	if resp.Flows[0].FlowID != "oauth-redbook" {
+		t.Fatalf("flow_id=%s want oauth-redbook", resp.Flows[0].FlowID)
+	}
+}

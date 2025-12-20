@@ -17,7 +17,7 @@ import "github.com/ArtisanCloud/MediaXCore/utils/object"
 // RedBookJuGuangConfig 小红书聚光平台客户端配置
 // 继承自 ClientConfig，使用 OAuth2.0 认证方式
 type RedBookJuGuangConfig struct {
-	*ClientConfig `yaml:",inline"` // 基础客户端配置，包含 API 地址、超时设置等
+	*ClientConfig `yaml:",inline"` // 基础客户端配置，包含 API 地址、超时设置等；其中 OAuthConfig 推荐通过 REDBOOK_JUGUANG_* 环境变量注入 oauth_url/access_token_url/client_id/client_secret/redirect_url/scope
 
 	// GetOAuthToken 获取 OAuth Token 的回调函数
 	// 参数：
@@ -26,4 +26,7 @@ type RedBookJuGuangConfig struct {
 	// 返回值：
 	//   - token: 包含 access_token 等信息的 HashMap
 	GetOAuthToken func(key string, refresh bool) (token object.HashMap) `yaml:"token;omitempty" json:"token;omitempty"`
+
+	// OauthKey 区分不同租户/账号的标识，用于 /debug 模板与 Flow 存储
+	OauthKey string `yaml:"oauth_key,omitempty" json:"oauth_key,omitempty"`
 }

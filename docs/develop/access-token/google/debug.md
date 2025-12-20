@@ -1,6 +1,6 @@
 # AccessToken 调试沙盒使用指南
 
-> 目标：像 `cmd/sessiontoken` 一样提供“所见即所得”的 Web 沙盒。本文只关注 `go run ./cmd/accesstoken/server` 启动的调试页面；CLI/Playground 细节请参考 `docs/develop/access-token/google/develop.md`。
+> 目标：像 `cmd/sessiontoken` 一样提供“所见即所得”的 Web 沙盒。本文只关注 `go run ./cmd/accesstoken/server` 启动的调试页面；CLI/Playground 细节请参考 `docs/develop/access-token/google/develop.md`。若需要小红书聚光的调试流程，请参考 `docs/develop/access-token/redbook/debug.md`。
 
 ## 1. 前置准备
 

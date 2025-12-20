@@ -26,10 +26,10 @@ tests/
 Go 1.18（仓库 `go.mod`）: Follow standard conventions
 
 ## Recent Changes
+- 005-redbook-access-token: Added [if applicable, e.g., PostgreSQL, CoreData, files or N/A]
 - 004-bilibili-access-token: Added Go 1.18（仓库 go.mod） + `github.com/ArtisanCloud/MediaXCore`（BaseClient/日志/配置绑定）、`github.com/redis/go-redis/v9`（可选 Flow 缓存）、`gopkg.in/yaml.v3`（解析 access_token_providers）
 - 002-youtube-access-token: Added Go 1.18（仓库 `go.mod` 已指定） + `github.com/ArtisanCloud/MediaXCore`（BaseClient/Logger）、`github.com/redis/go-redis/v9`（可选 Token 缓存）、`gopkg.in/yaml.v3`（配置解析）
 
-- 001-session-token-client: Added Go 1.18（仓库 `go.mod`） + `github.com/ArtisanCloud/MediaXCore`（日志/HTTP/BaseClient）、`github.com/redis/go-redis/v9`（Flow 持久化）、`gopkg.in/yaml.v3`（配置解析）
 
 <!-- MANUAL ADDITIONS START -->
 Always respond in Chinese-simplified
