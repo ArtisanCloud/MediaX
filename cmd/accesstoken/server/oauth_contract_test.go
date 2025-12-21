@@ -288,3 +288,120 @@ func TestHandleDebugCallbackPersistsRedbookFlow(t *testing.T) {
 		t.Fatalf("expected callback payload recorded")
 	}
 }
+
+func TestHandleOAuthStartRequiresDouyinClientID(t *testing.T) {
+	cfg := strings.Replace(testAccessTokenConfig, `client_id: "douyin-client"`, `client_id: ""`, 1)
+	server := newTestAccessTokenServer(t, cfg)
+	payload := map[string]any{
+		"provider_code":      "byte_dance_douyin",
+		"provider_app":       "douyin",
+		"provider_auth_mode": "default",
+		"config_path":        server.defaultConfigPath,
+	}
+	body, err := json.Marshal(payload)
+	if err != nil {
+		t.Fatalf("marshal payload: %v", err)
+	}
+	req := httptest.NewRequest(http.MethodPost, "/accesstoken/oauth/start", bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+
+	server.handleOAuthStart(rec, req)
+
+	res := rec.Result()
+	defer res.Body.Close()
+	if res.StatusCode != http.StatusBadRequest {
+		t.Fatalf("status=%d want 400", res.StatusCode)
+	}
+	respBody, _ := io.ReadAll(res.Body)
+	if !strings.Contains(string(respBody), "DouYin client_id 未配置") {
+		t.Fatalf("unexpected error body: %s", respBody)
+	}
+}
+
+func TestHandleOAuthStartRequiresDouyinScope(t *testing.T) {
+	cfg := strings.Replace(testAccessTokenConfig, `scope: "video.list,im.message.send"`, `scope: ""`, 1)
+	server := newTestAccessTokenServer(t, cfg)
+	payload := map[string]any{
+		"provider_code":      "byte_dance_douyin",
+		"provider_app":       "douyin",
+		"provider_auth_mode": "default",
+		"config_path":        server.defaultConfigPath,
+	}
+	body, err := json.Marshal(payload)
+	if err != nil {
+		t.Fatalf("marshal payload: %v", err)
+	}
+	req := httptest.NewRequest(http.MethodPost, "/accesstoken/oauth/start", bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+
+	server.handleOAuthStart(rec, req)
+
+	res := rec.Result()
+	defer res.Body.Close()
+	if res.StatusCode != http.StatusBadRequest {
+		t.Fatalf("status=%d want 400", res.StatusCode)
+	}
+	respBody, _ := io.ReadAll(res.Body)
+	if !strings.Contains(string(respBody), "DouYin OAuth scope 未配置") {
+		t.Fatalf("unexpected error body: %s", respBody)
+	}
+}
+
+func TestHandleDebugCallbackPersistsDouyinFlow(t *testing.T) {
+	tokenEndpoint := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = io.WriteString(w, `{"access_token":"douyin-flow-token","refresh_token":"douyin-refresh-token","token_type":"Bearer","scope":"video.list im.message.send","expires_in":7200}`)
+	}))
+	defer tokenEndpoint.Close()
+
+	server := newTestAccessTokenServer(t, testAccessTokenConfigWithDouyinTokenURL(tokenEndpoint.URL))
+	state := "douyin-callback"
+	server.oauthStateMu.Lock()
+	server.oauthStates[state] = &oauthState{
+		ProviderCode: "byte_dance_douyin",
+		ProviderApp:  "douyin",
+		ModeKey:      "default",
+		ConfigPath:   server.defaultConfigPath,
+		CreatedAt:    time.Now(),
+	}
+	server.oauthStateMu.Unlock()
+
+	req := httptest.NewRequest(http.MethodGet, "/debug/callback?code=abc123&state="+state+"&provider=byte_dance_douyin", strings.NewReader(`{"demo":"body"}`))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+
+	server.handleDebugCallback(rec, req)
+
+	res := rec.Result()
+	defer res.Body.Close()
+	if res.StatusCode != http.StatusOK {
+		bodyBytes, _ := io.ReadAll(res.Body)
+		t.Fatalf("callback status=%d body=%s", res.StatusCode, string(bodyBytes))
+	}
+	flowID := "oauth-" + state
+	stored := server.fetchTokenByFlowID(flowID)
+	if stored == nil {
+		t.Fatalf("expected stored Flow %s", flowID)
+	}
+	if stored.ProviderCode != "byte_dance_douyin" {
+		t.Fatalf("provider_code=%s want byte_dance_douyin", stored.ProviderCode)
+	}
+	if stored.ProviderApp != "douyin" {
+		t.Fatalf("provider_app=%s want douyin", stored.ProviderApp)
+	}
+	if stored.RefreshToken != "douyin-refresh-token" {
+		t.Fatalf("refresh_token=%s want douyin-refresh-token", stored.RefreshToken)
+	}
+	if stored.FlowTTLSeconds != 7200 {
+		t.Fatalf("flow ttl seconds=%d want 7200", stored.FlowTTLSeconds)
+	}
+	wantExpire := stored.StoredAt.Add(7200 * time.Second)
+	if stored.FlowExpireAt.Before(wantExpire.Add(-time.Second)) || stored.FlowExpireAt.After(wantExpire.Add(time.Second)) {
+		t.Fatalf("flow expire mismatch: %v want approx %v", stored.FlowExpireAt, wantExpire)
+	}
+	if stored.Scope != "video.list im.message.send" {
+		t.Fatalf("scope=%s want video.list im.message.send", stored.Scope)
+	}
+}

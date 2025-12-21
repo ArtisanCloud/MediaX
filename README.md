@@ -33,6 +33,7 @@ ArisanCloud 团队已经成功维护了 [PowerWechat](https://powerwechat.artisa
 
 - 想快速体验 BiliBili AccessToken 调试/回填流程，可参考 [BiliBili AccessToken Debug Quickstart](specs/004-bilibili-access-token/quickstart.md)。
 - 小红书聚光的 OAuth + API 调试示例，请查看 [RedBook AccessToken Quickstart](specs/005-redbook-access-token/quickstart.md) 以及配套的 [调试文档](docs/develop/access-token/redbook/debug.md)。
+- DouYin 抖音 AccessToken 集成：按照 [DouYin Quickstart](specs/006-bytedance-access-token/quickstart.md) + [开发指南](docs/develop/access-token/byteDance/develop.md) + [调试指南](docs/develop/access-token/byteDance/debug.md) 操作，即可在 `/debug` 中完成 OAuth、Flow 管理与自动刷新调用。
 
 ### 安装
 

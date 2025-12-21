@@ -25,6 +25,7 @@ import (
 	"github.com/ArtisanCloud/MediaXCore/pkg/cache"
 	"github.com/ArtisanCloud/MediaXCore/pkg/logger"
 	"github.com/redis/go-redis/v9"
+	"golang.org/x/time/rate"
 )
 
 type cacheCloser func()
@@ -59,11 +60,17 @@ const (
 
 	defaultFlowTTLSeconds = 24 * 60 * 60
 	maxCallbackBodyLen    = 4096
+	douyinRefreshWindow   = 5 * time.Minute
+	douyinRetryBaseDelay  = 200 * time.Millisecond
+	douyinMaxRetries      = 3
+	douyinRatePerSecond   = 1
+	douyinRateBurst       = 1
 )
 
 var (
 	errFlowNotFound = errors.New("flow_not_found")
 	errFlowExpired  = errors.New("flow_expired")
+	errNeedReauth   = errors.New("need reauth")
 )
 
 type providerContext struct {
@@ -117,6 +124,8 @@ type oauthTokenRecord struct {
 	FlowTTLSeconds int             `json:"flow_ttl_seconds"`
 	FlowExpireAt   time.Time       `json:"flow_expire_at"`
 	StorageBackend string          `json:"storage_backend"`
+	LastRefreshAt  time.Time       `json:"last_refresh_at,omitempty"`
+	Status         string          `json:"status,omitempty"`
 	Callback       *callbackRecord `json:"callback,omitempty"`
 }
 
@@ -144,6 +153,8 @@ type accessTokenServer struct {
 	flowTTLSeconds      int
 	flowTTL             time.Duration
 	listenAddrPublic    bool
+	douyinLimiters      map[string]*rate.Limiter
+	douyinLimiterMu     sync.Mutex
 }
 
 func newAccessTokenServer(defaultConfigPath, listenAddr string) (*accessTokenServer, cacheCloser, error) {
@@ -172,6 +183,7 @@ func newAccessTokenServer(defaultConfigPath, listenAddr string) (*accessTokenSer
 		storageBackend:    backend,
 		flowTTLSeconds:    flowTTLSeconds,
 		flowTTL:           time.Duration(flowTTLSeconds) * time.Second,
+		douyinLimiters:    make(map[string]*rate.Limiter),
 	}
 	if backend == storageBackendMemory && server.logger != nil {
 		server.logger.WarnF("accesstoken-server: redis disabled, Flow 数据将存储在内存中，服务重启后会被清理")
@@ -363,12 +375,15 @@ func (s *accessTokenServer) initProviders() error {
 				Code:         strings.TrimSpace(appCfg.Code),
 				Name:         firstNonEmpty(strings.TrimSpace(appCfg.Name), strings.TrimSpace(appCfg.Code)),
 				ProviderCode: appCfg.ProviderCodeValue(),
-				AppKey:       appCfg.ProviderCodeValue(),
+				AppKey:       appCfg.ProviderAppValue(),
 				ConfigPath:   configPath,
 				APIVersion:   strings.TrimSpace(appCfg.ApiVersion),
 			}
 			for _, mode := range appCfg.AuthModes {
 				if mode == nil {
+					continue
+				}
+				if mode.ConfigKind() == "" {
 					continue
 				}
 				modeKey := strings.TrimSpace(mode.Key)
@@ -433,6 +448,10 @@ func extractOauthKey(mode *config.AccessTokenAuthMode) string {
 	case providerRedBookJuGuang:
 		if mode.RedBookJuGuangConfig != nil {
 			return strings.TrimSpace(mode.RedBookJuGuangConfig.OauthKey)
+		}
+	case providerByteDanceDouYin:
+		if mode.ByteDanceDouYinConfig != nil {
+			return strings.TrimSpace(mode.ByteDanceDouYinConfig.OauthKey)
 		}
 	}
 	return ""
@@ -512,10 +531,14 @@ func (s *accessTokenServer) resolveProviderConfig(providerCode, providerApp, mod
 	if mode == nil {
 		return nil, fmt.Errorf("provider %s app %s 缺少授权模式 %s", provider.Code, app.Code, modeKey)
 	}
+	appDisplayCode := strings.TrimSpace(app.ProviderAppValue())
+	if appDisplayCode == "" {
+		appDisplayCode = strings.TrimSpace(app.Code)
+	}
 	ctx := &providerContext{
 		GroupCode:    strings.TrimSpace(provider.Code),
 		GroupName:    firstNonEmpty(strings.TrimSpace(provider.Name), strings.TrimSpace(provider.Code)),
-		AppCode:      strings.TrimSpace(app.Code),
+		AppCode:      appDisplayCode,
 		AppName:      firstNonEmpty(strings.TrimSpace(app.Name), strings.TrimSpace(app.Code)),
 		ModeKey:      strings.TrimSpace(mode.Key),
 		ProviderCode: mode.EffectiveProviderCode(app),
@@ -626,10 +649,27 @@ func (s *accessTokenServer) buildOAuthAuthorizeURL(ctx *providerContext) (string
 	if redirect == "" {
 		redirect = s.defaultCallbackURL
 	}
+	if ctx.Mode.ConfigKind() == providerByteDanceDouYin {
+		if strings.TrimSpace(oauthCfg.ClientID) == "" {
+			return "", "", errors.New("DouYin client_id 未配置")
+		}
+		if strings.TrimSpace(oauthCfg.ClientSecret) == "" {
+			return "", "", errors.New("DouYin client_secret 未配置")
+		}
+		if strings.TrimSpace(oauthCfg.AccessTokenUrl) == "" {
+			return "", "", errors.New("DouYin access_token_url 未配置")
+		}
+		if redirect == "" {
+			return "", "", errors.New("DouYin redirect_url 未配置")
+		}
+	}
 	if strings.TrimSpace(oauthCfg.ClientID) == "" {
 		return "", "", errors.New("OAuth client_id 未配置")
 	}
 	scope := normalizeOAuthScope(oauthCfg.Scope)
+	if ctx.Mode.ConfigKind() == providerByteDanceDouYin && scope == "" {
+		return "", "", errors.New("DouYin OAuth scope 未配置")
+	}
 	if scope == "" {
 		return "", "", errors.New("OAuth scope 未配置")
 	}
@@ -638,6 +678,9 @@ func (s *accessTokenServer) buildOAuthAuthorizeURL(ctx *providerContext) (string
 		authEndpoint = "https://accounts.google.com/o/oauth2/v2/auth"
 	}
 	if authEndpoint == "" {
+		if ctx.Mode.ConfigKind() == providerByteDanceDouYin {
+			return "", "", errors.New("DouYin oauth_url 未配置")
+		}
 		return "", "", errors.New("OAuth oauth_url 未配置")
 	}
 	state := s.registerOAuthState(ctx, ctx.ConfigPath)
@@ -727,21 +770,25 @@ func (s *accessTokenServer) completeOAuthFlow(ctx context.Context, state, code s
 		ExpiresIn:    exchange.ExpiresIn,
 		StoredAt:     time.Now().UTC(),
 		Source:       "authorization_code",
+		Status:       "fresh",
 		Callback:     cloneCallbackRecord(callback),
 	}
 	if record.ExpiresIn <= 0 {
 		record.ExpiresIn = app.DefaultAccessTokenTTLSeconds
 	}
 	record.TokenExpireAt = record.StoredAt.Add(time.Duration(record.ExpiresIn) * time.Second)
-	record.FlowTTLSeconds = s.flowTTLSeconds
+	record.FlowTTLSeconds = record.ExpiresIn
 	if record.FlowTTLSeconds <= 0 {
-		record.FlowTTLSeconds = defaultFlowTTLSeconds
+		record.FlowTTLSeconds = s.flowTTLSeconds
+		if record.FlowTTLSeconds <= 0 {
+			record.FlowTTLSeconds = defaultFlowTTLSeconds
+		}
 	}
 	record.FlowExpireAt = record.StoredAt.Add(time.Duration(record.FlowTTLSeconds) * time.Second)
 	if err := s.saveOAuthTokenRecord(record); err != nil {
 		s.logger.ErrorF("accesstoken-server: 保存授权 token 失败: %v", err)
 	}
-	s.logFlowAction("oauth.complete", providerCtx, record.FlowID, "authorization_code", "")
+	s.logFlowAction("oauth.complete", providerCtx, record.FlowID, "authorization_code", "", nil)
 	return record, nil
 }
 
@@ -859,9 +906,9 @@ func (s *accessTokenServer) saveOAuthTokenRecord(rec *oauthTokenRecord) error {
 	if s.cache != nil {
 		data, err := json.Marshal(rec)
 		if err == nil {
-			expiration := s.flowTTL
+			expiration := time.Duration(rec.FlowTTLSeconds) * time.Second
 			if expiration <= 0 {
-				expiration = time.Duration(rec.FlowTTLSeconds) * time.Second
+				expiration = s.flowTTL
 			}
 			if expiration <= 0 {
 				expiration = time.Hour * 24
@@ -876,6 +923,138 @@ func (s *accessTokenServer) saveOAuthTokenRecord(rec *oauthTokenRecord) error {
 		}
 	}
 	return nil
+}
+
+func (s *accessTokenServer) invalidateFlow(rec *oauthTokenRecord, reason string) {
+	if rec == nil {
+		return
+	}
+	key := s.cacheKey(rec.ProviderCode, rec.ProviderApp, rec.AuthMode)
+	flowKey := s.flowIndexKey(rec.FlowID)
+	s.oauthTokenMu.Lock()
+	if key != "" {
+		delete(s.oauthTokens, key)
+	}
+	s.oauthTokenMu.Unlock()
+	ctx := context.Background()
+	if s.cache != nil {
+		if key != "" {
+			_ = s.cache.Delete(ctx, key)
+		}
+		if flowKey != "" {
+			_ = s.cache.Delete(ctx, flowKey)
+		}
+	}
+	if s.redis != nil {
+		var keys []string
+		if key != "" {
+			keys = append(keys, key)
+		}
+		if flowKey != "" {
+			keys = append(keys, flowKey)
+		}
+		if len(keys) > 0 {
+			_ = s.redis.Del(ctx, keys...).Err()
+		}
+	}
+	if s.logger != nil {
+		if reason == "" {
+			reason = "unknown"
+		}
+		s.logger.WarnF(
+			"accesstoken-server: invalidate flow flow_id=%s provider=%s app=%s mode=%s reason=%s",
+			safeValue(rec.FlowID),
+			safeValue(rec.ProviderCode),
+			safeValue(rec.ProviderApp),
+			safeValue(rec.AuthMode),
+			reason,
+		)
+	}
+}
+
+func (s *accessTokenServer) maybeRefreshDouyinToken(ctx context.Context, rec *oauthTokenRecord, pctx *providerContext) error {
+	if rec == nil || pctx == nil || pctx.Douyin == nil {
+		return nil
+	}
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	s.enrichFlowMetadata(rec)
+	now := time.Now().UTC()
+	if rec.TokenExpireAt.IsZero() && rec.ExpiresIn > 0 && !rec.StoredAt.IsZero() {
+		rec.TokenExpireAt = rec.StoredAt.Add(time.Duration(rec.ExpiresIn) * time.Second)
+	}
+	needRefresh := rec.TokenExpireAt.IsZero() || rec.TokenExpireAt.Before(now.Add(douyinRefreshWindow))
+	if !needRefresh {
+		return nil
+	}
+	refreshToken := strings.TrimSpace(rec.RefreshToken)
+	if refreshToken == "" {
+		if rec.TokenExpireAt.Before(now) {
+			s.invalidateFlow(rec, "douyin_refresh_token_missing")
+			return errNeedReauth
+		}
+		return nil
+	}
+	client, err := s.mediaX.CreateByteDanceDouYinACClient(pctx.Douyin)
+	if err != nil {
+		return fmt.Errorf("create douyin client: %w", err)
+	}
+	refreshResp, err := client.RefreshToken(ctx, refreshToken)
+	if err != nil {
+		s.invalidateFlow(rec, fmt.Sprintf("douyin_refresh_failed:%v", err))
+		return errNeedReauth
+	}
+	newToken := strings.TrimSpace(refreshResp.AccessToken)
+	if newToken == "" {
+		s.invalidateFlow(rec, "douyin_refresh_missing_token")
+		return errNeedReauth
+	}
+	rec.AccessToken = newToken
+	if trimmed := strings.TrimSpace(refreshResp.RefreshToken); trimmed != "" {
+		rec.RefreshToken = trimmed
+	}
+	if scope := normalizeOAuthScope(refreshResp.Scope); scope != "" {
+		rec.Scope = scope
+	}
+	expiresIn := int(refreshResp.ExpiresIn)
+	if expiresIn <= 0 {
+		expiresIn = app.DefaultAccessTokenTTLSeconds
+	}
+	rec.ExpiresIn = expiresIn
+	now = time.Now().UTC()
+	rec.StoredAt = now
+	rec.TokenExpireAt = now.Add(time.Duration(expiresIn) * time.Second)
+	rec.FlowTTLSeconds = expiresIn
+	rec.FlowExpireAt = now.Add(time.Duration(rec.FlowTTLSeconds) * time.Second)
+	rec.LastRefreshAt = now
+	rec.Status = "refreshed"
+	rec.Source = "refresh_token"
+	if err := s.saveOAuthTokenRecord(rec); err != nil && s.logger != nil {
+		s.logger.ErrorF("accesstoken-server: 保存 DouYin 刷新 token 失败: %v", err)
+	}
+	if s.logger != nil {
+		s.logger.InfoF("accesstoken-server: douyin token refreshed flow_id=%s provider=%s app=%s", safeValue(rec.FlowID), safeValue(rec.ProviderCode), safeValue(rec.ProviderApp))
+	}
+	return nil
+}
+
+func (s *accessTokenServer) getDouyinLimiter(action string) *rate.Limiter {
+	if s == nil {
+		return nil
+	}
+	key := strings.TrimSpace(strings.ToLower(action))
+	if key == "" {
+		key = "_default"
+	}
+	s.douyinLimiterMu.Lock()
+	defer s.douyinLimiterMu.Unlock()
+	limiter, ok := s.douyinLimiters[key]
+	if !ok {
+		limiter = rate.NewLimiter(rate.Limit(douyinRatePerSecond), douyinRateBurst)
+		s.douyinLimiters[key] = limiter
+	}
+	return limiter
 }
 
 func (s *accessTokenServer) listOAuthTokenRecords(providerCode, appCode, mode string) []*oauthTokenRecord {
@@ -1120,20 +1299,23 @@ func (s *accessTokenServer) buildFlowSummary(rec *oauthTokenRecord) map[string]a
 	}
 	s.enrichFlowMetadata(rec)
 	summary := map[string]any{
-		"flow_id":            rec.FlowID,
-		"provider_code":      rec.ProviderCode,
-		"provider_app":       rec.ProviderApp,
-		"provider_auth_mode": rec.AuthMode,
-		"storage_backend":    rec.StorageBackend,
-		"expire_at":          rec.FlowExpireAt,
-		"flow_ttl_seconds":   rec.FlowTTLSeconds,
-		"status":             s.flowStatus(rec),
-		"masked_token":       app.MaskToken(rec.AccessToken),
-		"masked_account":     s.maskAccount(rec),
-		"source":             rec.Source,
-		"config_path":        rec.ConfigPath,
-		"token_type":         rec.TokenType,
-		"expires_in":         rec.ExpiresIn,
+		"flow_id":              rec.FlowID,
+		"provider_code":        rec.ProviderCode,
+		"provider_app":         rec.ProviderApp,
+		"provider_auth_mode":   rec.AuthMode,
+		"storage_backend":      rec.StorageBackend,
+		"expire_at":            rec.FlowExpireAt,
+		"flow_expire_at":       rec.FlowExpireAt,
+		"flow_ttl_seconds":     rec.FlowTTLSeconds,
+		"status":               s.flowStatus(rec),
+		"masked_token":         app.MaskToken(rec.AccessToken),
+		"masked_refresh_token": app.MaskToken(rec.RefreshToken),
+		"masked_account":       s.maskAccount(rec),
+		"source":               rec.Source,
+		"config_path":          rec.ConfigPath,
+		"token_type":           rec.TokenType,
+		"expires_in":           rec.ExpiresIn,
+		"last_refresh_at":      rec.LastRefreshAt,
 	}
 	if rec.Callback != nil && rec.Callback.State != "" {
 		summary["flow_state"] = rec.Callback.State
@@ -1144,6 +1326,9 @@ func (s *accessTokenServer) buildFlowSummary(rec *oauthTokenRecord) map[string]a
 func (s *accessTokenServer) flowStatus(rec *oauthTokenRecord) string {
 	if rec == nil {
 		return "invalid"
+	}
+	if status := strings.TrimSpace(rec.Status); status != "" {
+		return status
 	}
 	now := time.Now().UTC()
 	if rec.FlowExpireAt.Before(now) {
@@ -1161,22 +1346,25 @@ func (s *accessTokenServer) buildFlowPayload(rec *oauthTokenRecord) map[string]a
 	}
 	s.enrichFlowMetadata(rec)
 	payload := map[string]any{
-		"flow_id":            rec.FlowID,
-		"provider_code":      rec.ProviderCode,
-		"provider_app":       rec.ProviderApp,
-		"provider_auth_mode": rec.AuthMode,
-		"config_path":        rec.ConfigPath,
-		"access_token":       rec.AccessToken,
-		"masked_token":       app.MaskToken(rec.AccessToken),
-		"refresh_token":      rec.RefreshToken,
-		"token_type":         rec.TokenType,
-		"scope":              rec.Scope,
-		"expires_in":         rec.ExpiresIn,
-		"expire_at":          rec.ExpireAt,
-		"flow_expire_at":     rec.FlowExpireAt,
-		"flow_ttl_seconds":   rec.FlowTTLSeconds,
-		"storage_backend":    rec.StorageBackend,
-		"token_source":       rec.Source,
+		"flow_id":              rec.FlowID,
+		"provider_code":        rec.ProviderCode,
+		"provider_app":         rec.ProviderApp,
+		"provider_auth_mode":   rec.AuthMode,
+		"config_path":          rec.ConfigPath,
+		"access_token":         rec.AccessToken,
+		"masked_token":         app.MaskToken(rec.AccessToken),
+		"refresh_token":        rec.RefreshToken,
+		"refresh_token_masked": app.MaskToken(rec.RefreshToken),
+		"token_type":           rec.TokenType,
+		"scope":                rec.Scope,
+		"expires_in":           rec.ExpiresIn,
+		"expire_at":            rec.ExpireAt,
+		"flow_expire_at":       rec.FlowExpireAt,
+		"flow_ttl_seconds":     rec.FlowTTLSeconds,
+		"storage_backend":      rec.StorageBackend,
+		"token_source":         rec.Source,
+		"status":               s.flowStatus(rec),
+		"last_refresh_at":      rec.LastRefreshAt,
 	}
 	if rec.Callback != nil {
 		payload["callback"] = rec.Callback
@@ -1197,9 +1385,12 @@ func (s *accessTokenServer) enrichFlowMetadata(rec *oauthTokenRecord) {
 		return
 	}
 	if rec.FlowTTLSeconds <= 0 {
-		rec.FlowTTLSeconds = s.flowTTLSeconds
+		rec.FlowTTLSeconds = rec.ExpiresIn
 		if rec.FlowTTLSeconds <= 0 {
-			rec.FlowTTLSeconds = defaultFlowTTLSeconds
+			rec.FlowTTLSeconds = s.flowTTLSeconds
+			if rec.FlowTTLSeconds <= 0 {
+				rec.FlowTTLSeconds = defaultFlowTTLSeconds
+			}
 		}
 	}
 	if rec.FlowExpireAt.IsZero() {

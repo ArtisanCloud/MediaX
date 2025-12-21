@@ -25,7 +25,7 @@ func (s *accessTokenServer) logServerEvent(event string, extra map[string]any) {
 	s.logger.InfoF("accesstoken-server: event=%s %s", event, strings.Join(pairs, " "))
 }
 
-func (s *accessTokenServer) logFlowAction(action string, ctx *providerContext, flowID, tokenSource, detail string) {
+func (s *accessTokenServer) logFlowAction(action string, ctx *providerContext, flowID, tokenSource, detail string, extra map[string]any) {
 	if s == nil {
 		return
 	}
@@ -40,6 +40,9 @@ func (s *accessTokenServer) logFlowAction(action string, ctx *providerContext, f
 		fields["provider_app"] = safeValue(ctx.AppCode)
 		fields["provider_auth_mode"] = safeValue(ctx.ModeKey)
 		fields["config_path"] = safeValue(ctx.ConfigPath)
+	}
+	for k, v := range extra {
+		fields[k] = v
 	}
 	s.logServerEvent(action, fields)
 }

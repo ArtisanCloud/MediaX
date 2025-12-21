@@ -7,8 +7,8 @@ import (
 )
 
 var (
-	jsonFieldPattern    = regexp.MustCompile(`(?i)("(?:code|state|access_token|refresh_token|client_secret)"\s*:\s*)"([^"]*)"`)
-	jsonQueryPattern    = regexp.MustCompile(`(?i)((?:code|state|access_token|refresh_token|client_secret)=)([^&"]+)`)
+	jsonFieldPattern    = regexp.MustCompile(`(?i)("(?:code|state|access_token|refresh_token|client_secret|open_id)"\s*:\s*)"([^"]*)"`)
+	jsonQueryPattern    = regexp.MustCompile(`(?i)((?:code|state|access_token|refresh_token|client_secret|open_id)=)([^&"]+)`)
 	headerMaskKeyLookup = map[string]struct{}{
 		"authorization":       {},
 		"proxy-authorization": {},

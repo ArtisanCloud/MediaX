@@ -1,0 +1,211 @@
+openapi: 3.0.3
+info:
+  title: DouYin AccessToken Debug APIs
+  version: 0.1.0
+servers:
+  - url: http://127.0.0.1:7071
+paths:
+  /accesstoken/oauth/start:
+    post:
+      summary: Initiate DouYin OAuth from /debug
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: #/components/schemas/OAuthStartRequest
+      responses:
+        200:
+          description: Authorization URL generated
+          content:
+            application/json:
+              schema:
+                $ref: #/components/schemas/OAuthStartResponse
+        400:
+          description: Missing configuration
+  /debug/callback:
+    get:
+      summary: DouYin OAuth callback endpoint
+      parameters:
+        - in: query
+          name: state
+          schema:
+            type: string
+          required: true
+        - in: query
+          name: code
+          schema:
+            type: string
+          required: true
+      responses:
+        200:
+          description: Flow stored and UI redirected
+        400:
+          description: Invalid state or token exchange failure
+  /accesstoken/call:
+    post:
+      summary: Execute DouYin API action using latest Flow
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: #/components/schemas/DouyinCallRequest
+      responses:
+        200:
+          description: API invocation succeeded
+          content:
+            application/json:
+              schema:
+                $ref: #/components/schemas/DouyinCallResponse
+        400:
+          description: Missing access token or params
+        401:
+          description: Invalid API token header
+        429:
+          description: Per-action rate limit triggered
+        502:
+          description: Upstream DouYin API error after retries
+  /api/oauth/tokens:
+    get:
+      summary: List Flow records (supports provider_code filter)
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: provider_code
+          schema:
+            type: string
+            enum: [byte_dance_douyin]
+        - in: query
+          name: flow_id
+          schema:
+            type: string
+      responses:
+        200:
+          description: Flow list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: #/components/schemas/DouyinFlowRecord
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+  schemas:
+    OAuthStartRequest:
+      type: object
+      required: [provider_code, provider_app, provider_auth_mode, config_path]
+      properties:
+        provider_code:
+          type: string
+          enum: [byte_dance_douyin]
+        provider_app:
+          type: string
+          enum: [douyin]
+        provider_auth_mode:
+          type: string
+          default: default
+        config_path:
+          type: string
+    OAuthStartResponse:
+      type: object
+      properties:
+        authorization_url:
+          type: string
+        state:
+          type: string
+        provider:
+          type: string
+        expires_in_seconds:
+          type: integer
+    DouyinCallRequest:
+      type: object
+      required: [provider_code, provider_app, action]
+      properties:
+        provider_code:
+          type: string
+          enum: [byte_dance_douyin]
+        provider_app:
+          type: string
+          enum: [douyin]
+        provider_auth_mode:
+          type: string
+          default: default
+        config_path:
+          type: string
+          description: Optional override path to config.yaml
+        action:
+          type: string
+          example: douyin.video.list
+        access_token:
+          type: string
+          description: Optional explicit access token; omitted to auto-use Flow
+        payload:
+          type: object
+          additionalProperties: true
+    DouyinCallResponse:
+      type: object
+      properties:
+        result:
+          type: object
+          additionalProperties: true
+        provider_code:
+          type: string
+        provider_app:
+          type: string
+        action:
+          type: string
+        flow_id:
+          type: string
+        token_source:
+          type: string
+        token_source_detail:
+          type: string
+        retry_count:
+          type: integer
+        storage_backend:
+          type: string
+          enum: [redis, memory]
+    DouyinFlowRecord:
+      type: object
+      properties:
+        flow_id:
+          type: string
+        provider_code:
+          type: string
+        provider_app:
+          type: string
+        auth_mode:
+          type: string
+        config_path:
+          type: string
+        masked_token:
+          type: string
+        refresh_token_masked:
+          type: string
+        expires_in:
+          type: integer
+        flow_ttl_seconds:
+          type: integer
+        flow_expire_at:
+          type: string
+          format: date-time
+        storage_backend:
+          type: string
+        status:
+          type: string
+          enum: [fresh, refreshing, need_reauth]
+        token_source:
+          type: string
+        last_refresh_at:
+          type: string
+          format: date-time
