@@ -64,7 +64,7 @@ func (s *accessTokenServer) handleToken(w http.ResponseWriter, r *http.Request) 
 	}
 	ctx, err := s.resolveProviderConfig(req.ProviderCode, req.ProviderApp, req.ProviderAuthMode, req.ConfigPath)
 	if err != nil {
-		s.writeError(w, http.StatusBadRequest, err.Error())
+		s.writeError(w, http.StatusBadRequest, "%s", err.Error())
 		return
 	}
 
@@ -111,9 +111,9 @@ func (s *accessTokenServer) handleToken(w http.ResponseWriter, r *http.Request) 
 		resp["flow_ttl_seconds"] = storedRec.FlowTTLSeconds
 		resp["storage_backend"] = storedRec.StorageBackend
 		flowID := storedRec.FlowID
-		s.logFlowAction("token.resolve", ctx, flowID, source, sourceDetail)
+		s.logFlowAction("token.resolve", ctx, flowID, source, sourceDetail, nil)
 	} else {
-		s.logFlowAction("token.resolve", ctx, "", source, sourceDetail)
+		s.logFlowAction("token.resolve", ctx, "", source, sourceDetail, nil)
 	}
 	s.writeJSON(w, http.StatusOK, resp)
 }
@@ -135,7 +135,7 @@ func (s *accessTokenServer) handleCall(w http.ResponseWriter, r *http.Request) {
 	}
 	ctx, err := s.resolveProviderConfig(opts.ProviderCode, opts.ProviderApp, opts.AuthMode, opts.ConfigPath)
 	if err != nil {
-		s.writeError(w, http.StatusBadRequest, err.Error())
+		s.writeError(w, http.StatusBadRequest, "%s", err.Error())
 		return
 	}
 	opts.ProviderCode = ctx.ProviderCode
@@ -160,12 +160,14 @@ func (s *accessTokenServer) handleCall(w http.ResponseWriter, r *http.Request) {
 	switch ctx.ProviderCode {
 	case providerGoogleYouTube:
 		if err := opts.Validate(); err != nil {
-			s.writeError(w, http.StatusBadRequest, err.Error())
+			s.writeError(w, http.StatusBadRequest, "%s", err.Error())
 			return
 		}
 		s.executeYouTubeCall(w, r, ctx, opts, source, sourceDetail, storedRec)
 	case providerRedBookJuGuang:
 		s.executeRedbookCall(r.Context(), w, ctx, opts, request.Payload, source, sourceDetail, storedRec)
+	case providerByteDanceDouYin:
+		s.executeDouyinCall(r.Context(), w, ctx, opts, request.Payload, source, sourceDetail, storedRec)
 	default:
 		s.writeError(w, http.StatusBadRequest, "provider %s 暂未开放 API 调试", ctx.displayName())
 	}
@@ -191,7 +193,7 @@ func (s *accessTokenServer) executeYouTubeCall(w http.ResponseWriter, r *http.Re
 	}
 	data, err := app.ExecuteAction(r.Context(), s.logger, ytClient, opts)
 	if err != nil {
-		s.writeError(w, http.StatusBadGateway, err.Error())
+		s.writeError(w, http.StatusBadGateway, "%s", err.Error())
 		return
 	}
 	resp := map[string]any{
@@ -222,7 +224,11 @@ func (s *accessTokenServer) executeYouTubeCall(w http.ResponseWriter, r *http.Re
 	if storedRec != nil {
 		flowID = storedRec.FlowID
 	}
-	s.logFlowAction("token.call", ctx, flowID, source, sourceDetail)
+	extraFields := map[string]any{"action": opts.Action}
+	if storedRec != nil && storedRec.StorageBackend != "" {
+		extraFields["storage_backend"] = storedRec.StorageBackend
+	}
+	s.logFlowAction("token.call", ctx, flowID, source, sourceDetail, extraFields)
 	s.writeJSON(w, http.StatusOK, resp)
 }
 
@@ -240,21 +246,21 @@ func (s *accessTokenServer) executeRedbookCall(ctx context.Context, w http.Respo
 		payload = map[string]any{}
 	}
 	var (
-		result   any
-		meta     map[string]any
-		status   = http.StatusOK
-		action   = strings.ToLower(opts.Action)
+		result    any
+		meta      map[string]any
+		status    = http.StatusOK
+		action    = strings.ToLower(opts.Action)
 		actionErr error
 	)
 	switch action {
 	case "redbook.account.balance":
 		result, meta, status, actionErr = s.callRedbookAccountBalance(ctx, client, payload)
 	default:
-		s.writeError(w, http.StatusBadRequest, fmt.Sprintf("redbook action %s 暂未开放", opts.Action))
+		s.writeError(w, http.StatusBadRequest, "redbook action %s 暂未开放", opts.Action)
 		return
 	}
 	if actionErr != nil {
-		s.writeError(w, status, actionErr.Error())
+		s.writeError(w, status, "%s", actionErr.Error())
 		return
 	}
 	resp := map[string]any{
@@ -290,7 +296,159 @@ func (s *accessTokenServer) executeRedbookCall(ctx context.Context, w http.Respo
 		resp["flow_ttl_seconds"] = storedRec.FlowTTLSeconds
 		resp["storage_backend"] = storedRec.StorageBackend
 	}
-	s.logFlowAction("token.call", pctx, flowID, source, sourceDetail)
+	extraFields := map[string]any{"action": opts.Action}
+	if storedRec != nil && storedRec.StorageBackend != "" {
+		extraFields["storage_backend"] = storedRec.StorageBackend
+	}
+	s.logFlowAction("token.call", pctx, flowID, source, sourceDetail, extraFields)
+	s.writeJSON(w, http.StatusOK, resp)
+}
+
+func (s *accessTokenServer) executeDouyinCall(ctx context.Context, w http.ResponseWriter, pctx *providerContext, opts *app.Options, payload map[string]any, source, sourceDetail string, storedRec *oauthTokenRecord) {
+	if pctx == nil || pctx.Douyin == nil {
+		s.writeError(w, http.StatusBadRequest, "byte_dance_douyin_config 缺失")
+		return
+	}
+	if opts == nil {
+		s.writeError(w, http.StatusBadRequest, "missing options for douyin call")
+		return
+	}
+	if payload == nil {
+		payload = map[string]any{}
+	}
+	scope := ""
+	if cfg := pctx.clientConfig(); cfg != nil && cfg.OAuthConfig != nil {
+		scope = normalizeOAuthScope(cfg.OAuthConfig.Scope)
+	}
+	if scope == "" {
+		s.writeError(w, http.StatusBadRequest, "DouYin OAuth scope 未配置")
+		return
+	}
+	storageBackend := s.storageBackend
+	flowID := ""
+	if storedRec != nil {
+		flowID = storedRec.FlowID
+		if storedRec.StorageBackend != "" {
+			storageBackend = storedRec.StorageBackend
+		}
+		if err := s.maybeRefreshDouyinToken(ctx, storedRec, pctx); err != nil {
+			if errors.Is(err, errNeedReauth) {
+				s.writeError(w, http.StatusUnauthorized, "%s", errNeedReauth.Error())
+				return
+			}
+			s.writeError(w, http.StatusBadGateway, "刷新 DouYin access_token 失败: %v", err)
+			return
+		}
+		s.enrichFlowMetadata(storedRec)
+		if strings.TrimSpace(storedRec.AccessToken) != "" {
+			opts.AccessToken = storedRec.AccessToken
+		}
+		if storedRec.ExpiresIn > 0 {
+			opts.AccessTokenTTL = storedRec.ExpiresIn
+		}
+		if storedRec.StorageBackend != "" {
+			storageBackend = storedRec.StorageBackend
+		}
+	}
+	limiter := s.getDouyinLimiter(opts.Action)
+	if limiter != nil && !limiter.Allow() {
+		extraFields := map[string]any{
+			"action":          opts.Action,
+			"retry_count":     0,
+			"storage_backend": storageBackend,
+		}
+		s.logFlowAction("token.call.rate_limited", pctx, flowID, source, sourceDetail, extraFields)
+		s.writeError(w, http.StatusTooManyRequests, "DouYin action %s 已达到 1 QPS 限制，请稍后重试", opts.Action)
+		return
+	}
+	client, err := s.mediaX.CreateByteDanceDouYinACClient(pctx.Douyin)
+	if err != nil {
+		s.writeError(w, http.StatusInternalServerError, "create douyin client: %v", err)
+		return
+	}
+	if client == nil || client.ByteDanceClient == nil || client.ByteDanceClient.TokenHandler == nil {
+		s.writeError(w, http.StatusInternalServerError, "douyin client 缺少 token handler")
+		return
+	}
+	client.ByteDanceClient.TokenHandler.GetCustomToken = func(key string, refresh bool) object.HashMap {
+		return object.HashMap{
+			"access_token": opts.AccessToken,
+			"expires_in":   float64(opts.AccessTokenTTL),
+		}
+	}
+	retryCount := 0
+	var lastBackoff time.Duration
+	var result any
+	var callErr error
+	for attempt := 0; attempt < douyinMaxRetries; attempt++ {
+		result, callErr = client.Call(ctx, opts.Action, payload)
+		if callErr == nil {
+			break
+		}
+		statusCode, retryable := classifyDouyinCallError(callErr)
+		if !retryable || attempt == douyinMaxRetries-1 {
+			extraFields := map[string]any{
+				"action":          opts.Action,
+				"retry_count":     retryCount,
+				"storage_backend": storageBackend,
+			}
+			if statusCode > 0 {
+				extraFields["status_code"] = statusCode
+			}
+			s.logFlowAction("token.call", pctx, flowID, source, sourceDetail, extraFields)
+			switch {
+			case statusCode == http.StatusTooManyRequests:
+				s.writeError(w, http.StatusTooManyRequests, "%s", callErr.Error())
+			case statusCode >= http.StatusInternalServerError && statusCode <= http.StatusNetworkAuthenticationRequired:
+				s.writeError(w, http.StatusBadGateway, "%s", callErr.Error())
+			default:
+				s.writeError(w, http.StatusBadGateway, "%s", callErr.Error())
+			}
+			return
+		}
+		retryCount++
+		lastBackoff = douyinRetryBaseDelay * time.Duration(1<<attempt)
+		if !sleepWithContext(ctx, lastBackoff) {
+			s.writeError(w, http.StatusGatewayTimeout, "DouYin 调用被取消或超时")
+			return
+		}
+	}
+	if callErr != nil {
+		return
+	}
+	resp := map[string]any{
+		"result":              result,
+		"token_source":        source,
+		"token_source_detail": sourceDetail,
+		"masked_token":        app.MaskToken(opts.AccessToken),
+		"oauth_key":           extractOauthKey(pctx.Mode),
+		"config_path":         pctx.ConfigPath,
+		"provider":            pctx.displayName(),
+		"provider_code":       pctx.ProviderCode,
+		"provider_app":        pctx.AppCode,
+		"provider_auth_mode":  pctx.ModeKey,
+		"access_token_ttl":    opts.AccessTokenTTL,
+		"storage_backend":     storageBackend,
+		"action":              opts.Action,
+		"request_timestamp":   time.Now().UTC(),
+		"retry_count":         retryCount,
+	}
+	if lastBackoff > 0 {
+		resp["last_backoff_ms"] = lastBackoff.Milliseconds()
+	}
+	if storedRec != nil {
+		s.enrichFlowMetadata(storedRec)
+		resp["flow_id"] = storedRec.FlowID
+		resp["flow_expire_at"] = storedRec.FlowExpireAt
+		resp["flow_ttl_seconds"] = storedRec.FlowTTLSeconds
+		resp["storage_backend"] = storedRec.StorageBackend
+	}
+	extraFields := map[string]any{
+		"action":          opts.Action,
+		"retry_count":     retryCount,
+		"storage_backend": resp["storage_backend"],
+	}
+	s.logFlowAction("token.call", pctx, flowID, source, sourceDetail, extraFields)
 	s.writeJSON(w, http.StatusOK, resp)
 }
 
@@ -389,25 +547,25 @@ func (s *accessTokenServer) handleOAuthStart(w http.ResponseWriter, r *http.Requ
 	}
 	var req oauthStartRequest
 	if err := decodeJSON(r.Body, &req); err != nil {
-		s.logFlowAction("oauth.start.error", nil, "", "invalid_json", err.Error())
+		s.logFlowAction("oauth.start.error", nil, "", "invalid_json", err.Error(), nil)
 		s.writeError(w, http.StatusBadRequest, "invalid json: %v", err)
 		return
 	}
 	if strings.TrimSpace(req.ProviderCode) == "" || strings.TrimSpace(req.ProviderApp) == "" || strings.TrimSpace(req.ProviderAuthMode) == "" || strings.TrimSpace(req.ConfigPath) == "" {
-		s.logFlowAction("oauth.start.error", nil, "", "invalid_request", "provider_code/provider_app/provider_auth_mode/config_path 不能为空")
+		s.logFlowAction("oauth.start.error", nil, "", "invalid_request", "provider_code/provider_app/provider_auth_mode/config_path 不能为空", nil)
 		s.writeError(w, http.StatusBadRequest, "provider_code/provider_app/provider_auth_mode/config_path 不能为空")
 		return
 	}
 	ctx, err := s.resolveProviderConfig(req.ProviderCode, req.ProviderApp, req.ProviderAuthMode, req.ConfigPath)
 	if err != nil {
-		s.logFlowAction("oauth.start.error", ctx, "", "resolve_provider", err.Error())
-		s.writeError(w, http.StatusBadRequest, err.Error())
+		s.logFlowAction("oauth.start.error", ctx, "", "resolve_provider", err.Error(), nil)
+		s.writeError(w, http.StatusBadRequest, "%s", err.Error())
 		return
 	}
 	authURL, state, err := s.buildOAuthAuthorizeURL(ctx)
 	if err != nil {
-		s.logFlowAction("oauth.start.error", ctx, "", "build_authorize_url", err.Error())
-		s.writeError(w, http.StatusBadRequest, err.Error())
+		s.logFlowAction("oauth.start.error", ctx, "", "build_authorize_url", err.Error(), nil)
+		s.writeError(w, http.StatusBadRequest, "%s", err.Error())
 		return
 	}
 	flowID := fmt.Sprintf("oauth-%s", state)
@@ -431,7 +589,7 @@ func (s *accessTokenServer) handleOAuthStart(w http.ResponseWriter, r *http.Requ
 			"auth_mode": ctx.ModeKey,
 		},
 	}
-	s.logFlowAction("oauth.start", ctx, flowID, "pending", state)
+	s.logFlowAction("oauth.start", ctx, flowID, "pending", state, nil)
 	s.writeJSON(w, http.StatusOK, response)
 }
 
@@ -520,14 +678,20 @@ func (s *accessTokenServer) handleFlowReplay(w http.ResponseWriter, r *http.Requ
 	if err != nil {
 		switch {
 		case errors.Is(err, errFlowExpired):
+			s.logServerEvent("flow.expired", map[string]any{
+				"flow_id": flowID,
+			})
 			s.writeJSON(w, http.StatusNotFound, map[string]any{
 				"error":   "FLOW_EXPIRED",
 				"message": "Flow 已过期，请重新授权。",
 			})
 		case errors.Is(err, errFlowNotFound):
+			s.logServerEvent("flow.not_found", map[string]any{
+				"flow_id": flowID,
+			})
 			s.writeJSON(w, http.StatusNotFound, map[string]any{
 				"error":   "FLOW_NOT_FOUND",
-				"message": "Flow 不存在或已被清理。",
+				"message": "Flow 不存在或已被清理，请重新授权。",
 			})
 		default:
 			s.writeError(w, http.StatusInternalServerError, "load flow failed: %v", err)
@@ -695,4 +859,43 @@ func flattenHeaders(h http.Header) map[string]string {
 func acceptsHTML(r *http.Request) bool {
 	accept := strings.ToLower(r.Header.Get("Accept"))
 	return strings.Contains(accept, "text/html")
+}
+
+func classifyDouyinCallError(err error) (int, bool) {
+	if err == nil {
+		return 0, false
+	}
+	const marker = "http schema code:"
+	msg := err.Error()
+	idx := strings.Index(msg, marker)
+	if idx == -1 {
+		return 0, false
+	}
+	remaining := strings.TrimSpace(msg[idx+len(marker):])
+	var code int
+	if _, scanErr := fmt.Sscanf(remaining, "%d", &code); scanErr != nil {
+		return 0, false
+	}
+	if code == http.StatusTooManyRequests || (code >= http.StatusInternalServerError && code <= http.StatusNetworkAuthenticationRequired) {
+		return code, true
+	}
+	return code, false
+}
+
+func sleepWithContext(ctx context.Context, delay time.Duration) bool {
+	if delay <= 0 {
+		return true
+	}
+	if ctx == nil {
+		time.Sleep(delay)
+		return true
+	}
+	timer := time.NewTimer(delay)
+	defer timer.Stop()
+	select {
+	case <-ctx.Done():
+		return false
+	case <-timer.C:
+		return true
+	}
 }

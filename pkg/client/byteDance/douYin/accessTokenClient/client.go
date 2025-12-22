@@ -2,6 +2,8 @@ package accessTokenClient
 
 import (
 	"context"
+	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/ArtisanCloud/MediaX/pkg/client/byteDance/douYin/accessTokenClient/connection/data"
 	"github.com/ArtisanCloud/MediaX/pkg/client/byteDance/douYin/accessTokenClient/connection/fan"
@@ -23,6 +25,11 @@ import (
 	"github.com/ArtisanCloud/MediaXCore/pkg/cache"
 	"github.com/ArtisanCloud/MediaXCore/pkg/logger"
 	"github.com/ArtisanCloud/MediaXCore/utils/object"
+	"io"
+	"net/http"
+	"net/url"
+	"strings"
+	"time"
 )
 
 // ByteDanceDouYinACClient 抖音访问Token客户端
@@ -223,4 +230,91 @@ func (c *ByteDanceDouYinACClient) GetMarketServiceClient() *service.DouYinMarket
 		c.marketService = service.NewClient(c.ByteDanceClient.BaseClient)
 	}
 	return c.marketService
+}
+
+// Call 允许调试环境执行任意 DouYin API action。action 支持相对路径（/api/xxx）或点分式（douyin.video.list）。
+func (c *ByteDanceDouYinACClient) Call(ctx context.Context, action string, payload map[string]any) (any, error) {
+	if c == nil || c.ByteDanceClient == nil {
+		return nil, errors.New("douyin client is not initialized")
+	}
+	endpoint := strings.TrimSpace(action)
+	if endpoint == "" {
+		return nil, errors.New("action is required")
+	}
+	if !strings.HasPrefix(endpoint, "/") && !strings.HasPrefix(endpoint, "http") {
+		endpoint = "/" + strings.ReplaceAll(endpoint, ".", "/")
+	}
+	var body interface{}
+	if payload == nil {
+		body = map[string]any{}
+	} else {
+		body = payload
+	}
+	var result any
+	if _, err := c.ByteDanceClient.HttpPost(ctx, endpoint, nil, body, nil, &result); err != nil {
+		return nil, fmt.Errorf("douyin action %s failed: %w", action, err)
+	}
+	return result, nil
+}
+
+// RefreshToken 使用 DouYin OAuth refresh_token 刷新 access_token，并返回标准响应结构。
+func (c *ByteDanceDouYinACClient) RefreshToken(ctx context.Context, refreshToken string) (*response.ByteDanceAccessTokenRes, error) {
+	if c == nil || c.DouYinConfig == nil || c.DouYinConfig.ClientConfig == nil || c.DouYinConfig.ClientConfig.OAuthConfig == nil {
+		return nil, errors.New("douyin oauth config is missing")
+	}
+	refreshToken = strings.TrimSpace(refreshToken)
+	if refreshToken == "" {
+		return nil, errors.New("refresh token is required")
+	}
+	oauthCfg := c.DouYinConfig.ClientConfig.OAuthConfig
+	clientID := strings.TrimSpace(oauthCfg.ClientID)
+	clientSecret := strings.TrimSpace(oauthCfg.ClientSecret)
+	if clientID == "" || clientSecret == "" {
+		return nil, errors.New("client_id/client_secret are required for refresh token request")
+	}
+	endpoint := strings.TrimSpace(oauthCfg.RefreshTokenUri)
+	if endpoint == "" {
+		endpoint = strings.TrimSpace(oauthCfg.AccessTokenUrl)
+	}
+	if endpoint == "" {
+		base := strings.TrimSpace(c.DouYinConfig.ApiUrl)
+		if base == "" {
+			base = config.ByteDanceDouYinAPIUrl
+		}
+		endpoint = strings.TrimSuffix(base, "/") + "/oauth/refresh_token/"
+	}
+	form := url.Values{}
+	form.Set("grant_type", "refresh_token")
+	form.Set("client_id", clientID)
+	form.Set("client_secret", clientSecret)
+	form.Set("refresh_token", refreshToken)
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, endpoint, strings.NewReader(form.Encode()))
+	if err != nil {
+		return nil, fmt.Errorf("build refresh token request: %w", err)
+	}
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	httpClient := &http.Client{Timeout: 10 * time.Second}
+	resp, err := httpClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("refresh token request failed: %w", err)
+	}
+	defer resp.Body.Close()
+	body, err := io.ReadAll(io.LimitReader(resp.Body, 1<<20))
+	if err != nil {
+		return nil, fmt.Errorf("read refresh token response failed: %w", err)
+	}
+	if resp.StatusCode >= http.StatusMultipleChoices {
+		return nil, fmt.Errorf("refresh token endpoint returned %d: %s", resp.StatusCode, strings.TrimSpace(string(body)))
+	}
+	result := &response.ByteDanceAccessTokenRes{}
+	if err := json.Unmarshal(body, result); err != nil {
+		return nil, fmt.Errorf("decode refresh token response failed: %w", err)
+	}
+	if result.ErrCode != 0 && strings.TrimSpace(result.ErrMsg) != "" {
+		return nil, fmt.Errorf("douyin refresh token error (%d): %s", result.ErrCode, result.ErrMsg)
+	}
+	if strings.TrimSpace(result.AccessToken) == "" {
+		return nil, errors.New("douyin refresh token response missing access_token")
+	}
+	return result, nil
 }

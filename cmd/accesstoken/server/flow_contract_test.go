@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 )
@@ -14,9 +15,12 @@ type flowListAPIResponse struct {
 }
 
 type flowListItem struct {
-	FlowID      string `json:"flow_id"`
-	Status      string `json:"status"`
-	MaskedToken string `json:"masked_token"`
+	FlowID             string    `json:"flow_id"`
+	Status             string    `json:"status"`
+	MaskedToken        string    `json:"masked_token"`
+	MaskedRefreshToken string    `json:"masked_refresh_token"`
+	StorageBackend     string    `json:"storage_backend"`
+	FlowExpireAt       time.Time `json:"flow_expire_at"`
 }
 
 type flowReplayAPIResponse struct {
@@ -35,6 +39,7 @@ func TestHandleListFlowsReturnsMaskedRecords(t *testing.T) {
 		ConfigPath:   server.defaultConfigPath,
 		FlowID:       "oauth-flow-list",
 		AccessToken:  "list-flow-token",
+		RefreshToken: "list-refresh-token",
 		ExpiresIn:    600,
 		StoredAt:     time.Now().UTC(),
 		Callback: &callbackRecord{
@@ -72,6 +77,15 @@ func TestHandleListFlowsReturnsMaskedRecords(t *testing.T) {
 	}
 	if item.MaskedToken == "" || item.MaskedToken == "list-flow-token" {
 		t.Fatalf("masked token not applied: %s", item.MaskedToken)
+	}
+	if item.MaskedRefreshToken == "" || item.MaskedRefreshToken == "list-refresh-token" {
+		t.Fatalf("masked refresh token not applied: %s", item.MaskedRefreshToken)
+	}
+	if item.StorageBackend != server.storageBackend {
+		t.Fatalf("storage backend mismatch: %s", item.StorageBackend)
+	}
+	if item.FlowExpireAt.IsZero() {
+		t.Fatalf("flow_expire_at missing")
 	}
 }
 
@@ -127,6 +141,9 @@ func TestHandleFlowReplayReturnsPayload(t *testing.T) {
 	if got := resp.Payload["masked_token"]; got == "replay-flow-token" {
 		t.Fatalf("masked_token not applied: %v", got)
 	}
+	if got := resp.Payload["refresh_token_masked"]; got == nil || got == "refresh-token" {
+		t.Fatalf("refresh_token_masked not applied: %v", got)
+	}
 	if _, ok := resp.Payload["callback"]; !ok {
 		t.Fatalf("callback missing in payload")
 	}
@@ -178,5 +195,32 @@ func TestHandleListFlowsFiltersByProvider(t *testing.T) {
 	}
 	if resp.Flows[0].FlowID != "oauth-redbook" {
 		t.Fatalf("flow_id=%s want oauth-redbook", resp.Flows[0].FlowID)
+	}
+}
+
+func TestHandleFlowReplayReturnsNeedReauthMessage(t *testing.T) {
+	server := newTestAccessTokenServer(t, testAccessTokenConfig)
+	body := []byte(`{"flow_id":"missing-flow"}`)
+	req := httptest.NewRequest(http.MethodPost, "/accesstoken/flow/replay", bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	recorder := httptest.NewRecorder()
+
+	server.handleFlowReplay(recorder, req)
+
+	res := recorder.Result()
+	defer res.Body.Close()
+	if res.StatusCode != http.StatusNotFound {
+		t.Fatalf("status=%d want 404", res.StatusCode)
+	}
+	var payload map[string]any
+	if err := json.NewDecoder(res.Body).Decode(&payload); err != nil {
+		t.Fatalf("decode response: %v", err)
+	}
+	if payload["error"] != "FLOW_NOT_FOUND" {
+		t.Fatalf("error=%v want FLOW_NOT_FOUND", payload["error"])
+	}
+	msg, _ := payload["message"].(string)
+	if !strings.Contains(msg, "重新授权") {
+		t.Fatalf("message should mention reauth: %s", msg)
 	}
 }

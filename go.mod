@@ -1,6 +1,6 @@
 module github.com/ArtisanCloud/MediaX
 
-go 1.18
+go 1.24.0
 
 // replace github.com/ArtisanCloud/MediaXCore => ../MediaXCore
 
@@ -9,6 +9,8 @@ require (
 	github.com/redis/go-redis/v9 v9.8.0
 	gopkg.in/yaml.v3 v3.0.1
 )
+
+require golang.org/x/time v0.14.0
 
 require (
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect

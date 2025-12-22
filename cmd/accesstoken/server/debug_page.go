@@ -123,6 +123,7 @@ var debugPageTemplate = template.Must(template.New("accesstoken_debug").Parse(`<
         <div class="provider-card-tags">
           <span id="providerCardModeTag">模式：-</span>
           <span id="providerCardOAuthKeyTag">OAuth Key：-</span>
+          <span id="providerCardSingleTag" style="display:none;">单实例</span>
         </div>
       </div>
       <div class="provider-card-body">
@@ -295,6 +296,7 @@ var debugPageTemplate = template.Must(template.New("accesstoken_debug").Parse(`<
     const providerCardVersion = document.getElementById('providerCardVersion');
     const providerCardModeTag = document.getElementById('providerCardModeTag');
     const providerCardOAuthKeyTag = document.getElementById('providerCardOAuthKeyTag');
+    const providerCardSingleTag = document.getElementById('providerCardSingleTag');
     const providerCardProviderCode = document.getElementById('providerCardProviderCode');
     const providerCardAppCode = document.getElementById('providerCardAppCode');
     const providerCardConfigPath = document.getElementById('providerCardConfigPath');
@@ -534,14 +536,23 @@ var debugPageTemplate = template.Must(template.New("accesstoken_debug").Parse(`<
       const { app, mode, providerCode, appCode, configPath, modeKey } = snapshot;
       const providerName = provider?.name || provider?.code || '-';
       const appName = app?.name || app?.code || '-';
+      const oauthKey = (mode?.oauth_key || app?.oauth_key || '').trim();
+      const isDouyin = (providerCode || '').toLowerCase() === 'byte_dance_douyin';
       providerCardTitle.textContent = providerName && appName ? providerName + ' / ' + appName : providerName || appName || '-';
       providerCardVersion.textContent = 'API ' + (app?.api_version || 'v1');
       providerCardModeTag.textContent = '模式：' + (mode?.label || mode?.key || '-');
-      const oauthKey = (mode?.oauth_key || app?.oauth_key || '').trim();
       providerCardOAuthKeyTag.textContent = 'OAuth Key：' + (oauthKey || '未配置');
       providerCardProviderCode.textContent = providerCode || '-';
-      providerCardAppCode.textContent = app?.code || appCode || '-';
+      providerCardAppCode.textContent = appCode || app?.code || '-';
       providerCardConfigPath.textContent = configPath || app?.config_path || '';
+      if (providerCardSingleTag) {
+        if (isDouyin) {
+          providerCardSingleTag.style.display = 'inline-block';
+          providerCardSingleTag.textContent = '单实例 · <app>=default';
+        } else {
+          providerCardSingleTag.style.display = 'none';
+        }
+      }
       const templateData = preview || {
         provider_code: providerCode,
         provider_app: appCode,
@@ -652,7 +663,9 @@ var debugPageTemplate = template.Must(template.New("accesstoken_debug").Parse(`<
           return;
         }
         const data = await res.json();
-        tokenCache = data.flows || [];
+        tokenCache = (data.flows || []).map((flow) => Object.assign({}, flow, {
+          flow_expire_at: flow.flow_expire_at || flow.expire_at
+        }));
         state.flowCursor = data.next_cursor || '';
         renderTokenTable();
         if (force && tokenCache.length === 0) {
@@ -679,11 +692,25 @@ var debugPageTemplate = template.Must(template.New("accesstoken_debug").Parse(`<
       }
       tokenCache.forEach((token) => {
         const tr = document.createElement('tr');
-        const expireText = token.expire_at ? new Date(token.expire_at).toLocaleString() : '-';
+        const expireSource = token.flow_expire_at || token.expire_at;
+        const expireText = expireSource ? new Date(expireSource).toLocaleString() : '-';
         const statusText = (token.status || token.source || '-');
-        const maskedAccount = token.masked_account ? ' · ' + token.masked_account : '';
+        const infoParts = [];
+        if (statusText && statusText !== '-') {
+          infoParts.push(statusText);
+        }
+        if (token.masked_account) {
+          infoParts.push(token.masked_account);
+        }
+        if (token.storage_backend) {
+          infoParts.push('storage=' + token.storage_backend);
+        }
+        if (token.masked_refresh_token && token.masked_refresh_token !== '-') {
+          infoParts.push('refresh=' + token.masked_refresh_token);
+        }
+        const infoText = infoParts.length ? infoParts.join(' · ') : '-';
         tr.innerHTML = '<td>' + (token.flow_id || '-') + '</td>' +
-                       '<td>' + statusText + maskedAccount + '</td>' +
+                       '<td>' + infoText + '</td>' +
                        '<td>' + expireText + '</td>';
         const actionTd = document.createElement('td');
         const btn = document.createElement('button');
@@ -790,11 +817,18 @@ var debugPageTemplate = template.Must(template.New("accesstoken_debug").Parse(`<
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ flow_id: flowId })
       });
+      const text = await res.text();
       if (!res.ok) {
-        const text = await res.text();
-        throw new Error(text || 'flow replay failed');
+        let message = text || 'flow replay failed';
+        try {
+          const data = JSON.parse(text);
+          message = data.message || data.error || message;
+        } catch (err) {
+          // ignore
+        }
+        throw new Error(message);
       }
-      return res.json();
+      return JSON.parse(text);
     }
 
     async function fillFlowToken(flowId, silent) {
@@ -806,7 +840,9 @@ var debugPageTemplate = template.Must(template.New("accesstoken_debug").Parse(`<
         const replay = await replayFlow(flowId);
         applyTokenRecord(replay.payload || {}, silent);
       } catch (err) {
-        showFlash('加载 Flow 失败: ' + err.message, true);
+        const needsReauth = err.message && err.message.indexOf('重新授权') >= 0;
+        const suffix = needsReauth ? '，Flow 已失效，请重新授权。' : '';
+        showFlash('加载 Flow 失败: ' + err.message + suffix, true);
       }
     }
 
@@ -823,14 +859,18 @@ var debugPageTemplate = template.Must(template.New("accesstoken_debug").Parse(`<
           flow_id: replay.flow_id,
           status: replay.status,
           expire_at: payload.flow_expire_at || payload.expire_at,
+          flow_expire_at: payload.flow_expire_at || payload.expire_at,
           masked_account: payload.provider_code ? payload.provider_code + '/' + (payload.provider_app || '-') : '',
-          storage_backend: replay.storage_backend
+          storage_backend: replay.storage_backend,
+          masked_refresh_token: payload.refresh_token_masked || '-'
         }];
         renderTokenTable();
         applyTokenRecord(payload, true);
         showFlash('已加载 Flow ID 对应的授权记录，可点击“填充”复用。', false);
       } catch (err) {
-        showFlash('加载 Flow ID 失败: ' + err.message, true);
+        const needsReauth = err.message && err.message.indexOf('重新授权') >= 0;
+        const hint = needsReauth ? '，Flow 已失效，请重新授权后再次尝试。' : '';
+        showFlash('加载 Flow ID 失败: ' + err.message + hint, true);
       }
     }
 

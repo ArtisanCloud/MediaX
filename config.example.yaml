@@ -52,21 +52,27 @@ access_token_providers:
     - code: "byte_dance"
       name: "字节跳动"
       apps:
-        - code: "douyin"
+        - code: "default"                       # Flow key `<app>` 固定 default，避免误解支持多 App
+          app_key: "douyin"                     # UI/CLI 展示/上报的 provider_app，可保持 "douyin" 便于辨识
           name: "抖音 Douyin"
           provider_code: "byte_dance_douyin"
           api_version: "v1"
           auth_modes:
             - key: "default"
-              label: "默认"
+              label: "默认 OAuth"
               byte_dance_douyin_config:
                 api_url: "https://open.douyin.com"
                 proxy_api_url: ""
                 timeout: 5.0
                 http_debug: false
                 oauth:
-                  client_id: "your_douyin_app_id"
-                  client_secret: "your_douyin_app_secret"
+                  oauth_url: "${DOUYIN_OAUTH_URL:-https://open.douyin.com/platform/oauth/connect}"          # 授权页 URL（必须 https）
+                  access_token_url: "${DOUYIN_ACCESS_TOKEN_URL:-https://open.douyin.com/oauth/access_token/}" # 交换 code 的 URL
+                  client_id: "${DOUYIN_CLIENT_ID}"                                                           # 推荐通过环境变量注入 client_key
+                  client_secret: "${DOUYIN_CLIENT_SECRET}"                                                   # 推荐通过环境变量注入 client_secret
+                  redirect_url: "${DOUYIN_REDIRECT_URL:-http://127.0.0.1:7071/debug/callback}"               # 回调地址
+                  scope: "${DOUYIN_SCOPE:-video.list,im.message.send}"                                       # 授权范围
+                oauth_key: "${DOUYIN_OAUTH_KEY:-default}"                                                    # 用于 Flow/Tokens 标识租户
     - code: "redbook"
       name: "小红书"
       apps:

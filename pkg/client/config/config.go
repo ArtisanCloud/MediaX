@@ -128,6 +128,7 @@ type AccessTokenProvider struct {
 // AccessTokenProviderApp 代表某个 Provider 下的具体 App（例如 YouTube、Blogger）
 type AccessTokenProviderApp struct {
 	Code         string                 `yaml:"code" json:"code"`
+	AppKey       string                 `yaml:"app_key,omitempty" json:"app_key,omitempty"`
 	Name         string                 `yaml:"name" json:"name"`
 	ProviderCode string                 `yaml:"provider_code" json:"provider_code"`
 	ApiVersion   string                 `yaml:"api_version,omitempty" json:"api_version,omitempty"`
@@ -205,7 +206,7 @@ func (cfg *AccessTokenProvidersConfig) FindApp(groupCode, appCode string) (*Acce
 			if app == nil {
 				continue
 			}
-			if appCode == "" || strings.EqualFold(app.Code, appCode) {
+			if appCode == "" || app.matchesCode(appCode) {
 				return provider, app
 			}
 		}
@@ -244,6 +245,34 @@ func (app *AccessTokenProviderApp) ProviderCodeValue() string {
 		return code
 	}
 	return strings.TrimSpace(app.Code)
+}
+
+// ProviderAppValue 返回面向 UI/CLI 的 provider_app（默认等于 code，可通过 app_key 单独覆盖）。
+func (app *AccessTokenProviderApp) ProviderAppValue() string {
+	if app == nil {
+		return ""
+	}
+	if key := strings.TrimSpace(app.AppKey); key != "" {
+		return key
+	}
+	return strings.TrimSpace(app.Code)
+}
+
+func (app *AccessTokenProviderApp) matchesCode(target string) bool {
+	if app == nil {
+		return false
+	}
+	target = strings.TrimSpace(target)
+	if target == "" {
+		return true
+	}
+	if strings.EqualFold(app.Code, target) {
+		return true
+	}
+	if strings.EqualFold(app.ProviderAppValue(), target) {
+		return true
+	}
+	return false
 }
 
 // DefaultMode 返回 App 的默认授权模式
