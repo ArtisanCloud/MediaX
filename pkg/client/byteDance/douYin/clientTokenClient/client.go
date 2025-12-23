@@ -1,6 +1,9 @@
 package clientTokenClient
 
 import (
+	"context"
+	"time"
+
 	"github.com/ArtisanCloud/MediaX/pkg/client/byteDance/douYin/clientTokenClient/content/activity"
 	"github.com/ArtisanCloud/MediaX/pkg/client/byteDance/douYin/clientTokenClient/content/schemas"
 	"github.com/ArtisanCloud/MediaX/pkg/client/byteDance/douYin/clientTokenClient/content/task"
@@ -10,9 +13,11 @@ import (
 	"github.com/ArtisanCloud/MediaX/pkg/client/byteDance/douYin/clientTokenClient/tools/sandbox"
 	"github.com/ArtisanCloud/MediaX/pkg/client/byteDance/douYin/clientTokenClient/tools/ticket"
 	"github.com/ArtisanCloud/MediaX/pkg/client/byteDance/douYin/core"
+	douyinresponse "github.com/ArtisanCloud/MediaX/pkg/client/byteDance/douYin/core/response"
 	"github.com/ArtisanCloud/MediaX/pkg/client/config"
 	"github.com/ArtisanCloud/MediaXCore/pkg/cache"
 	"github.com/ArtisanCloud/MediaXCore/pkg/logger"
+	"github.com/ArtisanCloud/MediaXCore/utils/object"
 )
 
 // ByteDanceDouYinCTClient 抖音客户端Token客户端
@@ -22,6 +27,7 @@ type ByteDanceDouYinCTClient struct {
 	ByteDanceClient    *core.ByteDanceClient         // 字节跳动基础客户端
 	DouYinConfig       *config.ByteDanceDouYinConfig // 抖音配置
 	ClientTokenHandler *core.ByteDanceTokenHandler   // 客户端Token处理器
+	tokenCache         *clientTokenCache
 
 	// clients
 	video       *video.DouYinContentVideoClient       // 视频管理客户端
@@ -55,11 +61,83 @@ func NewByteDanceDouYinCTClient(cfg *config.ByteDanceDouYinConfig, logger *logge
 	// bind token handler to client
 	c.TokenHandler = handler.TokenHandler
 
-	return &ByteDanceDouYinCTClient{
+	client := &ByteDanceDouYinCTClient{
 		ByteDanceClient:    c,
 		DouYinConfig:       cfg,
 		ClientTokenHandler: handler,
-	}, nil
+	}
+	client.applyTokenCache(cache)
+	return client, nil
+}
+
+// applyTokenCache 将 DouYin client_token 缓存策略绑定到 kernel.TokenHandler：
+// 统一 redis key、refresh_before 判定，并在 TokenHandler.GetTokenQuery 中复用 EnsureClientToken。
+func (c *ByteDanceDouYinCTClient) applyTokenCache(cacheBackend cache.ICache) {
+	store := newClientTokenCache(c.DouYinConfig, cacheBackend)
+	if store == nil {
+		return
+	}
+	c.tokenCache = store
+	tokenKey := c.ClientTokenHandler.TokenHandler.TokenKey
+	if tokenKey == "" {
+		tokenKey = "access_token"
+	}
+	c.ClientTokenHandler.TokenHandler.GetTokenQuery = func(ctx context.Context) (arrayQuery *object.StringMap, arrayHeader *object.StringMap, err error) {
+		record, err := c.EnsureClientToken(ctx, false)
+		if err != nil || record == nil {
+			return nil, nil, err
+		}
+		query := object.StringMap{
+			tokenKey: record.AccessToken,
+		}
+		return &query, nil, nil
+	}
+}
+
+// EnsureClientToken 读取缓存的 DouYin client_token，若剩余 TTL 低于阈值则自动刷新并回写。
+func (c *ByteDanceDouYinCTClient) EnsureClientToken(ctx context.Context, forceRefresh bool) (*clientTokenCacheRecord, error) {
+	if c.tokenCache == nil {
+		return c.refreshClientToken(ctx)
+	}
+	if forceRefresh {
+		return c.tokenCache.forceRefresh(ctx, c.refreshClientTokenFetch)
+	}
+	return c.tokenCache.ensure(ctx, c.refreshClientTokenFetch)
+}
+
+// refreshClientTokenFetch 调用 DouYin API 刷新 Token。
+func (c *ByteDanceDouYinCTClient) refreshClientTokenFetch(ctx context.Context) (*douyinresponse.ByteDanceAccessTokenRes, error) {
+	tokenRes := &douyinresponse.ByteDanceAccessTokenRes{}
+	if err := c.ClientTokenHandler.TokenHandler.GetToken(ctx, true, tokenRes); err != nil {
+		return nil, err
+	}
+	return tokenRes, nil
+}
+
+func (c *ByteDanceDouYinCTClient) refreshClientToken(ctx context.Context) (*clientTokenCacheRecord, error) {
+	tokenRes, err := c.refreshClientTokenFetch(ctx)
+	if err != nil {
+		return nil, err
+	}
+	now := nowFunc()
+	ttl := c.DouYinConfig.EffectiveTTLSeconds()
+	if tokenRes != nil && tokenRes.ExpiresIn > 0 {
+		ttl = int(tokenRes.ExpiresIn)
+	}
+	if ttl <= 0 {
+		ttl = 7000
+	}
+	record := &clientTokenCacheRecord{
+		AppID:       c.DouYinConfig.ClientTokenCredential().ClientKeyValue(),
+		AccessToken: tokenRes.AccessToken,
+		StoredAt:    now,
+		ExpireAt:    now.Add(time.Duration(ttl) * time.Second),
+		Source:      "douyin.client",
+	}
+	if c.tokenCache != nil {
+		_ = c.tokenCache.save(ctx, record, time.Duration(ttl)*time.Second)
+	}
+	return record, nil
 }
 
 // GetContentVideoClient 获取抖音内容管理-视频管理客户端

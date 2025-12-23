@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"sort"
 	"strings"
 	"time"
 
@@ -124,12 +125,23 @@ func (tHandler *TokenHandler) RegisterHttpMiddlewares() {
 }
 
 func (tHandler *TokenHandler) GetDefaultCacheKey() string {
-	credentials := *tHandler.GetCredentials()
+	if tHandler.GetCredentials == nil {
+		return tHandler.CachePrefix
+	}
+	credentials := tHandler.GetCredentials()
+	if credentials == nil {
+		return tHandler.CachePrefix
+	}
+	keys := make([]string, 0, len(*credentials))
+	for key := range *credentials {
+		keys = append(keys, key)
+	}
+	sort.Strings(keys)
 	var builder strings.Builder
 
 	// 遍历 credentials map，拼接所有字段值
-	for _, value := range credentials {
-		builder.WriteString(value)
+	for _, key := range keys {
+		builder.WriteString((*credentials)[key])
 	}
 
 	// 计算 MD5

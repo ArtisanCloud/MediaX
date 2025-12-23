@@ -23,6 +23,7 @@
 | 变量 | 说明 |
 | --- | --- |
 | `DOUYIN_CLIENT_KEY` / `DOUYIN_CLIENT_SECRET` | DouYin ClientToken client_key/client_secret。 |
+| `DOUYIN_DEVICE_ID` / `DOUYIN_RISK_INFO` | 可选：当需要调用带风控字段的 DouYin API（如内容安全接口）时才设置；若缺省则调试台自动禁用这些 API 模板。 |
 | `CLIENTTOKEN_CONFIG` | `cmd/clienttoken/server` 的配置文件路径（默认 `config.yaml`）。 |
 | `CLIENTTOKEN_LISTEN_ADDR` | 调试服务监听地址，默认 `:7072`。 |
 | `CLIENTTOKEN_API_TOKEN` | 调试页面/HTTP API 使用的 Bearer token。 |
@@ -49,6 +50,9 @@ client_token_providers:
                 client_token:
                   client_key: "${DOUYIN_CLIENT_KEY}"
                   client_secret: "${DOUYIN_CLIENT_SECRET}"
+                # 若需要启用包含 risk_info/device_id 的 API，请在环境变量中显式设置后重启服务
+                device_id: "${DOUYIN_DEVICE_ID:-}"
+                risk_info: "${DOUYIN_RISK_INFO:-}"
                 cache:
                   redis_key: "clientToken:douyin:${DOUYIN_CLIENT_KEY}"
                   ttl_seconds: 7000
@@ -92,12 +96,33 @@ resp, err := client.GetContentTaskClient().List(ctx, &task.ListReq{})
 
 详见 `docs/develop/client-token/byteDance/debug.md`：页面提供 Token 刷新、缓存查看、API 调试与回调日志，流程与 WeChat ClientToken 相同。
 
-## 8. 常见问题
+## 8. CLI 脚本（推荐）
+
+`scripts/clienttoken-douyin.sh` 对 `/client-token/token|cache|call` 进行了封装，可在 CI/命令行快速校验：
+
+```bash
+# 刷新 Token
+CLIENTTOKEN_API_TOKEN=dev-clienttoken ./scripts/clienttoken-douyin.sh refresh
+
+# 查看缓存
+./scripts/clienttoken-douyin.sh cache show
+
+# 清空缓存
+./scripts/clienttoken-douyin.sh cache clear
+
+# 发起 Douyin API 调试（Body 支持 @file）
+./scripts/clienttoken-douyin.sh call open_api/1/content/video/list/ POST "" '{"page":1,"size":10}'
+```
+
+脚本会自动读取 `DOUYIN_CLIENT_KEY/SECRET` 等环境变量，并将响应通过 `jq` 美化。若 CLI 返回 `token refresh failed`，请检查 Douyin API 是否 5xx 或凭证是否失效。
+
+## 9. 常见问题
 
 | 问题 | 解决办法 |
 | --- | --- |
 | 缓存 Key 不更新 | 确认 `clientToken:douyin:<client_key>` 是否存在，或设置 `CLIENTTOKEN_REDIS_ADDR`。 |
 | 页面提示 `provider code not found` | 检查 `client_token_providers` 配置是否包含 `byte_dance/douyin_service`。 |
-| refresh 失败 | DouYin client_key/secret 无效，或 API 返回签名错误，查看日志 `clienttoken: refresh`。 |
+| refresh 失败 | DouYin client_key/secret 无效，或 API 返回签名错误，查看 `clienttoken_event`/`clienttoken_metric` 日志。 |
+| API 模板被禁用 | 默认需要同时提供 `DOUYIN_DEVICE_ID` 与 `DOUYIN_RISK_INFO` 后才能启用相关接口；若只设置了其中一个，调试台会提示“已禁用”。 |
 
 > 抖音 ClientToken 只适用于服务端接口，若需要用户授权的 AccessToken，请参考 `docs/develop/access-token/byteDance/` 中的指南。

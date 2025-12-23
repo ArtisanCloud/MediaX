@@ -1,4 +1,7 @@
 access_token_providers:
+  redis:
+    addr: "${ACCESSTOKEN_REDIS_ADDR:-127.0.0.1:6379}"
+    db: "${ACCESSTOKEN_REDIS_DB:-0}"
   providers:
     - code: "google"
       name: "Google"
@@ -13,17 +16,17 @@ access_token_providers:
               google_youtube_config:
                 api_url: "https://www.googleapis.com"
                 proxy_api_url: ""
-                timeout: 15            # 请求超时时间（秒）
-                http_debug: false      # 是否打印 HTTP 请求/响应
+                timeout: 15
+                http_debug: false
                 oauth:
                   access_token_url: "https://oauth2.googleapis.com/token"
                   proxy_access_token_url: ""
-                  client_id: "${GOOGLE_YOUTUBE_CLIENT_ID}"            # 推荐通过环境变量注入
-                  client_secret: "${GOOGLE_YOUTUBE_CLIENT_SECRET}"
+                  client_id: "${GOOGLE_YOUTUBE_CLIENT_ID:-your_google_client_id}"
+                  client_secret: "${GOOGLE_YOUTUBE_CLIENT_SECRET:-your_google_client_secret}"
                   redirect_url: "http://localhost:7071/debug/callback"
                   scope: "https://www.googleapis.com/auth/youtube.force-ssl"
-                  refresh_token: "${GOOGLE_YOUTUBE_REFRESH_TOKEN}"
-                  access_token: "${GOOGLE_YOUTUBE_ACCESS_TOKEN}"   # 可填入临时 AccessToken；也可以通过环境变量提供
+                  refresh_token: "${GOOGLE_YOUTUBE_REFRESH_TOKEN:-}"
+                  access_token: "${GOOGLE_YOUTUBE_ACCESS_TOKEN:-}"
                   token_expiry: 0
                 oauth_key: "default"    # 映射 token 仓库或租户标识
         - code: "blogger"
@@ -41,19 +44,19 @@ access_token_providers:
                 oauth:
                   access_token_url: "https://oauth2.googleapis.com/token"
                   proxy_access_token_url: ""
-                  client_id: "${GOOGLE_BLOGGER_CLIENT_ID}"
-                  client_secret: "${GOOGLE_BLOGGER_CLIENT_SECRET}"
+                  client_id: "${GOOGLE_BLOGGER_CLIENT_ID:-}"
+                  client_secret: "${GOOGLE_BLOGGER_CLIENT_SECRET:-}"
                   redirect_url: "http://localhost:7071/debug/callback"
                   scope: "https://www.googleapis.com/auth/blogger"
-                  refresh_token: "${GOOGLE_BLOGGER_REFRESH_TOKEN}"
-                  access_token: "${GOOGLE_BLOGGER_ACCESS_TOKEN}"
+                  refresh_token: "${GOOGLE_BLOGGER_REFRESH_TOKEN:-}"
+                  access_token: "${GOOGLE_BLOGGER_ACCESS_TOKEN:-}"
                   token_expiry: 0
                 oauth_key: "default"
     - code: "byte_dance"
       name: "字节跳动"
       apps:
-        - code: "default"                       # Flow key `<app>` 固定 default，避免误解支持多 App
-          app_key: "douyin"                     # UI/CLI 展示/上报的 provider_app，可保持 "douyin" 便于辨识
+        - code: "${DOUYIN_APP_CODE:-default}"
+          app_key: "${DOUYIN_APP_KEY:-douyin}"
           name: "抖音 Douyin"
           provider_code: "byte_dance_douyin"
           api_version: "v1"
@@ -66,13 +69,13 @@ access_token_providers:
                 timeout: 5.0
                 http_debug: false
                 oauth:
-                  oauth_url: "${DOUYIN_OAUTH_URL:-https://open.douyin.com/platform/oauth/connect}"          # 授权页 URL（必须 https）
-                  access_token_url: "${DOUYIN_ACCESS_TOKEN_URL:-https://open.douyin.com/oauth/access_token/}" # 交换 code 的 URL
-                  client_id: "${DOUYIN_CLIENT_ID}"                                                           # 推荐通过环境变量注入 client_key
-                  client_secret: "${DOUYIN_CLIENT_SECRET}"                                                   # 推荐通过环境变量注入 client_secret
-                  redirect_url: "${DOUYIN_REDIRECT_URL:-http://127.0.0.1:7071/debug/callback}"               # 回调地址
-                  scope: "${DOUYIN_SCOPE:-video.list,im.message.send}"                                       # 授权范围
-                oauth_key: "${DOUYIN_OAUTH_KEY:-default}"                                                    # 用于 Flow/Tokens 标识租户
+                  oauth_url: "${DOUYIN_OAUTH_URL:-https://open.douyin.com/platform/oauth/connect}"
+                  access_token_url: "${DOUYIN_ACCESS_TOKEN_URL:-https://open.douyin.com/oauth/access_token/}"
+                  client_id: "${DOUYIN_CLIENT_ID:-your_douyin_app_id}"
+                  client_secret: "${DOUYIN_CLIENT_SECRET:-your_douyin_app_secret}"
+                  redirect_url: "${DOUYIN_REDIRECT_URL:-http://127.0.0.1:7071/debug/callback}"
+                  scope: "${DOUYIN_SCOPE:-video.list,im.message.send}"
+                oauth_key: "${DOUYIN_OAUTH_KEY:-default}"
     - code: "redbook"
       name: "小红书"
       apps:
@@ -147,6 +150,34 @@ client_token_providers:
                 redis:
                   addr: "${WECHAT_CLIENTTOKEN_REDIS_ADDR:-127.0.0.1:6379}"
                   db: "${WECHAT_CLIENTTOKEN_REDIS_DB:-0}"
+    - code: "byte_dance"
+      name: "字节跳动"
+      apps:
+        - code: "douyin_service"
+          name: "抖音服务端"
+          provider_code: "byte_dance_douyin_clienttoken"
+          auth_modes:
+            - key: "default"
+              label: "默认"
+              byte_dance_douyin_config:
+                api_url: "https://open.douyin.com"
+                timeout: 5
+                http_debug: false
+                client_token:
+                  client_key: "${DOUYIN_CLIENT_KEY}"
+                  client_secret: "${DOUYIN_CLIENT_SECRET}"
+                # 可选：当某些 Douyin API 需要风控字段时再启用，未配置则调试台禁用相关模板
+                device_id: "${DOUYIN_DEVICE_ID:-}"
+                risk_info: "${DOUYIN_RISK_INFO:-}"
+                cache:
+                  redis_key: "clientToken:douyin:${DOUYIN_CLIENT_KEY}"
+                  ttl_seconds: 7000
+                  refresh_before_seconds: 600
+                redis:
+                  addr: "${CLIENTTOKEN_REDIS_ADDR:-127.0.0.1:6379}"
+                  db: !!int "${CLIENTTOKEN_REDIS_DB:-0}"
+                  pass: "${CLIENTTOKEN_REDIS_PASS:-}"
+                api_token: "${CLIENTTOKEN_API_TOKEN:-dev-clienttoken}"
 
 session_token_providers:
   providers:

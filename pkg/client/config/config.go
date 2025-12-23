@@ -427,6 +427,7 @@ type ClientTokenAuthMode struct {
 	Key                         string                     `yaml:"key" json:"key"`
 	Label                       string                     `yaml:"label,omitempty" json:"label,omitempty"`
 	ProviderCode                string                     `yaml:"provider_code,omitempty" json:"provider_code,omitempty"`
+	ByteDanceDouYinConfig       *ByteDanceDouYinConfig     `yaml:"byte_dance_douyin_config,omitempty" json:"byte_dance_douyin_config,omitempty"`
 	WechatOfficialAccountConfig *ClientTokenProviderConfig `yaml:"wechat_official_account_config,omitempty" json:"wechat_official_account_config,omitempty"`
 	CustomConfig                map[string]any             `yaml:"custom_config,omitempty" json:"custom_config,omitempty"`
 	Meta                        map[string]string          `yaml:"meta,omitempty" json:"meta,omitempty"`
@@ -708,6 +709,32 @@ func (cfg *ClientTokenProvidersConfig) ResolveWechatOfficialAccount(providerCode
 		}
 	}
 	return nil, fmt.Errorf("client_token_providers: 未找到 wechat_official_account_config")
+}
+
+// ResolveByteDanceDouYinClientToken 查找抖音 ClientToken 配置
+func (cfg *ClientTokenProvidersConfig) ResolveByteDanceDouYinClientToken(providerCode, appCode, modeKey string) (*ByteDanceDouYinConfig, error) {
+	if cfg == nil {
+		return nil, fmt.Errorf("client_token_providers 未配置")
+	}
+	if mode := resolveClientTokenMode(cfg, providerCode, appCode, modeKey); mode != nil && mode.ByteDanceDouYinConfig != nil {
+		return mode.ByteDanceDouYinConfig, nil
+	}
+	for _, provider := range cfg.Providers {
+		if provider == nil {
+			continue
+		}
+		for _, app := range provider.Apps {
+			if app == nil {
+				continue
+			}
+			for _, mode := range app.AuthModes {
+				if mode != nil && mode.ByteDanceDouYinConfig != nil {
+					return mode.ByteDanceDouYinConfig, nil
+				}
+			}
+		}
+	}
+	return nil, fmt.Errorf("client_token_providers: 未找到 byte_dance_douyin_config")
 }
 
 func resolveClientTokenMode(cfg *ClientTokenProvidersConfig, providerCode, appCode, modeKey string) *ClientTokenAuthMode {

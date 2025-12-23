@@ -29,12 +29,19 @@ type debugProviderApp struct {
 }
 
 type debugProviderMode struct {
-	Key          string `json:"key"`
-	Label        string `json:"label"`
-	AppID        string `json:"app_id"`
-	ConfigPath   string `json:"config_path"`
-	ProviderCode string `json:"provider_code"`
-	AppCode      string `json:"app_code"`
+	Key             string `json:"key"`
+	Label           string `json:"label"`
+	AppID           string `json:"app_id"`
+	ConfigPath      string `json:"config_path"`
+	ProviderCode    string `json:"provider_code"`
+	AppCode         string `json:"app_code"`
+	ProviderType    string `json:"provider_type"`
+	IdentifierLabel string `json:"identifier_label"`
+	SupportsAPI     bool   `json:"supports_api"`
+	SupportsMessage bool   `json:"supports_message"`
+	RiskRequired    bool   `json:"risk_required,omitempty"`
+	RiskReady       bool   `json:"risk_ready,omitempty"`
+	RiskMissing     string `json:"risk_missing,omitempty"`
 }
 
 func buildProviderMeta(localCfg *config.LocalConfig, defaultConfig string) template.JS {
@@ -60,21 +67,11 @@ func buildProviderMeta(localCfg *config.LocalConfig, defaultConfig string) templ
 				Name: app.Name,
 			}
 			for _, mode := range app.AuthModes {
-				if mode == nil || mode.WechatOfficialAccountConfig == nil {
+				metaMode := buildDebugProviderMode(app, mode, defaultConfig)
+				if metaMode == nil {
 					continue
 				}
-				label := mode.Label
-				if strings.TrimSpace(label) == "" {
-					label = mode.Key
-				}
-				appMeta.Modes = append(appMeta.Modes, debugProviderMode{
-					Key:          mode.Key,
-					Label:        label,
-					AppID:        mode.WechatOfficialAccountConfig.AppIDValue(),
-					ConfigPath:   defaultConfig,
-					ProviderCode: provider.Code,
-					AppCode:      app.Code,
-				})
+				appMeta.Modes = append(appMeta.Modes, *metaMode)
 			}
 			if len(appMeta.Modes) > 0 {
 				metaProvider.Apps = append(metaProvider.Apps, appMeta)
@@ -86,6 +83,67 @@ func buildProviderMeta(localCfg *config.LocalConfig, defaultConfig string) templ
 	}
 	data, _ := json.Marshal(result)
 	return template.JS(data)
+}
+
+func buildDebugProviderMode(app *config.ClientTokenProviderApp, mode *config.ClientTokenAuthMode, defaultConfig string) *debugProviderMode {
+	if mode == nil {
+		return nil
+	}
+	label := strings.TrimSpace(mode.Label)
+	if label == "" {
+		label = mode.Key
+	}
+	meta := &debugProviderMode{
+		Key:             mode.Key,
+		Label:           label,
+		ConfigPath:      defaultConfig,
+		ProviderCode:    effectiveClientTokenProviderCode(app, mode),
+		AppCode:         strings.TrimSpace(app.Code),
+		SupportsAPI:     true,
+		SupportsMessage: false,
+	}
+	switch {
+	case mode.WechatOfficialAccountConfig != nil:
+		cfg := mode.WechatOfficialAccountConfig
+		meta.ProviderType = string(providerTypeWechat)
+		meta.AppID = cfg.AppIDValue()
+		meta.IdentifierLabel = "AppID"
+		meta.SupportsMessage = true
+	case mode.ByteDanceDouYinConfig != nil:
+		douyinCfg := mode.ByteDanceDouYinConfig
+		douyinCfg.NormalizeClientTokenCredentials()
+		cred := douyinCfg.ClientTokenCredential()
+		clientKey := ""
+		if cred != nil {
+			clientKey = cred.ClientKeyValue()
+		}
+		if clientKey == "" && douyinCfg.ClientConfig != nil && douyinCfg.ClientConfig.OAuthConfig != nil {
+			clientKey = strings.TrimSpace(douyinCfg.ClientConfig.OAuthConfig.ClientID)
+		}
+		meta.ProviderType = string(providerTypeByteDance)
+		meta.AppID = clientKey
+		meta.IdentifierLabel = "ClientKey"
+		meta.RiskRequired = true
+		meta.RiskReady = douyinCfg.RiskControlReady()
+		if !meta.RiskReady {
+			meta.RiskMissing = strings.Join(douyinCfg.MissingRiskControlFields(), ", ")
+		}
+	default:
+		return nil
+	}
+	return meta
+}
+
+func effectiveClientTokenProviderCode(app *config.ClientTokenProviderApp, mode *config.ClientTokenAuthMode) string {
+	if mode != nil {
+		if code := strings.TrimSpace(mode.ProviderCode); code != "" {
+			return code
+		}
+	}
+	if app != nil {
+		return app.ProviderCodeValue()
+	}
+	return ""
 }
 
 var clientTokenDebugTemplate = template.Must(template.New("clienttoken_debug").Parse(`
@@ -124,7 +182,7 @@ var clientTokenDebugTemplate = template.Must(template.New("clienttoken_debug").P
 <body>
   <header>
     <h1>ClientToken 调试台</h1>
-    <p>默认监听 <code>http://127.0.0.1:7072/debug</code>，用于微信公众号 ClientToken 缓存、API 调试与消息验证。</p>
+    <p>默认监听 <code>http://127.0.0.1:7072/debug</code>，用于微信公众号 / 抖音 ClientToken 缓存、API 调试与日志排查。</p>
   </header>
   <main data-providers='{{.Providers}}' data-token='{{.DefaultAPIToken}}' data-config='{{.DefaultConfig}}'>
     <section>
@@ -144,6 +202,7 @@ var clientTokenDebugTemplate = template.Must(template.New("clienttoken_debug").P
         </div>
       </div>
       <p class="muted" id="providerMeta"></p>
+      <p class="muted" id="riskWarning" style="display:none;color:#b91c1c;font-weight:600;"></p>
       <div class="row">
         <div>
           <label>config.yaml 路径</label>
@@ -174,14 +233,14 @@ var clientTokenDebugTemplate = template.Must(template.New("clienttoken_debug").P
 
     <section>
       <h2>API 调试</h2>
-      <label>常用 API 模板（来源：pkg/client/wechat/officialAccount/clientTokenClient/*）</label>
+      <label>常用 API 模板（会根据 Provider 显示微信或抖音示例）</label>
       <select id="apiPreset">
         <option value="">自定义（手动填写下面的请求参数）</option>
       </select>
       <div class="grid two">
         <div>
-          <label>微信 API 路径</label>
-          <input id="apiAction" type="text" value="cgi-bin/getcallbackip" />
+          <label id="apiActionLabel">微信 API 路径</label>
+          <input id="apiAction" type="text" value="cgi-bin/getcallbackip" placeholder="cgi-bin/getcallbackip" />
         </div>
         <div>
           <label>HTTP Method</label>
@@ -199,7 +258,7 @@ var clientTokenDebugTemplate = template.Must(template.New("clienttoken_debug").P
       <pre id="apiOutput">// api result</pre>
     </section>
 
-    <section>
+    <section id="messageSection">
       <h2>消息验证 / 回调</h2>
       <div class="grid two">
         <div>
@@ -231,14 +290,24 @@ var clientTokenDebugTemplate = template.Must(template.New("clienttoken_debug").P
   </main>
 
 <script>
-const API_PRESETS = [
-  { label: '系统：获取 callback IP', action: 'cgi-bin/getcallbackip', method: 'GET', query: '', body: '' },
-  { label: '用户：粉丝列表', action: 'cgi-bin/user/get', method: 'GET', query: 'next_openid=', body: '' },
-  { label: '草稿：创建', action: 'cgi-bin/draft/add', method: 'POST', query: '', body: '{"articles":[{"title":"","author":"","digest":"","content":"","content_source_url":""}]}' },
-  { label: '草稿：列表', action: 'cgi-bin/draft/batchget', method: 'POST', query: '', body: '{"offset":0,"count":10,"no_content":0}' },
-  { label: '素材：统计', action: 'cgi-bin/material/get_materialcount', method: 'GET', query: '', body: '' },
-  { label: '菜单：获取自定义菜单', action: 'cgi-bin/get_current_selfmenu_info', method: 'GET', query: '', body: '' },
-];
+const PROVIDER_TYPE_WECHAT = 'wechat';
+const PROVIDER_TYPE_DOUYIN = 'byte_dance_douyin';
+
+const API_PRESETS = {
+  wechat: [
+    { label: '系统：获取 callback IP', action: 'cgi-bin/getcallbackip', method: 'GET', query: '', body: '' },
+    { label: '用户：粉丝列表', action: 'cgi-bin/user/get', method: 'GET', query: 'next_openid=', body: '' },
+    { label: '草稿：创建', action: 'cgi-bin/draft/add', method: 'POST', query: '', body: '{"articles":[{"title":"","author":"","digest":"","content":"","content_source_url":""}]}' },
+    { label: '草稿：列表', action: 'cgi-bin/draft/batchget', method: 'POST', query: '', body: '{"offset":0,"count":10,"no_content":0}' },
+    { label: '素材：统计', action: 'cgi-bin/material/get_materialcount', method: 'GET', query: '', body: '' },
+    { label: '菜单：获取自定义菜单', action: 'cgi-bin/get_current_selfmenu_info', method: 'GET', query: '', body: '' },
+  ],
+  douyin: [
+    { label: '内容：视频列表', action: 'open_api/1/content/video/list/', method: 'POST', query: '', body: '{"page":1,"size":10}' },
+    { label: '内容：任务列表', action: 'open_api/1/content/task/list/', method: 'POST', query: '', body: '{"page":1,"size":10}' },
+    { label: '工具：票据校验', action: 'open_api/1/tools/ticket/verify/', method: 'POST', query: '', body: '{"ticket_type":"API_TICKET"}' },
+  ],
+};
 
 const state = {
   providers: [],
@@ -248,12 +317,15 @@ const state = {
   appSelect: document.getElementById('appSelect'),
   modeSelect: document.getElementById('modeSelect'),
   providerMeta: document.getElementById('providerMeta'),
+  riskWarning: document.getElementById('riskWarning'),
+  apiActionInput: document.getElementById('apiAction'),
   tokenOutput: document.getElementById('tokenOutput'),
   tokenStatus: document.getElementById('tokenStatus'),
   apiOutput: document.getElementById('apiOutput'),
   messageOutput: document.getElementById('messageOutput'),
   callbackTable: document.getElementById('callbackTable'),
   apiPreset: document.getElementById('apiPreset'),
+  messageSection: document.getElementById('messageSection'),
 };
 
 function initPage() {
@@ -272,6 +344,11 @@ function initPage() {
     state.apiPreset.addEventListener('change', () => applyApiPreset());
     renderApiPresets();
   }
+  if (state.apiActionInput) {
+    state.apiActionInput.addEventListener('input', () => {
+      state.apiActionInput.dataset.userEdited = '1';
+    });
+  }
   renderProviderOptions();
   fetchCallbacks();
   loadCache();
@@ -279,8 +356,17 @@ function initPage() {
 
 function renderApiPresets() {
   if (!state.apiPreset) return;
+  const selection = currentSelection();
+  const blocked = isRiskBlocked(selection && selection.mode);
+  if (blocked) {
+    state.apiPreset.innerHTML = '<option value="">Douyin API 模板已禁用（配置 device_id + risk_info 后启用）</option>';
+    state.apiPreset.disabled = true;
+    return;
+  }
+  state.apiPreset.disabled = false;
+  const presets = getCurrentPresets();
   state.apiPreset.innerHTML = '<option value="">自定义（手动填写下面的请求参数）</option>';
-  API_PRESETS.forEach((preset, idx) => {
+  presets.forEach((preset, idx) => {
     const opt = document.createElement('option');
     opt.value = String(idx);
     opt.textContent = preset.label;
@@ -294,9 +380,18 @@ function applyApiPreset() {
   if (value === '') {
     return;
   }
-  const preset = API_PRESETS[parseInt(value, 10)];
+  const presets = getCurrentPresets();
+  const preset = presets[parseInt(value, 10)];
   if (!preset) return;
-  document.getElementById('apiAction').value = preset.action;
+  const selection = currentSelection();
+  const providerType = selection && selection.mode ? selection.mode.provider_type : '';
+  if (state.apiActionInput) {
+    state.apiActionInput.value = preset.action;
+    state.apiActionInput.dataset.userEdited = '';
+    state.apiActionInput.dataset.lastProviderType = providerType || '';
+  } else {
+    document.getElementById('apiAction').value = preset.action;
+  }
   document.getElementById('apiMethod').value = preset.method;
   document.getElementById('apiQuery').value = preset.query;
   document.getElementById('apiBody').value = preset.body;
@@ -381,16 +476,94 @@ function updateProviderMeta() {
   const selection = currentSelection();
   if (!selection) {
     state.providerMeta.textContent = '未找到 Provider 配置';
+    toggleMessageSection(true);
+    updateRiskWarning(null);
+    updateApiLabel(null);
+    syncApiActionField(null);
+    renderApiPresets();
     return;
   }
   const mode = selection.mode;
+  const providerType = mode.provider_type || '';
   const configPath = state.configInput.value || mode.config_path || 'config.yaml';
   const providerLabel = selection.provider.name || selection.provider.code || 'Provider';
   const appLabel = selection.app.name || selection.app.code || 'App';
   const modeLabel = mode.label || mode.key || 'Mode';
+  const identifier = mode.identifier_label || 'AppID';
+  const appId = mode.app_id || '-';
   state.providerMeta.innerHTML =
     providerLabel + ' / ' + appLabel + ' / ' + modeLabel +
-    ' · AppID: <code>' + (mode.app_id || '-') + '</code> • config_path: <code>' + configPath + '</code>';
+    ' · ' + identifier + ': <code>' + appId + '</code> • config_path: <code>' + configPath + '</code>';
+  updateRiskWarning(selection);
+  updateApiLabel(providerType);
+  syncApiActionField(providerType);
+  renderApiPresets();
+  toggleMessageSection(providerType === PROVIDER_TYPE_WECHAT);
+}
+
+function toggleMessageSection(enable) {
+  if (!state.messageSection) return;
+  state.messageSection.style.display = enable ? 'block' : 'none';
+}
+
+function getCurrentPresets() {
+  const selection = currentSelection();
+  if (!selection) return API_PRESETS.wechat;
+  const type = selection.mode.provider_type;
+  if (type === PROVIDER_TYPE_DOUYIN) {
+    return API_PRESETS.douyin;
+  }
+  return API_PRESETS.wechat;
+}
+
+function isRiskBlocked(mode) {
+  if (!mode) return false;
+  if (mode.provider_type !== PROVIDER_TYPE_DOUYIN) {
+    return false;
+  }
+  if (!mode.risk_required) {
+    return false;
+  }
+  return !mode.risk_ready;
+}
+
+function updateRiskWarning(selection) {
+  if (!state.riskWarning) return;
+  const blocked = selection && isRiskBlocked(selection.mode);
+  if (blocked) {
+    const missing = selection.mode.risk_missing || 'device_id, risk_info';
+    state.riskWarning.style.display = 'block';
+    state.riskWarning.textContent = '当前未配置 ' + missing + '，已禁用 Douyin API 模板。';
+  } else {
+    state.riskWarning.style.display = 'none';
+    state.riskWarning.textContent = '';
+  }
+}
+
+function updateApiLabel(providerType) {
+  const label = document.getElementById('apiActionLabel');
+  if (!label) return;
+  if (providerType === PROVIDER_TYPE_DOUYIN) {
+    label.textContent = 'Douyin API 路径';
+  } else {
+    label.textContent = '微信 API 路径';
+  }
+}
+
+function syncApiActionField(providerType) {
+  const input = state.apiActionInput;
+  if (!input) {
+    return;
+  }
+  const defaultWechat = 'cgi-bin/getcallbackip';
+  const defaultDouyin = 'open_api/1/content/video/list/';
+  const defaultValue = providerType === PROVIDER_TYPE_DOUYIN ? defaultDouyin : defaultWechat;
+  input.placeholder = defaultValue;
+  const userEdited = input.dataset.userEdited === '1';
+  if (!userEdited || input.value === defaultWechat || input.value === defaultDouyin || input.value.trim() === '') {
+    input.value = defaultValue;
+    input.dataset.userEdited = '';
+  }
 }
 
 function withAuthHeaders(extra) {

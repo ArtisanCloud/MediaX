@@ -1,0 +1,160 @@
+openapi: 3.0.3
+info:
+  title: MediaX DouYin ClientToken Debug API
+  version: '1.0'
+servers:
+  - url: http://127.0.0.1:7072
+    description: Local clienttoken server
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    RefreshRequest:
+      type: object
+      required: [provider_code, app_code, mode]
+      properties:
+        provider_code:
+          type: string
+          example: byte_dance_douyin_clienttoken
+        app_code:
+          type: string
+          example: douyin_service
+        mode:
+          type: string
+          example: default
+    RefreshResponse:
+      type: object
+      required: [client_token, ttl_seconds, redis_key, source]
+      properties:
+        client_token:
+          type: string
+          description: Masked client_token value
+        ttl_seconds:
+          type: integer
+        redis_key:
+          type: string
+        source:
+          type: string
+          enum: [redis, memory]
+        refreshed_at:
+          type: string
+          format: date-time
+    CacheViewResponse:
+      type: object
+      required: [redis_key, ttl_seconds, source, refreshed_at]
+      properties:
+        redis_key:
+          type: string
+        ttl_seconds:
+          type: integer
+        refresh_before_seconds:
+          type: integer
+        source:
+          type: string
+          enum: [redis, memory]
+        refreshed_at:
+          type: string
+          format: date-time
+        token_preview:
+          type: string
+    ApiCallRequest:
+      type: object
+      required: [provider_code, action, method]
+      properties:
+        provider_code:
+          type: string
+        action:
+          type: string
+          description: DouYin API path, e.g. open_api/1/content/video/list/
+        method:
+          type: string
+          enum: [GET, POST]
+        body:
+          type: object
+          description: JSON payload forwarded to DouYin
+    ApiCallResponse:
+      type: object
+      required: [status, response]
+      properties:
+        status:
+          type: string
+          enum: [success, error]
+        response:
+          type: object
+        flow_id:
+          type: string
+        token_source:
+          type: string
+          enum: [redis, memory]
+paths:
+  /client-token/debug/refresh:
+    post:
+      summary: Refresh DouYin client_token
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefreshRequest'
+      responses:
+        '200':
+          description: Token refreshed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RefreshResponse'
+  /client-token/cache:
+    get:
+      summary: Inspect current cached token
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: provider_code
+          schema:
+            type: string
+            default: byte_dance_douyin_clienttoken
+      responses:
+        '200':
+          description: Cache status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CacheViewResponse'
+  /client-token/call:
+    post:
+      summary: Invoke DouYin API with latest client_token
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ApiCallRequest'
+      responses:
+        '200':
+          description: API result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiCallResponse'
+  /client-token/cache:
+    delete:
+      summary: Clear cached client_token for retest
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: provider_code
+          schema:
+            type: string
+            default: byte_dance_douyin_clienttoken
+      responses:
+        '204':
+          description: Cache cleared

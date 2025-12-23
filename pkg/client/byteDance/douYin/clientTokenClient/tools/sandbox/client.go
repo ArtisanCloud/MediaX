@@ -23,14 +23,16 @@ func NewClient(c *kernel.BaseClient) *DouYinToolSandboxClient {
 // https://developer.open-douyin.com/docs/resource/zh-CN/dop/develop/openapi/tools-ability/sandbox-management/mock-webhook-event
 //
 // 参数：
-//   ctx       - 请求上下文
-//   eventType - 事件类型
+//
+//	ctx       - 请求上下文
+//	eventType - 事件类型
 //
 // 返回值：
-//   *schema.DouYinToolSandboxMockWebhookEventRes 包含以下字段：
-//     • Extra: 通用返回信息（log_id、now、error_code 等）
-//     • Data: 业务数据主体，包含具体的业务响应信息
-//   error 调用过程中遇到的错误（如有）
+//
+//	*schema.DouYinToolSandboxMockWebhookEventRes 包含以下字段：
+//	  • Extra: 通用返回信息（log_id、now、error_code 等）
+//	  • Data: 业务数据主体，包含具体的业务响应信息
+//	error 调用过程中遇到的错误（如有）
 func (c *DouYinToolSandboxClient) MockWebhookEvent(ctx context.Context, eventType string) (*schema.DouYinToolSandboxMockWebhookEventRes, error) {
 	result := &schema.DouYinToolSandboxMockWebhookEventRes{}
 	params := &object.HashMap{

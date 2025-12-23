@@ -17,7 +17,9 @@ import (
 
 	"github.com/redis/go-redis/v9"
 
+	handler "github.com/ArtisanCloud/MediaX/internal/accesstoken/handler"
 	"github.com/ArtisanCloud/MediaX/pkg/client"
+	douyinresponse "github.com/ArtisanCloud/MediaX/pkg/client/byteDance/douYin/core/response"
 	"github.com/ArtisanCloud/MediaX/pkg/client/config"
 	wechatresponse "github.com/ArtisanCloud/MediaX/pkg/client/wechat/core/response"
 	"github.com/ArtisanCloud/MediaX/pkg/utils"
@@ -130,22 +132,50 @@ func (s *clientTokenServer) requireAPIToken(next http.Handler) http.Handler {
 	})
 }
 
+type providerType string
+
+const (
+	providerTypeWechat    providerType = "wechat"
+	providerTypeByteDance providerType = "byte_dance_douyin"
+)
+
 type providerContext struct {
+	ProviderType         providerType
 	ProviderCode         string
 	AppCode              string
 	ModeKey              string
 	ConfigPath           string
-	Config               *config.ClientTokenProviderConfig
+	WechatConfig         *config.ClientTokenProviderConfig
+	ByteDanceConfig      *config.ByteDanceDouYinConfig
 	CacheKey             string
 	TTLSeconds           int
 	RefreshBeforeSeconds int
+	RiskControlReady     bool
+	RiskControlActive    bool
 }
 
 func (ctx *providerContext) AppID() string {
-	if ctx == nil || ctx.Config == nil {
+	if ctx == nil {
 		return ""
 	}
-	return ctx.Config.AppIDValue()
+	switch ctx.ProviderType {
+	case providerTypeWechat:
+		if ctx.WechatConfig == nil {
+			return ""
+		}
+		return ctx.WechatConfig.AppIDValue()
+	case providerTypeByteDance:
+		if ctx.ByteDanceConfig == nil {
+			return ""
+		}
+		cred := ctx.ByteDanceConfig.ClientTokenCredential()
+		if cred == nil {
+			return ""
+		}
+		return cred.ClientKeyValue()
+	default:
+		return ""
+	}
 }
 
 func (s *clientTokenServer) resolveProviderConfig(providerCode, appCode, modeKey, override string) (*providerContext, error) {
@@ -183,20 +213,38 @@ func (s *clientTokenServer) resolveProviderConfig(providerCode, appCode, modeKey
 		return nil, fmt.Errorf("未找到 ClientToken Provider/App (provider=%s app=%s)", providerCode, appCode)
 	}
 	modeCfg := appCfg.FindMode(mode)
-	if modeCfg == nil || modeCfg.WechatOfficialAccountConfig == nil {
-		return nil, fmt.Errorf("Provider %s app %s 缺少 wechat_official_account_config", provider.Code, appCfg.Code)
+	if modeCfg == nil {
+		return nil, fmt.Errorf("Provider %s app %s 缺少授权模式", provider.Code, appCfg.Code)
 	}
-	cfg := modeCfg.WechatOfficialAccountConfig
-	cacheKey := cfg.EffectiveRedisKey(cfg.AppIDValue())
-	ctx := &providerContext{
-		ProviderCode:         provider.Code,
-		AppCode:              appCfg.Code,
-		ModeKey:              modeCfg.Key,
-		ConfigPath:           configPath,
-		Config:               cfg,
-		CacheKey:             cacheKey,
-		TTLSeconds:           cfg.EffectiveTTLSeconds(),
-		RefreshBeforeSeconds: cfg.EffectiveRefreshBefore(),
+	ctx := &providerContext{ProviderCode: provider.Code, AppCode: appCfg.Code, ModeKey: modeCfg.Key, ConfigPath: configPath}
+	switch {
+	case modeCfg.WechatOfficialAccountConfig != nil:
+		cfg := modeCfg.WechatOfficialAccountConfig
+		cacheKey := cfg.EffectiveRedisKey(cfg.AppIDValue())
+		ctx.ProviderType = providerTypeWechat
+		ctx.WechatConfig = cfg
+		ctx.CacheKey = cacheKey
+		ctx.TTLSeconds = cfg.EffectiveTTLSeconds()
+		ctx.RefreshBeforeSeconds = cfg.EffectiveRefreshBefore()
+	case modeCfg.ByteDanceDouYinConfig != nil:
+		douyinCfg := modeCfg.ByteDanceDouYinConfig
+		douyinCfg.NormalizeClientTokenCredentials()
+		if douyinCfg.RiskControlActivated() && !douyinCfg.RiskControlReady() {
+			return nil, fmt.Errorf("Provider %s app %s 已设置 device_id/risk_info 其中一项，需同时配置 device_id 与 risk_info", provider.Code, appCfg.Code)
+		}
+		cacheKey := douyinCfg.EffectiveRedisKey("")
+		ctx.ProviderType = providerTypeByteDance
+		ctx.ByteDanceConfig = douyinCfg
+		ctx.CacheKey = cacheKey
+		ctx.TTLSeconds = douyinCfg.EffectiveTTLSeconds()
+		ctx.RefreshBeforeSeconds = douyinCfg.EffectiveRefreshBefore()
+		ctx.RiskControlActive = douyinCfg.RiskControlActivated()
+		ctx.RiskControlReady = douyinCfg.RiskControlReady()
+	default:
+		return nil, fmt.Errorf("Provider %s app %s 缺少支持的配置类型", provider.Code, appCfg.Code)
+	}
+	if strings.TrimSpace(ctx.CacheKey) == "" {
+		return nil, fmt.Errorf("Provider %s app %s 缺少 redis_key/client_key", provider.Code, appCfg.Code)
 	}
 	return ctx, nil
 }
@@ -215,6 +263,7 @@ func (s *clientTokenServer) handleToken(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 	start := time.Now()
+	subject := apiTokenSubjectFromRequest(r)
 	var req tokenRequest
 	if err := decodeJSON(r.Body, &req); err != nil {
 		s.writeError(w, http.StatusBadRequest, "invalid json: %v", err)
@@ -223,16 +272,51 @@ func (s *clientTokenServer) handleToken(w http.ResponseWriter, r *http.Request) 
 	}
 	ctx, err := s.resolveProviderConfig(req.ProviderCode, req.ProviderApp, req.ProviderAuthMode, req.ConfigPath)
 	if err != nil {
-		s.writeError(w, http.StatusBadRequest, err.Error())
+		s.writeError(w, http.StatusBadRequest, "%s", err.Error())
 		s.logMetric("token", req.ProviderCode, ctxAppID(ctx), "error", "", start, err)
+		s.logAudit(auditLogFields{
+			Event:           "clienttoken.token.refresh",
+			Action:          "refresh",
+			ProviderCode:    req.ProviderCode,
+			AppCode:         req.ProviderApp,
+			Mode:            req.ProviderAuthMode,
+			RedisKey:        "",
+			APITokenSubject: subject,
+			Status:          "error",
+			Err:             err,
+			Provider:        "",
+			StorageBackend:  s.storageBackendLabel(),
+			TokenSource:     "",
+			TTL:             0,
+		})
 		return
 	}
 	record, err := s.refreshToken(r.Context(), ctx)
 	if err != nil {
 		s.writeError(w, http.StatusBadGateway, "refresh token failed: %v", err)
 		s.logMetric("token", ctx.ProviderCode, ctx.AppID(), "error", "", start, err)
+		tokenSrc := ""
+		if record != nil {
+			tokenSrc = record.Source
+		}
+		s.logAudit(auditLogFields{
+			Event:           "clienttoken.token.refresh",
+			Action:          "refresh",
+			Provider:        string(ctx.ProviderType),
+			ProviderCode:    ctx.ProviderCode,
+			AppCode:         ctx.AppCode,
+			Mode:            ctx.ModeKey,
+			RedisKey:        ctx.CacheKey,
+			StorageBackend:  s.storageBackendLabel(),
+			TokenSource:     firstOrDash(tokenSrc),
+			APITokenSubject: subject,
+			Status:          "error",
+			Err:             err,
+		})
 		return
 	}
+	ttlSeconds := maxInt(int(record.TTLSeconds(time.Now())), 0)
+	storageBackend := s.storageBackendLabel()
 	resp := map[string]any{
 		"access_token": record.AccessToken,
 		"masked_token": maskToken(record.AccessToken),
@@ -240,12 +324,26 @@ func (s *clientTokenServer) handleToken(w http.ResponseWriter, r *http.Request) 
 		"cache_key":    ctx.CacheKey,
 		"stored_at":    record.StoredAt,
 		"expire_at":    record.ExpireAt,
-		"ttl_seconds":  maxInt(int(record.TTLSeconds(time.Now())), 0),
+		"ttl_seconds":  ttlSeconds,
 		"token_source": record.Source,
 		"config_path":  ctx.ConfigPath,
 	}
 	s.writeJSON(w, http.StatusOK, resp)
 	s.logMetric("token", ctx.ProviderCode, ctx.AppID(), "success", record.Source, start, nil)
+	s.logAudit(auditLogFields{
+		Event:           "clienttoken.token.refresh",
+		Action:          "refresh",
+		Provider:        string(ctx.ProviderType),
+		ProviderCode:    ctx.ProviderCode,
+		AppCode:         ctx.AppCode,
+		Mode:            ctx.ModeKey,
+		RedisKey:        ctx.CacheKey,
+		TTL:             ttlSeconds,
+		StorageBackend:  storageBackend,
+		TokenSource:     firstOrDash(record.Source),
+		APITokenSubject: subject,
+		Status:          "success",
+	})
 }
 
 type cacheRequest struct {
@@ -256,45 +354,249 @@ type cacheRequest struct {
 }
 
 func (s *clientTokenServer) handleCache(w http.ResponseWriter, r *http.Request) {
-	start := time.Now()
-	req := cacheRequest{
-		ProviderCode:     r.URL.Query().Get("provider_code"),
-		ProviderApp:      r.URL.Query().Get("provider_app"),
-		ProviderAuthMode: r.URL.Query().Get("provider_auth_mode"),
-		ConfigPath:       r.URL.Query().Get("config_path"),
+	switch r.Method {
+	case http.MethodGet:
+		s.handleCacheGet(w, r)
+	case http.MethodDelete:
+		s.handleCacheDelete(w, r)
+	default:
+		w.WriteHeader(http.StatusMethodNotAllowed)
 	}
+}
+
+func (s *clientTokenServer) handleCacheGet(w http.ResponseWriter, r *http.Request) {
+	start := time.Now()
+	subject := apiTokenSubjectFromRequest(r)
+	req := s.parseCacheRequest(r)
 	ctx, err := s.resolveProviderConfig(req.ProviderCode, req.ProviderApp, req.ProviderAuthMode, req.ConfigPath)
 	if err != nil {
-		s.writeError(w, http.StatusBadRequest, err.Error())
+		s.writeError(w, http.StatusBadRequest, "%s", err.Error())
 		s.logMetric("cache", req.ProviderCode, ctxAppID(ctx), "error", "", start, err)
+		s.logAudit(auditLogFields{
+			Event:           "clienttoken.cache.get",
+			Action:          "cache.get",
+			ProviderCode:    req.ProviderCode,
+			AppCode:         req.ProviderApp,
+			Mode:            req.ProviderAuthMode,
+			RedisKey:        "",
+			APITokenSubject: subject,
+			Status:          "error",
+			Err:             err,
+		})
 		return
 	}
-	record, source, err := s.tokenStore.fetch(r.Context(), ctx.CacheKey)
+	record, storage, ttl, err := s.tokenStore.fetch(r.Context(), ctx.CacheKey)
 	if err != nil {
 		s.writeError(w, http.StatusBadGateway, "load cache failed: %v", err)
 		s.logMetric("cache", ctx.ProviderCode, ctx.AppID(), "error", "", start, err)
+		s.logAudit(auditLogFields{
+			Event:           "clienttoken.cache.get",
+			Action:          "cache.get",
+			Provider:        string(ctx.ProviderType),
+			ProviderCode:    ctx.ProviderCode,
+			AppCode:         ctx.AppCode,
+			Mode:            ctx.ModeKey,
+			RedisKey:        ctx.CacheKey,
+			APITokenSubject: subject,
+			Status:          "error",
+			Err:             err,
+		})
 		return
 	}
+	storageBackend := s.cacheStorageBackend(storage)
+	ttlSeconds := maxInt(int(ttl.Seconds()), 0)
 	if record == nil {
 		s.writeJSON(w, http.StatusOK, map[string]any{
-			"cached":       false,
-			"token_source": source,
-			"cache_key":    ctx.CacheKey,
+			"cached":          false,
+			"token_source":    firstOrDash(""),
+			"cache_key":       ctx.CacheKey,
+			"storage_backend": storageBackend,
+			"ttl_seconds":     0,
+			"refreshed_at":    nil,
 		})
 		s.logMetric("cache", ctx.ProviderCode, ctx.AppID(), "miss", "", start, nil)
+		s.logAudit(auditLogFields{
+			Event:           "clienttoken.cache.get",
+			Action:          "cache.get",
+			Provider:        string(ctx.ProviderType),
+			ProviderCode:    ctx.ProviderCode,
+			AppCode:         ctx.AppCode,
+			Mode:            ctx.ModeKey,
+			RedisKey:        ctx.CacheKey,
+			TTL:             0,
+			StorageBackend:  storageBackend,
+			TokenSource:     "-",
+			APITokenSubject: subject,
+			Status:          "miss",
+		})
 		return
 	}
 	s.writeJSON(w, http.StatusOK, map[string]any{
-		"cached":       true,
-		"token_source": source,
-		"cache_key":    ctx.CacheKey,
-		"appid":        record.AppID,
-		"stored_at":    record.StoredAt,
-		"expire_at":    record.ExpireAt,
-		"ttl_seconds":  maxInt(int(record.TTLSeconds(time.Now())), 0),
-		"masked_token": maskToken(record.AccessToken),
+		"cached":          true,
+		"token_source":    firstOrDash(record.Source),
+		"cache_key":       ctx.CacheKey,
+		"appid":           record.AppID,
+		"stored_at":       record.StoredAt,
+		"refreshed_at":    record.StoredAt,
+		"expire_at":       record.ExpireAt,
+		"ttl_seconds":     ttlSeconds,
+		"masked_token":    maskToken(record.AccessToken),
+		"storage_backend": storageBackend,
 	})
-	s.logMetric("cache", ctx.ProviderCode, ctx.AppID(), "hit", source, start, nil)
+	s.logMetric("cache", ctx.ProviderCode, ctx.AppID(), "hit", record.Source, start, nil)
+	s.logAudit(auditLogFields{
+		Event:           "clienttoken.cache.get",
+		Action:          "cache.get",
+		Provider:        string(ctx.ProviderType),
+		ProviderCode:    ctx.ProviderCode,
+		AppCode:         ctx.AppCode,
+		Mode:            ctx.ModeKey,
+		RedisKey:        ctx.CacheKey,
+		TTL:             ttlSeconds,
+		StorageBackend:  storageBackend,
+		TokenSource:     firstOrDash(record.Source),
+		APITokenSubject: subject,
+		Status:          "hit",
+	})
+}
+
+func (s *clientTokenServer) handleCacheDelete(w http.ResponseWriter, r *http.Request) {
+	start := time.Now()
+	subject := apiTokenSubjectFromRequest(r)
+	req := s.parseCacheRequest(r)
+	ctx, err := s.resolveProviderConfig(req.ProviderCode, req.ProviderApp, req.ProviderAuthMode, req.ConfigPath)
+	if err != nil {
+		s.writeError(w, http.StatusBadRequest, "%s", err.Error())
+		s.logMetric("cache.delete", req.ProviderCode, ctxAppID(ctx), "error", "", start, err)
+		s.logAudit(auditLogFields{
+			Event:           "clienttoken.cache.delete",
+			Action:          "cache.delete",
+			ProviderCode:    req.ProviderCode,
+			AppCode:         req.ProviderApp,
+			Mode:            req.ProviderAuthMode,
+			APITokenSubject: subject,
+			Status:          "error",
+			Err:             err,
+		})
+		return
+	}
+	record, storage, ttl, err := s.tokenStore.fetch(r.Context(), ctx.CacheKey)
+	if err != nil {
+		s.writeError(w, http.StatusBadGateway, "load cache failed: %v", err)
+		s.logMetric("cache.delete", ctx.ProviderCode, ctx.AppID(), "error", "", start, err)
+		s.logAudit(auditLogFields{
+			Event:           "clienttoken.cache.delete",
+			Action:          "cache.delete",
+			Provider:        string(ctx.ProviderType),
+			ProviderCode:    ctx.ProviderCode,
+			AppCode:         ctx.AppCode,
+			Mode:            ctx.ModeKey,
+			RedisKey:        ctx.CacheKey,
+			APITokenSubject: subject,
+			Status:          "error",
+			Err:             err,
+		})
+		return
+	}
+	if err := s.tokenStore.delete(r.Context(), ctx.CacheKey); err != nil {
+		s.writeError(w, http.StatusBadGateway, "delete cache failed: %v", err)
+		s.logMetric("cache.delete", ctx.ProviderCode, ctx.AppID(), "error", "", start, err)
+		s.logAudit(auditLogFields{
+			Event:           "clienttoken.cache.delete",
+			Action:          "cache.delete",
+			Provider:        string(ctx.ProviderType),
+			ProviderCode:    ctx.ProviderCode,
+			AppCode:         ctx.AppCode,
+			Mode:            ctx.ModeKey,
+			RedisKey:        ctx.CacheKey,
+			APITokenSubject: subject,
+			Status:          "error",
+			Err:             err,
+		})
+		return
+	}
+	storageBackend := s.cacheStorageBackend(storage)
+	ttlSeconds := maxInt(int(ttl.Seconds()), 0)
+	tokenSource := ""
+	if record != nil {
+		tokenSource = record.Source
+	}
+	resp := map[string]any{
+		"deleted":         true,
+		"cached_before":   record != nil,
+		"cache_key":       ctx.CacheKey,
+		"provider_code":   ctx.ProviderCode,
+		"provider_app":    ctx.AppCode,
+		"provider_mode":   ctx.ModeKey,
+		"storage_backend": storageBackend,
+		"ttl_seconds":     ttlSeconds,
+		"token_source":    firstOrDash(tokenSource),
+		"refreshed_at":    nil,
+	}
+	if record != nil {
+		resp["appid"] = record.AppID
+		resp["refreshed_at"] = record.StoredAt
+		resp["expire_at"] = record.ExpireAt
+		resp["masked_token"] = maskToken(record.AccessToken)
+	}
+	s.writeJSON(w, http.StatusOK, resp)
+	s.logMetric("cache.delete", ctx.ProviderCode, ctx.AppID(), "success", tokenSource, start, nil)
+	s.logAudit(auditLogFields{
+		Event:           "clienttoken.cache.delete",
+		Action:          "cache.delete",
+		Provider:        string(ctx.ProviderType),
+		ProviderCode:    ctx.ProviderCode,
+		AppCode:         ctx.AppCode,
+		Mode:            ctx.ModeKey,
+		RedisKey:        ctx.CacheKey,
+		TTL:             ttlSeconds,
+		StorageBackend:  storageBackend,
+		TokenSource:     firstOrDash(tokenSource),
+		APITokenSubject: subject,
+		Status:          "success",
+	})
+}
+
+func (s *clientTokenServer) parseCacheRequest(r *http.Request) cacheRequest {
+	values := r.URL.Query()
+	req := cacheRequest{
+		ProviderCode:     values.Get("provider_code"),
+		ProviderApp:      values.Get("provider_app"),
+		ProviderAuthMode: values.Get("provider_auth_mode"),
+		ConfigPath:       values.Get("config_path"),
+	}
+	if r.Method == http.MethodPost || r.Method == http.MethodDelete {
+		var payload cacheRequest
+		if err := decodeJSON(r.Body, &payload); err == nil {
+			if payload.ProviderCode != "" {
+				req.ProviderCode = payload.ProviderCode
+			}
+			if payload.ProviderApp != "" {
+				req.ProviderApp = payload.ProviderApp
+			}
+			if payload.ProviderAuthMode != "" {
+				req.ProviderAuthMode = payload.ProviderAuthMode
+			}
+			if payload.ConfigPath != "" {
+				req.ConfigPath = payload.ConfigPath
+			}
+		}
+	}
+	return req
+}
+
+func (s *clientTokenServer) storageBackendLabel() string {
+	if s.redis == nil {
+		return "memory"
+	}
+	return "redis"
+}
+
+func (s *clientTokenServer) cacheStorageBackend(storage string) string {
+	if strings.TrimSpace(storage) != "" {
+		return strings.TrimSpace(storage)
+	}
+	return s.storageBackendLabel()
 }
 
 type callRequest struct {
@@ -314,6 +616,7 @@ func (s *clientTokenServer) handleCall(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	start := time.Now()
+	subject := apiTokenSubjectFromRequest(r)
 	var req callRequest
 	if err := decodeJSON(r.Body, &req); err != nil {
 		s.writeError(w, http.StatusBadRequest, "invalid json: %v", err)
@@ -328,22 +631,74 @@ func (s *clientTokenServer) handleCall(w http.ResponseWriter, r *http.Request) {
 	}
 	ctxMeta, err := s.resolveProviderConfig(req.ProviderCode, req.ProviderApp, req.ProviderAuthMode, req.ConfigPath)
 	if err != nil {
-		s.writeError(w, http.StatusBadRequest, err.Error())
+		s.writeError(w, http.StatusBadRequest, "%s", err.Error())
 		s.logMetric("call", req.ProviderCode, ctxAppID(ctxMeta), "error", "", start, err)
+		s.logAudit(auditLogFields{
+			Event:           "clienttoken.call",
+			Action:          req.Action,
+			ProviderCode:    req.ProviderCode,
+			AppCode:         req.ProviderApp,
+			Mode:            req.ProviderAuthMode,
+			RedisKey:        "",
+			APITokenSubject: subject,
+			Status:          "error",
+			Err:             err,
+		})
 		return
 	}
-	tokenRec, err := s.ensureToken(r.Context(), ctxMeta)
+	needsRiskFields := ctxMeta.ProviderType == providerTypeByteDance
+	riskReady := !needsRiskFields || ctxMeta.RiskControlReady
+	riskExtra := ""
+	if needsRiskFields && !riskReady {
+		riskExtra = "risk_fields=disabled"
+	}
+	tokenRec, storageBackend, ttlDur, err := s.ensureToken(r.Context(), ctxMeta)
 	if err != nil {
-		s.writeError(w, http.StatusBadGateway, "ensure token failed: %v", err)
+		if errors.Is(err, errTokenRefreshFailed) {
+			s.writeError(w, http.StatusBadGateway, "token refresh failed: ttl_remaining=%d seconds", maxInt(int(ttlDur.Seconds()), 0))
+		} else {
+			s.writeError(w, http.StatusBadGateway, "ensure token failed: %v", err)
+		}
 		s.logMetric("call", ctxMeta.ProviderCode, ctxMeta.AppID(), "error", "", start, err)
+		s.logAudit(auditLogFields{
+			Event:           "clienttoken.call",
+			Action:          req.Action,
+			Provider:        string(ctxMeta.ProviderType),
+			ProviderCode:    ctxMeta.ProviderCode,
+			AppCode:         ctxMeta.AppCode,
+			Mode:            ctxMeta.ModeKey,
+			RedisKey:        ctxMeta.CacheKey,
+			StorageBackend:  storageBackend,
+			APITokenSubject: subject,
+			Status:          "error",
+			Err:             err,
+			Extra:           riskExtra,
+		})
 		return
 	}
 	result, err := s.executeAPICall(r.Context(), ctxMeta, &req)
 	if err != nil {
-		s.writeError(w, http.StatusBadGateway, err.Error())
+		s.writeError(w, http.StatusBadGateway, "%s", err.Error())
 		s.logMetric("call", ctxMeta.ProviderCode, ctxMeta.AppID(), "error", tokenRec.Source, start, err)
+		s.logAudit(auditLogFields{
+			Event:           "clienttoken.call",
+			Action:          req.Action,
+			Provider:        string(ctxMeta.ProviderType),
+			ProviderCode:    ctxMeta.ProviderCode,
+			AppCode:         ctxMeta.AppCode,
+			Mode:            ctxMeta.ModeKey,
+			RedisKey:        ctxMeta.CacheKey,
+			TTL:             maxInt(int(ttlDur.Seconds()), 0),
+			StorageBackend:  storageBackend,
+			TokenSource:     firstOrDash(tokenRec.Source),
+			APITokenSubject: subject,
+			Status:          "error",
+			Err:             err,
+			Extra:           riskExtra,
+		})
 		return
 	}
+	ttlSeconds := maxInt(int(ttlDur.Seconds()), 0)
 	resp := map[string]any{
 		"result":        result,
 		"token_source":  tokenRec.Source,
@@ -358,11 +713,39 @@ func (s *clientTokenServer) handleCall(w http.ResponseWriter, r *http.Request) {
 	}
 	s.writeJSON(w, http.StatusOK, resp)
 	s.logMetric("call", ctxMeta.ProviderCode, ctxMeta.AppID(), "success", tokenRec.Source, start, nil)
+	s.logAudit(auditLogFields{
+		Event:           "clienttoken.call",
+		Action:          req.Action,
+		Provider:        string(ctxMeta.ProviderType),
+		ProviderCode:    ctxMeta.ProviderCode,
+		AppCode:         ctxMeta.AppCode,
+		Mode:            ctxMeta.ModeKey,
+		RedisKey:        ctxMeta.CacheKey,
+		TTL:             ttlSeconds,
+		StorageBackend:  storageBackend,
+		TokenSource:     firstOrDash(tokenRec.Source),
+		APITokenSubject: subject,
+		Status:          "success",
+		Extra:           riskExtra,
+	})
 }
 
 func (s *clientTokenServer) executeAPICall(ctx context.Context, meta *providerContext, req *callRequest) (map[string]any, error) {
-	wechatClient, err := s.mediaX.CreateWechatClientTokenClient(meta.Config)
-	// ensure token handler uses cache
+	switch meta.ProviderType {
+	case providerTypeWechat:
+		return s.executeWechatAPICall(ctx, meta, req)
+	case providerTypeByteDance:
+		return s.executeByteDanceAPICall(ctx, meta, req)
+	default:
+		return nil, fmt.Errorf("provider %s 暂不支持 API 调试", meta.ProviderCode)
+	}
+}
+
+func (s *clientTokenServer) executeWechatAPICall(ctx context.Context, meta *providerContext, req *callRequest) (map[string]any, error) {
+	if meta.WechatConfig == nil {
+		return nil, fmt.Errorf("provider %s 配置缺失", meta.ProviderCode)
+	}
+	wechatClient, err := s.mediaX.CreateWechatClientTokenClient(meta.WechatConfig)
 	if err != nil {
 		return nil, fmt.Errorf("create wechat client: %w", err)
 	}
@@ -377,14 +760,52 @@ func (s *clientTokenServer) executeAPICall(ctx context.Context, meta *providerCo
 			return nil, fmt.Errorf("parse body json: %w", err)
 		}
 	}
-	var result map[string]any
+	result := map[string]any{}
 	switch method {
 	case http.MethodGet:
-		result = map[string]any{}
 		_, err = wechatClient.GetBaseClient().HttpGet(ctx, req.Action, queryMap, nil, nil, &result)
 	case http.MethodPost:
-		result = map[string]any{}
 		_, err = wechatClient.GetBaseClient().HttpPost(ctx, req.Action, queryMap, bodyData, nil, &result)
+	default:
+		return nil, fmt.Errorf("暂不支持 method=%s", method)
+	}
+	if err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
+func (s *clientTokenServer) executeByteDanceAPICall(ctx context.Context, meta *providerContext, req *callRequest) (map[string]any, error) {
+	if meta.ByteDanceConfig == nil {
+		return nil, fmt.Errorf("provider %s 配置缺失", meta.ProviderCode)
+	}
+	douyinClient, err := s.mediaX.CreateByteDanceDouYinCTClient(meta.ByteDanceConfig)
+	if err != nil {
+		return nil, fmt.Errorf("create douyin client: %w", err)
+	}
+	if douyinClient == nil || douyinClient.ByteDanceClient == nil || douyinClient.ByteDanceClient.BaseClient == nil {
+		return nil, fmt.Errorf("provider %s 缺少 base client", meta.ProviderCode)
+	}
+	method := strings.ToUpper(strings.TrimSpace(req.Method))
+	if method == "" {
+		method = http.MethodPost
+	}
+	queryMap := parseQueryString(req.Query)
+	var bodyData interface{}
+	if strings.TrimSpace(req.Body) != "" {
+		if err := json.Unmarshal([]byte(req.Body), &bodyData); err != nil {
+			return nil, fmt.Errorf("parse body json: %w", err)
+		}
+	} else if method == http.MethodPost {
+		bodyData = map[string]any{}
+	}
+	result := map[string]any{}
+	baseClient := douyinClient.ByteDanceClient.BaseClient
+	switch method {
+	case http.MethodGet:
+		_, err = baseClient.HttpGet(ctx, req.Action, queryMap, nil, nil, &result)
+	case http.MethodPost:
+		_, err = baseClient.HttpPost(ctx, req.Action, queryMap, bodyData, nil, &result)
 	default:
 		return nil, fmt.Errorf("暂不支持 method=%s", method)
 	}
@@ -420,11 +841,16 @@ func (s *clientTokenServer) handleMessageValidate(w http.ResponseWriter, r *http
 	}
 	ctxMeta, err := s.resolveProviderConfig(req.ProviderCode, req.ProviderApp, req.ProviderAuthMode, req.ConfigPath)
 	if err != nil {
-		s.writeError(w, http.StatusBadRequest, err.Error())
+		s.writeError(w, http.StatusBadRequest, "%s", err.Error())
 		s.logMetric("message.validate", req.ProviderCode, ctxAppID(ctxMeta), "error", "", start, err)
 		return
 	}
-	cred := ctxMeta.Config.Credentials()
+	if ctxMeta.ProviderType != providerTypeWechat || ctxMeta.WechatConfig == nil {
+		s.writeError(w, http.StatusBadRequest, "该 Provider 不支持消息验证")
+		s.logMetric("message.validate", ctxMeta.ProviderCode, ctxMeta.AppID(), "error", "", start, fmt.Errorf("unsupported provider"))
+		return
+	}
+	cred := ctxMeta.WechatConfig.Credentials()
 	if cred == nil || cred.MessageTokenValue() == "" {
 		s.writeError(w, http.StatusBadRequest, "配置缺少 message_token")
 		s.logMetric("message.validate", ctxMeta.ProviderCode, ctxMeta.AppID(), "error", "", start, fmt.Errorf("missing message token"))
@@ -511,13 +937,77 @@ func sanitizeHeaders(headers http.Header) map[string]string {
 }
 
 func (s *clientTokenServer) refreshToken(ctx context.Context, meta *providerContext) (*tokenCacheRecord, error) {
-	wechatClient, err := s.mediaX.CreateWechatClientTokenClient(meta.Config)
+	switch meta.ProviderType {
+	case providerTypeWechat:
+		return s.refreshWechatToken(ctx, meta)
+	case providerTypeByteDance:
+		return s.refreshByteDanceToken(ctx, meta)
+	default:
+		return nil, fmt.Errorf("provider %s 暂不支持刷新", meta.ProviderCode)
+	}
+}
+
+func (s *clientTokenServer) refreshByteDanceToken(ctx context.Context, meta *providerContext) (*tokenCacheRecord, error) {
+	if meta.ByteDanceConfig == nil {
+		return nil, fmt.Errorf("provider %s 配置缺失", meta.ProviderCode)
+	}
+	douyinClient, err := s.mediaX.CreateByteDanceDouYinCTClient(meta.ByteDanceConfig)
 	if err != nil {
 		return nil, err
 	}
-	tokenRes := &wechatresponse.WeChatAccessTokenRes{}
-	err = wechatClient.AccessTokenHandler.ClientTokenHandler.GetToken(ctx, true, tokenRes)
+	handler := douyinClient.ClientTokenHandler
+	if handler == nil || handler.TokenHandler == nil {
+		return nil, fmt.Errorf("provider %s 缺少 token handler", meta.ProviderCode)
+	}
+	if strings.TrimSpace(meta.CacheKey) != "" {
+		handler.TokenHandler.SetCacheKey(meta.CacheKey)
+	}
+	tokenRes := &douyinresponse.ByteDanceAccessTokenRes{}
+	if err := handler.TokenHandler.GetToken(ctx, true, tokenRes); err != nil {
+		return nil, err
+	}
+	now := time.Now()
+	ttl := meta.TTLSeconds
+	if tokenRes != nil && tokenRes.ExpiresIn > 0 {
+		ttl = int(tokenRes.ExpiresIn)
+	}
+	if ttl <= 0 {
+		ttl = 7000
+	}
+	record := &tokenCacheRecord{
+		AppID:       meta.AppID(),
+		AccessToken: strings.TrimSpace(tokenRes.AccessToken),
+		StoredAt:    now,
+		ExpireAt:    now.Add(time.Duration(ttl) * time.Second),
+		Source:      "refresh",
+		ErrorCode:   tokenRes.ErrCode,
+		ErrorMsg:    strings.TrimSpace(tokenRes.ErrMsg),
+	}
+	if record.AccessToken == "" {
+		return record, fmt.Errorf("douyin token empty")
+	}
+	if tokenRes.ErrCode != 0 {
+		return record, fmt.Errorf("douyin token error: errcode=%d errmsg=%s", tokenRes.ErrCode, record.ErrorMsg)
+	}
+	if err := s.tokenStore.save(ctx, meta.CacheKey, record, time.Duration(ttl)*time.Second); err != nil {
+		return nil, err
+	}
+	return record, nil
+}
+
+func (s *clientTokenServer) refreshWechatToken(ctx context.Context, meta *providerContext) (*tokenCacheRecord, error) {
+	if meta.WechatConfig == nil {
+		return nil, fmt.Errorf("provider %s 配置缺失", meta.ProviderCode)
+	}
+	wechatClient, err := s.mediaX.CreateWechatClientTokenClient(meta.WechatConfig)
 	if err != nil {
+		return nil, err
+	}
+	if strings.TrimSpace(meta.CacheKey) != "" && wechatClient.AccessTokenHandler != nil && wechatClient.AccessTokenHandler.ClientTokenHandler != nil {
+		wechatClient.AccessTokenHandler.ClientTokenHandler.SetCacheKey(meta.CacheKey)
+	}
+	tokenRes := &wechatresponse.WeChatAccessTokenRes{}
+	if err := wechatClient.AccessTokenHandler.ClientTokenHandler.GetToken(ctx, true, tokenRes); err != nil {
 		return nil, err
 	}
 	now := time.Now()
@@ -546,24 +1036,40 @@ func (s *clientTokenServer) refreshToken(ctx context.Context, meta *providerCont
 	return record, nil
 }
 
-func (s *clientTokenServer) ensureToken(ctx context.Context, meta *providerContext) (*tokenCacheRecord, error) {
-	record, _, err := s.tokenStore.fetch(ctx, meta.CacheKey)
+var errTokenRefreshFailed = errors.New("token refresh failed")
+
+func wrapRefreshError(err error) error {
+	if err == nil {
+		return errTokenRefreshFailed
+	}
+	return fmt.Errorf("%w: %v", errTokenRefreshFailed, err)
+}
+
+func (s *clientTokenServer) ensureToken(ctx context.Context, meta *providerContext) (*tokenCacheRecord, string, time.Duration, error) {
+	record, storage, ttl, err := s.tokenStore.fetch(ctx, meta.CacheKey)
 	if err != nil {
 		s.logger.WarnF("clienttoken: fetch cache failed: %v", err)
 	}
-	now := time.Now()
 	needRefresh := false
 	if record == nil {
 		needRefresh = true
-	} else if ttl := record.ExpireAt.Sub(now); ttl <= 0 {
+	} else if ttl <= 0 {
 		needRefresh = true
 	} else if ttl <= time.Duration(meta.RefreshBeforeSeconds)*time.Second {
 		needRefresh = true
 	}
 	if needRefresh {
-		return s.refreshToken(ctx, meta)
+		refreshed, refreshErr := s.refreshToken(ctx, meta)
+		if refreshErr != nil {
+			return nil, s.storageBackendLabel(), ttl, wrapRefreshError(refreshErr)
+		}
+		ttlDur := refreshed.ExpireAt.Sub(time.Now())
+		if ttlDur < 0 {
+			ttlDur = 0
+		}
+		return refreshed, s.storageBackendLabel(), ttlDur, nil
 	}
-	return record, nil
+	return record, s.cacheStorageBackend(storage), ttl, nil
 }
 
 func (s *clientTokenServer) writeError(w http.ResponseWriter, status int, format string, args ...interface{}) {
@@ -619,13 +1125,6 @@ func ctxAppID(ctx *providerContext) string {
 	return ctx.AppID()
 }
 
-func (record *tokenCacheRecord) TTLSeconds(now time.Time) float64 {
-	if record == nil {
-		return 0
-	}
-	return record.ExpireAt.Sub(now).Seconds()
-}
-
 func (s *clientTokenServer) logMetric(action, provider, appid, status, tokenSource string, start time.Time, err error) {
 	latency := time.Since(start)
 	errMsg := ""
@@ -641,6 +1140,69 @@ func (s *clientTokenServer) logMetric(action, provider, appid, status, tokenSour
 		firstOrDash(tokenSource),
 		firstOrDash(errMsg),
 	)
+}
+
+type auditLogFields struct {
+	Event           string
+	Provider        string
+	ProviderCode    string
+	AppCode         string
+	Mode            string
+	Action          string
+	RedisKey        string
+	TTL             int
+	StorageBackend  string
+	TokenSource     string
+	APITokenSubject string
+	Status          string
+	Err             error
+	Extra           string
+}
+
+func (s *clientTokenServer) logAudit(fields auditLogFields) {
+	errMsg := "-"
+	if fields.Err != nil {
+		errMsg = fields.Err.Error()
+	}
+	extra := firstOrDash(fields.Extra)
+	ttl := fields.TTL
+	if ttl < 0 {
+		ttl = 0
+	}
+	s.logger.InfoF("clienttoken_event event=%s provider=%s provider_code=%s app_code=%s mode=%s action=%s redis_key=%s ttl_remaining=%d storage_backend=%s token_source=%s api_token_subject=%s status=%s extra=%s error=%s",
+		firstOrDash(fields.Event),
+		firstOrDash(fields.Provider),
+		firstOrDash(fields.ProviderCode),
+		firstOrDash(fields.AppCode),
+		firstOrDash(fields.Mode),
+		firstOrDash(fields.Action),
+		firstOrDash(fields.RedisKey),
+		ttl,
+		firstOrDash(fields.StorageBackend),
+		firstOrDash(fields.TokenSource),
+		firstOrDash(fields.APITokenSubject),
+		firstOrDash(fields.Status),
+		extra,
+		firstOrDash(errMsg),
+	)
+}
+
+func apiTokenSubjectFromRequest(r *http.Request) string {
+	if r == nil {
+		return "-"
+	}
+	if auth := strings.TrimSpace(r.Header.Get("Authorization")); auth != "" {
+		return "authorization:" + handler.MaskAuthorizationHeader(auth)
+	}
+	if header := strings.TrimSpace(r.Header.Get("X-API-Token")); header != "" {
+		return "header:" + maskToken(header)
+	}
+	if r.URL != nil {
+		if query := strings.TrimSpace(r.URL.Query().Get("api_token")); query != "" {
+			return "query:" + maskToken(query)
+		}
+	}
+	return "-"
 }
 
 func firstOrDash(v string) string {

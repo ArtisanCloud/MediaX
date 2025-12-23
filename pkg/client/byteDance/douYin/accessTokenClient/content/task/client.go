@@ -26,15 +26,18 @@ func NewClient(c *kernel.BaseClient) *DouYinContentTaskClient {
 // https://developer.open-douyin.com/docs/resource/zh-CN/dop/develop/openapi/video-management/posting-task/bind-video
 //
 // 参数：
-//   ctx  - 请求上下文
-//   data - 请求参数，包含：
-//          • TaskId: 任务ID，创建任务之后获取的任务ID，必填
-//          • VideoId: 视频ID，必填
+//
+//	ctx  - 请求上下文
+//	data - 请求参数，包含：
+//	       • TaskId: 任务ID，创建任务之后获取的任务ID，必填
+//	       • VideoId: 视频ID，必填
+//
 // 返回值：
-//   *schema.DouYinContentBindVideoRes - 包含以下字段：
-//     • Extra: 通用返回信息（log_id、now、error_code 等）
-//     • Data: 业务数据主体，包含具体的业务响应信息
-//   error - 调用过程中遇到的错误（如有）
+//
+//	*schema.DouYinContentBindVideoRes - 包含以下字段：
+//	  • Extra: 通用返回信息（log_id、now、error_code 等）
+//	  • Data: 业务数据主体，包含具体的业务响应信息
+//	error - 调用过程中遇到的错误（如有）
 func (c *DouYinContentTaskClient) BindVideo(ctx context.Context, data *schema.DouYinContentBindVideoReq) (*schema.DouYinContentBindVideoRes, error) {
 	result := &schema.DouYinContentBindVideoRes{}
 
